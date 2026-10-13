@@ -3,11 +3,25 @@ import math,zipfile
 from kcee.fea import table
 
 def tetra_quality(points):
+    if len(points)!=4 or any(len(p)!=3 or not all(math.isfinite(x) for x in p) for p in points):raise ValueError('Invalid tetrahedron coordinates')
     a,b,c,d=points;u=[b[i]-a[i] for i in range(3)];v=[c[i]-a[i] for i in range(3)];w=[d[i]-a[i] for i in range(3)]
     volume=(u[0]*(v[1]*w[2]-v[2]*w[1])-u[1]*(v[0]*w[2]-v[2]*w[0])+u[2]*(v[0]*w[1]-v[1]*w[0]))/6
-    if volume<=0:raise ValueError('Non-positive tetrahedron volume')
+    if not math.isfinite(volume) or volume<=0:raise ValueError('Non-positive tetrahedron volume')
     edges=sum(sum((points[i][k]-points[j][k])**2 for k in range(3)) for i in range(4) for j in range(i))
     return volume,12*(3*volume)**(2/3)/edges
+
+def stress_records(rows,element_ids):
+    stresses=[];seen=set()
+    for row in rows:
+        if len(row)!=8 or not all(math.isfinite(x) for x in row):raise ValueError('Invalid integration-point stress values')
+        eid,ip=int(row[0]),int(row[1])
+        if row[0]!=eid or row[1]!=ip or eid not in element_ids or ip not in (1,2,3,4) or (eid,ip) in seen:raise ValueError('Invalid or duplicate stress identity')
+        seen.add((eid,ip));sx,sy,sz,xy,xz,yz=row[2:8]
+        vm=math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(xy*xy+xz*xz+yz*yz))
+        if not math.isfinite(vm):raise ValueError('Non-finite stress magnitude')
+        stresses.append((vm,eid,ip))
+    if seen!={(eid,ip) for eid in element_ids for ip in (1,2,3,4)}:raise ValueError('Incomplete C3D10 integration-point stresses')
+    return stresses
 
 def diagnose(archive):
     with zipfile.ZipFile(archive) as z:
@@ -18,9 +32,7 @@ def diagnose(archive):
         elif section=='nodes':values=line.split(',');nodes[int(values[0])]=list(map(float,values[1:4]))
         elif section=='elements':values=list(map(int,line.split(',')));elements[values[0]]=values[1:]
     quality={eid:tetra_quality([nodes[n] for n in e[:4]]) for eid,e in elements.items()}
-    stresses=[]
-    for row in table(data,'stresses'):
-        sx,sy,sz,xy,xz,yz=row[2:8];vm=math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(xy*xy+xz*xz+yz*yz));stresses.append((vm,int(row[0]),int(row[1])))
+    stresses=stress_records(table(data,'stresses'),set(elements))
     peaks=[]
     for stress,eid,ip in sorted(stresses,reverse=True)[:10]:
         center=[sum(nodes[n][j] for n in elements[eid][:4])/4 for j in range(3)]

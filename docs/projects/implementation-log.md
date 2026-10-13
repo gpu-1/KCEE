@@ -171,3 +171,7 @@
 ## 2026-10-13 — Comparison copy fallback
 - Added read-only inline JSON receipt and Select all JSON for browsers without working downloads.
 - Browser verified all 2,226 receipt characters selected and correct reference identity; seven viewer checks/build pass.
+
+## 2026-10-13 — Complete stress diagnostic data checks
+- Require four unique, finite integration-point stress records per C3D10 element. Reject invalid IDs and non-finite geometry.
+- Both archived and live bracket diagnostics pass with unchanged peak values; all 41 unit tests pass.
