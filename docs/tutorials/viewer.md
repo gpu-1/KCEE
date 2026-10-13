@@ -8,3 +8,5 @@ Switching runs clears the previous model/results and cancels pending requests. V
 The Vite preview service proxies /api to the local API container, avoiding browser CORS configuration. This is a local development workspace, not a public production server. Local Node development uses `npm ci`, `npm test`, `npm run dev`; API target defaults to localhost:8000 or set API_PROXY_TARGET. Dependencies and image digest are pinned after ARM64 build verification.
 
 Regression checks: `python3 scripts/check_integration.py --viewer` builds an isolated database/API/viewer stack, checks the API proxy including run creation and artifact downloads, then cleans up its own test volume. Viewer client tests run during its image build.
+
+Native creation: provision PicoGK, start `python3 scripts/start_geometry_worker.py`, and refresh. Select Native PicoGK, then Create bracket demo. An unavailable worker disables native creation. Baseline mesh is a separate explicit choice.

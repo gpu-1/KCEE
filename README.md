@@ -18,3 +18,5 @@ cp .env.example .env
 API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
 
 The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence and integrity checks are implemented; real solver adapters remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
+
+For native viewer generation, provision PicoGK and run `python3 scripts/start_geometry_worker.py`; then refresh the viewer. See [native worker](docs/operations/native-geometry-worker.md).

@@ -28,7 +28,8 @@ services:
       PGUSER: kcee_app
       PGPASSWORD: ${KCEE_APP_DB_PASSWORD:?Set KCEE_APP_DB_PASSWORD in .env}
       AI_URL: ${AI_URL:-http://host.docker.internal:8081}
-      GEOMETRY_URL: ${GEOMETRY_URL:-http://host.docker.internal:8082}
+      KCEE_GEOMETRY_QUEUE: /data/geometry/queue
+      KCEE_GEOMETRY_KEY: /data/geometry/key
       VOICE_URL: ${VOICE_URL:-http://host.docker.internal:8083}
       WHISPER_URL: ${WHISPER_URL:-http://host.docker.internal:8084}
     healthcheck:
@@ -36,7 +37,7 @@ services:
       interval: 5s
       timeout: 4s
       retries: 10
-    volumes: ["./runs:/data/runs"]
+    volumes: ["./runs:/data/runs", "./.local/geometry:/data/geometry"]
     depends_on:
       postgres: {condition: service_healthy}
     networks: [local]

@@ -71,6 +71,12 @@ class RegistryIntegration(unittest.TestCase):
             self.assertEqual(json.load(response)['integrity'],'verified')
         with urlopen(base+'/api/artifacts/'+data['run_id']+'/bracket.stl',timeout=15) as response:
             self.assertTrue(response.read().startswith(b'solid bracket'))
+    def test_native_unavailable_and_invalid_backend(self):
+        self.assertFalse(request('/capabilities')[1]['geometry']['picogk'])
+        for backend,expected in [('picogk',503),('unknown',422)]:
+            req=Request(BASE+'/runs/bracket',data=json.dumps({'geometry_backend':backend}).encode(),method='POST',headers={'Content-Type':'application/json'})
+            with self.assertRaises(HTTPError) as context: urlopen(req,timeout=15)
+            self.assertEqual(context.exception.code,expected)
     def test_owner_append_only_trigger(self):
         for sql in ('UPDATE design_runs SET validation_status=validation_status','DELETE FROM design_runs','TRUNCATE design_runs'):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:

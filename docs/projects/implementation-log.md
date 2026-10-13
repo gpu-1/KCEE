@@ -29,3 +29,11 @@
 - Container API still creates the baseline mesh; host-generated native runs are imported for viewing. Solver-backed stress/deflection remain pending.
 - Ten unit tests, six viewer client tests, five live API/proxy/database checks and native geometry regressions pass.
 - Native run 81c4ade0-895c-4c1d-9399-f838c331e652 was imported and visually checked in the Three.js viewer.
+
+## 2026-10-13 — Native viewer generation milestone
+- Connected viewer/API creation to native PicoGK through a signed local file queue.
+- Added signed worker readiness, job/request identity, hashed STL delivery, bounded queue execution and explicit failure handling.
+- Added native/baseline selection and disabled native creation while the worker is unavailable.
+- Sixteen unit tests, six viewer client tests and six live API/database/proxy regression tests pass.
+- Browser verified native creation, saved provenance, worker shutdown/recovery and explicit baseline selection.
+- Worker remains running locally; startup after reboot is explicit. Numerical structural analysis remains pending.

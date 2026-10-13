@@ -5,6 +5,10 @@ from uuid import UUID
 import psycopg
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from typing import Literal
+from kcee.picogk import GeometryError
+from kcee.geometry_queue import available
 from kcee.demo import run
 from kcee.registry import Registry
 from kcee.provenance import IntegrityError
@@ -26,10 +30,20 @@ def ready():
     except psycopg.Error: raise HTTPException(503,'Database unavailable or schema not installed')
     return {'status':'ready','database':'connected'}
 
+class BracketRequest(BaseModel):
+    geometry_backend: Literal['mesh','picogk']='mesh'
+
+@app.get('/capabilities')
+def capabilities():
+    queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
+    key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'validation':'analytical_screening_only'}
+
 @app.post('/runs/bracket',status_code=201)
-def bracket():
+def bracket(body: BracketRequest=BracketRequest()):
     ready()
-    dest=run(ARTIFACTS)
+    try: dest=run(ARTIFACTS,geometry_backend=body.geometry_backend)
+    except GeometryError as exc: raise HTTPException(503,str(exc))
     try: registry.register(dest)
     except (psycopg.Error,IntegrityError):
         # Retain artifacts for explicit recovery; never return a false success.

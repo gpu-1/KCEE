@@ -2,3 +2,5 @@
 Implemented: GET /health (liveness), GET /ready (database readiness), GET /runs (paginated history), GET /runs/{uuid}, GET /runs/{uuid}/verify (integrity), POST /runs/bracket (fixed sample requirements, no user parameters yet), GET /artifacts/{run-id}/{filename}. FastAPI serves interactive OpenAPI at /docs. Runs execute synchronously in a thread; job queue/authentication pending. Bind API to localhost.
 
 Planned native gateway: POST /geometry/bracket; POST /ai/propose; POST /voice/speak, /voice/alert, /voice/summary; GET /voice/status; POST /speech/transcribe. Requests carry schema_version, run_id and SI-unit inputs. Voice policy: DEBUG never, INFO opt-in, RESULT concise, WARNING spoken, CRITICAL priority/interruption. User mute and bounded queue required. Microphone recording requires explicit user activation.
+
+GET /capabilities reports native-worker availability from a signed local heartbeat. POST /runs/bracket accepts optional geometry_backend (mesh or picogk); default mesh preserves compatibility. Native errors return 503 without fallback or successful registration.

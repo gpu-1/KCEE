@@ -6,6 +6,9 @@ const $=id=>document.getElementById(id);
 let mesh, renderer, controls, camera, scene;
 let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
+let nativeAvailable=false,creating=false;
+function updateCreation(){ $("create").disabled=creating || ($("backend").value==="picogk" && !nativeAvailable); }
+$("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){ if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; }
 function clearDetails(){ $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
@@ -48,7 +51,9 @@ async function selectRun(id){
 async function refresh(){
   listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
   try {
-    const data=await request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}`,{signal:controller.signal});if(listRequest!==controller)return;
+    const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
+    if(listRequest!==controller)return;
+    nativeAvailable=capabilities.geometry.picogk;$('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native worker unavailable. Start it on this Mac or choose the baseline mesh.';updateCreation();if(listRequest!==controller)return;
     $('runs').replaceChildren();const items=data.items.slice(0,PAGE_SIZE);
     for(const item of items){const button=document.createElement('button');button.className='run';button.dataset.id=item.id;button.textContent='Bracket '+item.id.slice(0,8);const small=document.createElement('small');small.textContent=new Date(item.created_at).toLocaleString();button.appendChild(small);button.onclick=()=>selectRun(item.id);$('runs').appendChild(button);}
     if(!items.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No saved runs on this page.';$('runs').appendChild(empty);}
@@ -58,10 +63,10 @@ async function refresh(){
 }
 $('refresh').onclick=refresh;$('previous').onclick=()=>{offset=Math.max(0,offset-PAGE_SIZE);refresh();};$('next').onclick=()=>{offset+=PAGE_SIZE;refresh();};
 $('create').onclick=async()=>{
-  $('create').disabled=true;$('status').textContent='Generating and registering bracket demo…';
-  try{const data=await request('/runs/bracket',{method:'POST'});offset=0;await refresh();await selectRun(data.run_id);}
-  catch(error){$('status').textContent=error.message+(error.detail?.run_id?' Retained run: '+error.detail.run_id:'');}
-  finally{$('create').disabled=false;}
+  creating=true;updateCreation();beginSelection();selectedId=null;badge('integrity','Generating…');$('status').textContent='Generating and registering bracket demo…';
+  try{const data=await request('/runs/bracket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({geometry_backend:$('backend').value})});offset=0;await refresh();await selectRun(data.run_id);}
+  catch(error){badge('integrity','Generation failed','error');$('status').textContent=error.message+(error.detail?.run_id?' Retained run: '+error.detail.run_id:'');}
+  finally{creating=false;updateCreation();}
 };
 $('file').onchange=async event=>{
   const file=event.target.files[0];if(!file)return;const {ticket}=beginSelection();selectedId=null;highlight();badge('integrity','Local file · unverified');$('model-title').textContent=file.name;$('status').textContent='Loading local file…';
