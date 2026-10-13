@@ -214,3 +214,8 @@
 - Compared 25°/35°/45° fine meshes without source changes; 25° has lowest source-patch area discrepancy (3.038%).
 - Full 25° study c072e470 passes all five numerical gates and field verification; displacement 0.790682 mm, unconverged stress 217.242 MPa.
 - New finer jobs use traced 25° setting; baseline remains unchanged. Old warnings and immutable artifacts preserved; 47 unit tests pass.
+
+## 2026-10-13 — Regional stress diagnostics
+- Added centroid-distance exclusion sweeps around nominal clamp/load rectangles, retaining unfiltered global peaks.
+- New finer study regional peak 88.049 MPa vs global 217.242 MPa; no allowable/convergence claim.
+- Browser verified measured values and limits; all 48 unit tests and seven viewer checks pass.

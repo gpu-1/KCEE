@@ -1,5 +1,5 @@
 import math,unittest
-from kcee.stress_diagnostics import tetra_quality,stress_records
+from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks
 
 class StressDiagnosticsTests(unittest.TestCase):
     def test_regular_tetrahedron_quality_and_scale(self):
@@ -21,3 +21,10 @@ class StressDiagnosticsTests(unittest.TestCase):
         for damaged in (rows[:-1],rows+[rows[0]],[[2,1,10,0,0,0,0,0]]+rows,[[1,1,float('nan'),0,0,0,0,0]]+rows[1:],[[1,1.5,10,0,0,0,0,0]]+rows[1:]):
             with self.subTest(damaged=damaged):
                 with self.assertRaises(ValueError):stress_records(damaged,{1})
+
+    def test_regional_peaks_keep_global_data_and_exclude_nominal_regions(self):
+        stresses=[(100,1,1),(40,2,1),(200,3,1),(80,4,1)]
+        centers={1:(0,15,10),2:(10,15,3),3:(58,15,3.5),4:(1.5,15,10)}
+        rows=regional_peaks(stresses,centers)
+        self.assertEqual([row['maximum_von_mises_MPa'] for row in rows],[80,40,40])
+        self.assertEqual([row['included_elements'] for row in rows],[2,1,1]);self.assertEqual(max(stresses)[0],200)

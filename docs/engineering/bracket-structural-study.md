@@ -49,3 +49,9 @@ Neither classification isolates a top entity whose nodes (including boundary nod
 Fine-mesh probes on the unchanged 0.35 mm source measured source strip errors of 3.038% at 25°, 24.558% at 35°, and 15.539% at 45°. A new full 25° study c072e470-2fd9-452a-aee2-19d9cb2a2329 passes all five numerical gates, including source load-strip agreement, and archive-to-preview verification. Its fine displacement is 0.790682 mm and unconverged peak stress is 217.242 MPa. Full evidence is in finer-25deg-study.json.
 
 New finer-source jobs use 25°; the baseline remains at 20°. No source geometry or load tolerance is changed. Existing 30° studies retain their retrospective warning. This addresses the area-agreement gate, not exact surface fidelity or engineering acceptance. Reproduce bounded probes with `docker compose exec -T structural python - --run-id <native-run-id> < scripts/probe_meshing_angles.py`. The source hash is checked and no solve/registered run is created by the probe.
+
+## Regional peak diagnostics
+
+The hotspot report now includes stress peaks after excluding elements whose corner centroids are within 1, 2 or 3 mm of either nominal rectangle: rear clamp x=0, y=0..30, z=3.5..40, or load strip z=3.5, x=55..60, y=0..30. The same element eligibility applies to its four integration points. These distances are not exact integration-point distances and do not remove physical stress concentrations rigorously.
+
+For study c072e470, each regional maximum is 88.049 MPa while the unfiltered global peak remains 217.242 MPa. Included element counts are 15,953, 14,592 and 12,028 respectively. Evidence is in regional-stress-diagnostics.json. This identifies a diagnostic spatial pattern, not stress convergence, a safety factor or a permissible stress. The viewer keeps the global peak visible and marks regional values as not allowables.
