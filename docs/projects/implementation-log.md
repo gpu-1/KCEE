@@ -231,3 +231,8 @@
 ## 2026-10-13 — Readable comparison report
 - Added Markdown report/download and inline full-text selection from the same verified comparison evidence.
 - Test provenance retention, interpretation limits and Markdown table escaping; eight viewer checks pass. Browser verified complete 2,020-character selection.
+
+## 2026-10-13 — Readable single-study reports
+- Added derived per-study Markdown report/download with inline text selection and original provenance.
+- Distinguish historical recorded checks from retrospective load-area warnings; test prevents masking failures.
+- Browser verified full 1,959-character report selection and warning retention; nine viewer checks/build pass.

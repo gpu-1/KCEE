@@ -36,3 +36,5 @@ Failed analyses with a retained parent reference offer Open parent design. This 
 Comparisons also show the load-integration method and recorded source load-area agreement. Not recorded means an older saved study lacks that check; it does not imply a pass. Retrospective diagnostics remain available in the hotspot panel.
 
 Readable comparison reports are available as Markdown, with values, source hashes and interpretation limits. View or copy readable report provides a download-independent text view; Select report text selects the complete report. JSON remains available for structured processing.
+
+Each Bracket FEA run also offers a Readable study report as Markdown or selectable inline text. It includes support/load/material assumptions, mesh results, recorded checks, available retrospective diagnostics and source hashes. Recorded validation status and new retrospective warnings are kept distinct. Original saved reports/manifests are unchanged.
