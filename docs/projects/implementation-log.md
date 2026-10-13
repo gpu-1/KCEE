@@ -72,3 +72,7 @@
 ## 2026-10-13 — Load/support interpretation
 - Added optional nominal rear clamp outline and free-end load strip/arrows for supported bracket studies.
 - Markers use original model coordinates and remain on the undeformed reference during exaggerated deformation. Labels distinguish total 100 N load, nominal patch edges and ideal clamp from bolt contact.
+
+## 2026-10-13 — Visible numerical checks
+- Viewer exposes recorded force balance, displacement/load-patch refinement and source-volume checks with measured percentages.
+- Peak stress change is informational and does not claim established stress convergence or engineering validation.
