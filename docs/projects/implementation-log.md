@@ -251,3 +251,8 @@
 - Hosted ARM64 ran all 11 integration tests successfully but failed deleting root-owned bind-mount files.
 - Added bounded failure annotations and unit tests, then corrected disposable API/test UID/GID and pre-created mounts. Exclude .local from test checkout.
 - Local wrapper/full-stack cleanup now succeeds; all 51 unit tests pass. Hosted rerun outcome recorded separately.
+
+## 2026-10-13 — Complete numerical-check presentation
+- Show all five recorded numerical checks together, including source load-strip agreement.
+- Historical absent checks show Not recorded; status text distinguishes recorded checks from retrospective diagnostics.
+- Explicit absence of local strip refinement distinguished from missing historical metadata in comparisons. Browser verified current/legacy study labels; ten viewer tests pass.

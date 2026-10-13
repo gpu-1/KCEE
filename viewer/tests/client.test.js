@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence,comparisonMarkdown,studyMarkdown} from '../client.js';
+import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence,comparisonMarkdown,studyMarkdown,numericalCheckRows} from '../client.js';
 const id='12345678-1234-1234-1234-123456789abc';
 const result=JSON.stringify({validation_status:'unvalidated_analytical_screening'}),stl='solid example';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -38,4 +38,11 @@ test('single-study report distinguishes recorded pass from retrospective failure
  const study={record:{id,parent_id:id,validation_status:'pending',manifest_sha256:hash('m'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('s'),'fea-artifacts.zip':hash('a')}}},result:{kind:'bracket_structural',validation_status:'pending',geometry_backend:'PicoGK',fea:{boundary:'Ideal clamp',load:'100 N',mesh_study:[],checks:{force_balance:true},stress_note:'Stress unconverged'}}};
  const text=studyMarkdown(study,{source_load_patch_agreement:false,relative_source_load_patch_area_error:.15});
  assert.ok(text.includes('force_balance: Pass'));assert.ok(text.includes('Source load-area agreement: Needs attention'));assert.ok(text.includes(hash('m')));assert.ok(text.includes('Engineering validation remains pending'));
+});
+
+test('missing historical numerical checks never display as passed',()=>{
+ const fea={mesh_study:[{reaction_z_N:100}],checks:{force_balance:true}};
+ const missing=numericalCheckRows(fea).find(row=>row.key==='load_patch_source_agreement');assert.equal(missing.verdict,'Not recorded');assert.equal(missing.value,undefined);
+ fea.checks.load_patch_source_agreement=false;fea.relative_source_load_patch_area_error=.15;
+ assert.equal(numericalCheckRows(fea).find(row=>row.key==='load_patch_source_agreement').verdict,'Needs attention');
 });
