@@ -14,6 +14,22 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_visibility_confirmation_and_restore(self):
+        run_id=request('/runs/bracket','POST')[1]['run_id']
+        before=request('/runs/'+run_id)[1]['manifest_sha256']
+        def change(hidden,confirm):
+            req=Request(BASE+'/runs/'+run_id+'/visibility',data=json.dumps({'confirm_run_id':confirm,'hidden':hidden}).encode(),headers={'Content-Type':'application/json'},method='POST')
+            with urlopen(req) as response:return json.load(response)
+        with self.assertRaises(HTTPError) as error:change(True,'00000000-0000-0000-0000-000000000000')
+        self.assertEqual(error.exception.code,422)
+        self.assertTrue(change(True,run_id)['hidden'])
+        self.assertFalse(any(x['id']==run_id for x in request('/runs?limit=100')[1]['items']))
+        self.assertTrue(any(x['id']==run_id for x in request('/runs?hidden=true&limit=100')[1]['items']))
+        self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+        self.assertFalse(change(False,run_id)['hidden'])
+        self.assertTrue(any(x['id']==run_id for x in request('/runs?limit=100')[1]['items']))
+        self.assertEqual(request('/runs/'+run_id)[1]['manifest_sha256'],before)
+
     def test_api_lifecycle_and_tamper(self):
         self.assertEqual(request('/ready')[0],200)
         status,data=request('/runs/bracket','POST');self.assertEqual(status,201)
@@ -96,7 +112,7 @@ class RegistryIntegration(unittest.TestCase):
     def test_owner_append_only_trigger(self):
         for sql in ('UPDATE design_runs SET validation_status=validation_status','DELETE FROM design_runs','TRUNCATE design_runs'):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
-                with self.assertRaises(psycopg.errors.RaiseException): conn.execute(sql)
+                with self.assertRaises(psycopg.errors.RaiseException): conn.execute(sql+' CASCADE' if sql=='TRUNCATE design_runs' else sql)
     def test_database_unavailable_is_not_success(self):
         # Use the API ASGI app in-process with an unreachable connection.
         from fastapi import HTTPException

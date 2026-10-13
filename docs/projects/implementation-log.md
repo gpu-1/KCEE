@@ -101,3 +101,9 @@
 - Export verifies the exact in-memory bytes written to the bundle against the trusted manifest.
 - Restore parses the same in-memory bundle bytes whose checksum was verified.
 - Added run-change-during-export and altered-artifact restore tests; all 35 unit tests pass. Actual bracket round trip remains byte-identical.
+
+## 2026-10-13 — Confirmed model removal
+- Added confirmation dialog identifying the selected run before hiding it from the saved list.
+- Show removed models and confirmed Restore to list provide reversible recovery.
+- Separate append-only visibility events retain immutable run files/provenance and parent relationships. Existing database migration applied locally.
+- Browser cancellation verified; isolated API checks cover confirmation mismatch, hide/restore and unchanged manifest.

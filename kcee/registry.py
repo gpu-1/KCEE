@@ -30,9 +30,16 @@ class Registry:
         with self.connect() as conn:
             return conn.execute('SELECT id,parent_id,created_at,validation_status,manifest,manifest_sha256 FROM design_runs WHERE id=%s',(str(UUID(str(run_id))),)).fetchone()
 
-    def list(self,limit=50,offset=0):
+    def list(self,limit=50,offset=0,hidden=False):
         with self.connect() as conn:
-            return conn.execute("SELECT id,parent_id,created_at,validation_status,manifest_sha256,COALESCE(manifest->>'kind','bracket') AS kind FROM design_runs ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s",(limit,offset)).fetchall()
+            return conn.execute("SELECT id,parent_id,created_at,validation_status,manifest_sha256,COALESCE(manifest->>'kind','bracket') AS kind FROM design_runs WHERE COALESCE((SELECT hidden FROM run_visibility_events WHERE run_id=design_runs.id ORDER BY id DESC LIMIT 1),false)=%s ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s",(hidden,limit,offset)).fetchall()
+
+    def set_visibility(self,run_id,hidden):
+        with self.connect() as conn:
+            found=conn.execute('SELECT id FROM design_runs WHERE id=%s',(str(run_id),)).fetchone()
+            if found is None:raise KeyError('Unknown run')
+            conn.execute('INSERT INTO run_visibility_events(run_id,hidden) VALUES(%s,%s)',(str(run_id),hidden))
+        return {'run_id':str(run_id),'hidden':hidden,'artifacts':'retained'}
 
     def verify(self,root,run_id):
         record=self.get(run_id)

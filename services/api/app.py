@@ -56,8 +56,8 @@ def bracket(body: BracketRequest=BracketRequest()):
     return {'run_id':dest.name,'manifest_url':f'/artifacts/{dest.name}/manifest.json','stl_url':f'/artifacts/{dest.name}/bracket.stl','validation_status':'unvalidated_analytical_screening','registration':'saved'}
 
 @app.get('/runs')
-def list_runs(limit: int=Query(50,ge=1,le=100),offset: int=Query(0,ge=0)):
-    try: return {'items':registry.list(limit,offset),'limit':limit,'offset':offset}
+def list_runs(limit: int=Query(50,ge=1,le=100),offset: int=Query(0,ge=0),hidden: bool=False):
+    try: return {'items':registry.list(limit,offset,hidden),'limit':limit,'offset':offset}
     except psycopg.Error: raise HTTPException(503,'Database unavailable')
 
 @app.get('/runs/{run_id}')
@@ -113,3 +113,14 @@ def surface_field(run_id: UUID):
     except KeyError:raise HTTPException(404,'Unknown run')
     except IntegrityError:raise HTTPException(409,'Run integrity check failed')
     except (ValueError,zipfile.BadZipFile):raise HTTPException(422,'Solver field is incomplete')
+
+class VisibilityRequest(BaseModel):
+    confirm_run_id: UUID
+    hidden: bool
+
+@app.post('/runs/{run_id}/visibility')
+def change_visibility(run_id: UUID,body: VisibilityRequest):
+    if body.confirm_run_id!=run_id:raise HTTPException(422,'Confirmation does not match selected run')
+    try:return registry.set_visibility(run_id,body.hidden)
+    except KeyError:raise HTTPException(404,'Run not found')
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')

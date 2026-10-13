@@ -6,6 +6,7 @@ const $=id=>document.getElementById(id);
 let fieldData=null, sourceStl=null, archiveDigest=null;
 let mesh, renderer, controls, camera, scene, boundaryMarkers;
 let modelCenter=new THREE.Vector3(),isBracketStudy=false;
+let pendingRemoval=null;
 let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
 let nativeAvailable=false,creating=false,structuralAvailable=false,selectedIsNative=false;
@@ -13,7 +14,7 @@ function updateCreation(){ $("fea").disabled=creating || !structuralAvailable; $
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
-function clearDetails(){isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function clearDetails(){$('remove-run').disabled=true;isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
 function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
 function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
 function fitModel(){
@@ -49,6 +50,7 @@ async function selectRun(id){
   try {
     const {record,result,stl}=await loadRun(id,signal);if(ticket!==selection)return;
     $('model-title').textContent=(result.kind==='structural_benchmark'?'Cantilever benchmark ':result.kind==='bracket_structural'?'Bracket FEA ':'Bracket ')+id.slice(0,8);
+    $('remove-run').disabled=false;$('remove-run').textContent=$('show-removed').checked?'Restore to list':'Remove from list';
     const chosen=result.selected;
     for(const key of ['thickness_mm','stress_MPa','tip_deflection_mm','factor_of_safety'])if(!Number.isFinite(chosen?.[key]))throw new Error('Screening result contains invalid values');
     if(!Number.isFinite(result.mass_kg)||!Array.isArray(result.assumptions))throw new Error('Screening result is incomplete');
@@ -73,7 +75,7 @@ async function selectRun(id){
 async function refresh(){
   listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
   try {
-    const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
+    const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}&hidden=${$('show-removed').checked}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
     if(listRequest!==controller)return;
     structuralAvailable=Boolean(capabilities.structural?.calculix);$('fea').disabled=creating || !structuralAvailable;$('fea-status').textContent=capabilities.structural?.calculix?'CalculiX benchmark ready':'Structural worker unavailable. Start the fea profile.';
     nativeAvailable=capabilities.geometry.picogk;$('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native worker unavailable. Start it on this Mac or choose the baseline mesh.';updateCreation();if(listRequest!==controller)return;
@@ -145,3 +147,20 @@ $('boundaries').onchange=updateBoundaries;
 
 $('geometry-help-link').onclick=event=>{event.preventDefault();$('geometry-help').showModal();};
 $('geometry-help').addEventListener('close',()=> $('geometry-help-link').focus());
+
+$('show-removed').onchange=()=>{offset=0;selectedId=null;beginSelection();refresh();};
+$('remove-run').onclick=()=>{
+  if(!selectedId)return;
+  pendingRemoval={id:selectedId,hidden:!$('show-removed').checked};
+  $('remove-title').textContent=pendingRemoval.hidden?'Remove model from list?':'Restore model to list?';
+  $('remove-description').textContent=pendingRemoval.hidden?'This model will move to Removed models. Results, files and provenance are retained. You can restore it later.':'This model will return to the saved models list.';
+  $('remove-id').textContent=$('model-title').textContent+' · '+pendingRemoval.id;
+  $('confirm-remove').textContent=pendingRemoval.hidden?'Remove from list':'Restore to list';$('remove-confirm').showModal();
+};
+$('cancel-remove').onclick=()=>{$('remove-confirm').close();pendingRemoval=null;};
+$('confirm-remove').onclick=async()=>{
+  if(!pendingRemoval)return;const action=pendingRemoval;$('confirm-remove').disabled=true;
+  try{await request(`/runs/${action.id}/visibility`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm_run_id:action.id,hidden:action.hidden})});$('remove-confirm').close();pendingRemoval=null;selectedId=null;beginSelection();offset=0;await refresh();$('status').textContent=action.hidden?'Model removed from list. Files and provenance retained.':'Model restored to list.';}
+  catch(error){$('remove-description').textContent=error.message;}
+  finally{$('confirm-remove').disabled=false;}
+};

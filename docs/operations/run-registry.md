@@ -26,3 +26,8 @@ Unit tests: `python3 -m unittest discover -s tests -v` (standard library only).
 Integration: `python3 scripts/check_integration.py` creates a temporary copy, random credentials, an isolated Compose project and separate run files; builds/tests then removes only its own containers/database volume. Requires Docker Desktop and dependency downloads on the first run. Tests cover persistence, tampering, restricted privileges, owner mutation triggers, database outage, retained artifacts and recovery. Never run mutation tests against a valued database. Production native adapters/knowledge ingestion remain pending.
 
 References: [Psycopg transactions](https://www.psycopg.org/psycopg3/docs/basic/transactions.html), [PostgreSQL triggers](https://www.postgresql.org/docs/18/trigger-definition.html).
+
+## Remove models from the list
+Select a model and choose Remove from list, then confirm its displayed identity. Files, manifests and parent/child links remain intact. Show removed models lists hidden entries; select one and confirm Restore to list to bring it back. Visibility changes are stored as separate events, with no edits to run provenance.
+
+Existing databases require `docker compose exec -T postgres psql -U kcee -d kcee -v ON_ERROR_STOP=1 < infra/postgres/004-run-visibility.sql`. New databases apply this schema automatically.
