@@ -55,4 +55,4 @@ jobs:
           docker version
           docker compose version
       - name: Test isolated API, database, viewer and structural worker
-        run: python scripts/check_integration.py --viewer --fea
+        run: python scripts/run_ci_integration.py
