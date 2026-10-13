@@ -14,6 +14,32 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_diagnostic_scope_and_integrity(self):
+        run_id=request('/runs/bracket','POST')[1]['run_id']
+        for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface'):
+            with self.assertRaises(HTTPError) as error:request('/runs/'+run_id+'/'+endpoint)
+            self.assertEqual(error.exception.code,422)
+            with self.assertRaises(HTTPError) as error:request('/runs/00000000-0000-0000-0000-000000000000/'+endpoint)
+            self.assertEqual(error.exception.code,404)
+        path=Path('/data/runs')/run_id/'report.md';original=path.read_bytes()
+        try:
+            path.write_text('changed')
+            for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface'):
+                with self.assertRaises(HTTPError) as error:request('/runs/'+run_id+'/'+endpoint)
+                self.assertEqual(error.exception.code,409)
+        finally:path.write_bytes(original)
+
+    def test_retained_failure_listing_is_separate(self):
+        import uuid
+        run_id=str(uuid.uuid4());directory=Path('/data/runs')/run_id;directory.mkdir()
+        (directory/'failure.json').write_text(json.dumps({'run_id':run_id,'status':'failed','stage':'geometry'}))
+        failures=request('/failures?limit=100')[1]['items']
+        self.assertTrue(any(item['run_id']==run_id for item in failures))
+        self.assertFalse(any(item['id']==run_id for item in request('/runs?limit=100')[1]['items']))
+        with self.assertRaises(HTTPError) as error:request('/failures?limit=0')
+        self.assertEqual(error.exception.code,422)
+
+
     def test_visibility_history_append_only(self):
         for sql in ('UPDATE run_visibility_events SET hidden=hidden','DELETE FROM run_visibility_events','TRUNCATE run_visibility_events'):
             with Registry().connect() as conn:

@@ -236,3 +236,8 @@
 - Added derived per-study Markdown report/download with inline text selection and original provenance.
 - Distinguish historical recorded checks from retrospective load-area warnings; test prevents masking failures.
 - Browser verified full 1,959-character report selection and warning retention; nine viewer checks/build pass.
+
+## 2026-10-13 — Workspace regression coverage
+- Added live integration coverage for unsupported diagnostic models, unknown run IDs, tampered artifacts and failure-list/success-list separation.
+- All 49 unit tests and 11 isolated full-stack integration tests pass with viewer/structural profiles. Disposable test services/volume were cleaned up.
+- Updated roadmap to reflect completed reports, comparisons, recovery and current-host checks; engineering stress validation remains pending.
