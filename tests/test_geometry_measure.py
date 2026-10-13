@@ -18,8 +18,10 @@ class GeometryMeasurementTests(unittest.TestCase):
         raw=b'\0'*80+struct.pack('<I',len(triangles))
         for t in triangles:raw+=struct.pack('<12fH',0,0,0,*(v for p in t for v in p),0)
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'shape.stl';p.write_bytes(raw);rows=hole_sections(p)
-        self.assertEqual(len(rows),4)
+            p=Path(d)/'shape.stl';p.write_bytes(raw);rows=[row for section in (.875,1.75,2.625) for row in hole_sections(p,section)]
+            for invalid in (0,3.5,float('nan')):
+                with self.assertRaises(ValueError):hole_sections(p,invalid)
+        self.assertEqual(len(rows),12)
         for row in rows:
             self.assertAlmostEqual(row['minimum_radial_diameter_mm'],4)
             self.assertAlmostEqual(row['maximum_radial_diameter_mm'],4*math.sqrt(2))

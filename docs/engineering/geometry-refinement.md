@@ -17,3 +17,9 @@ These measurements do not establish asymptotic convergence, local hole/transitio
 Use `python3 scripts/check_hole_accuracy.py .local/studies/<study>/geometry-refinement.json --output <new-report.json>` to measure the original verified STLs. The tool intersects each bore at mid-thickness and measures twice the radial extrema about its nominal center, including segment interiors. These are radial envelopes, not fitted diameters or manufacturing tolerances.
 
 Across four holes, radial envelopes at 0.75 mm voxels span approximately 4.864–5.000 mm; at 0.5 mm, 4.937–5.000 mm; at 0.35 mm, 4.969–4.999 mm. Nominal diameter is 5 mm. Full values and source hashes are recorded in hole-accuracy.json. The extraction method is tested against square-prism sections with known radial bounds. Only these default bore locations and this one axial section are measured; root transition and positional accuracy remain pending.
+
+## Bore profile across thickness
+
+The hole measurement command now samples 0.875, 1.75 and 2.625 mm through the 3.5 mm plate, verifies source dimensions and nominal hole settings, and rejects incompatible geometry. Recorded values are in hole-profile.json; the earlier mid-section report remains unchanged.
+
+Combined radial envelopes across all holes and sampled depths are 4.864–5.255 mm at 0.75 mm voxels, 4.937–5.000 mm at 0.5 mm, and 4.969–4.999 mm at 0.35 mm. The coarse geometry has a local widening not apparent in the mid-section alone. These are radial section envelopes, not fitted bore diameters. Entry/exit surfaces, exact hole-center deviations, root geometry and manufacturing acceptance remain unverified.

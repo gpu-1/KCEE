@@ -121,3 +121,8 @@
 - Measured four mid-thickness bore sections across the recorded voxel refinement study.
 - Radial envelopes approach nominal 5 mm; fine resolution spans approximately 4.969–4.999 mm.
 - Verified measurement against known square-prism radial bounds; no manufacturing acceptance or stress convergence claim.
+
+## 2026-10-13 — Through-thickness bore profiles
+- Extended verified bore measurements to quarter/mid/three-quarter plate sections.
+- Found coarse-resolution radial envelope widening to approximately 5.255 mm; finer studies remain near nominal.
+- Reject unsupported geometry and invalid section depths; all 36 unit tests pass.
