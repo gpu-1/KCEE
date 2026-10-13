@@ -35,3 +35,11 @@ This shows that closed edge topology, bore measurements and global volume checks
 Further unmodified-STL probes meshed at 30°/45°. The completed 0.35 mm study uses explicit 30° classification and a 1 mm local size field around the load strip, including a compatible global minimum. The existing 0.5 mm path keeps its original 20° settings. Both choices are recorded in solver provenance. Run edac2bbf-2163-42ea-8a64-0f9647d92fb2 passes numerical checks and archive-to-preview verification.
 
 Fine loaded-patch displacement is 0.783595 mm versus 0.780281 mm baseline (+0.425%). Peak integration-point von Mises stress is 257.407 MPa versus 100.199 MPa baseline. The load patch area is 114.411 mm² versus 130.849 mm² baseline. Geometry and meshing/load discretization changed together, so these differences cannot be attributed solely to voxel resolution. Stress convergence and physical acceptance remain unresolved. Earlier failed diagnostics are retained.
+
+## Archived peak locations and corner quality
+
+The diagnostic report stress-hotspots.json records the ten largest integration-point values and their element corner centroids, volumes and mean-ratio quality. Use `python3 scripts/check_stress_hotspots.py runs/<run-id> --manifest-sha256 <trusted-hash> --output <new-report.json>` to repeat it without modifying the run.
+
+Baseline peak element centroid is approximately (0.062, 29.333, 2.832) mm with corner quality 0.460; finer-study peak centroid is (0.211, 0.250, 3.739) mm with quality 0.212. Both are near the rear mounting region; the finer peak is near the lower clamp edge. The baseline mesh also contains very low-quality corner tetrahedra elsewhere (minimum 0.0000794); the finer mesh minimum is 0.1004. This is not proof that mesh quality causes either peak.
+
+Mean-ratio quality is 1 for an equilateral tetrahedron and approaches zero for degenerate shapes. It assesses corner tetrahedra only, not all quadratic Jacobians. Reported centroids are not exact integration-point positions. Local refinement, quadratic element assessment and support/load sensitivity remain needed before interpreting stress peaks as engineering limits.

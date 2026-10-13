@@ -1,0 +1,274 @@
+[
+  {
+    "elements": 25747,
+    "minimum_corner_quality": 7.943418416225257e-05,
+    "one_percentile_corner_quality": 0.17666159732986822,
+    "median_corner_quality": 0.7310277529154865,
+    "top_integration_point_stresses": [
+      {
+        "von_mises_MPa": 100.1985308816096,
+        "element_id": 15738,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          0.06202019788920825,
+          29.33337463,
+          2.832225384
+        ],
+        "element_volume_mm3": 0.06155650455307816,
+        "corner_mean_ratio_quality": 0.4597252135016926
+      },
+      {
+        "von_mises_MPa": 99.91676863095977,
+        "element_id": 8236,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.28696666858761827,
+          1.326568798,
+          3.6875249594999997
+        ],
+        "element_volume_mm3": 0.3618696032254929,
+        "corner_mean_ratio_quality": 0.7331704092238206
+      },
+      {
+        "von_mises_MPa": 98.36430678352758,
+        "element_id": 19885,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          32.739247164999995,
+          12.3165998325,
+          3.4687528894999997
+        ],
+        "element_volume_mm3": 0.0005096692594727837,
+        "corner_mean_ratio_quality": 0.6151996641159485
+      },
+      {
+        "von_mises_MPa": 97.57913034908437,
+        "element_id": 1569,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.5827164646329582,
+          29.031908382500003,
+          3.2362051672499996
+        ],
+        "element_volume_mm3": 0.41823085801521814,
+        "corner_mean_ratio_quality": 0.6135743239531849
+      },
+      {
+        "von_mises_MPa": 97.4355474418294,
+        "element_id": 18165,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          32.7243391275,
+          17.6824570625,
+          0.0312470619191315
+        ],
+        "element_volume_mm3": 0.0006286625192742915,
+        "corner_mean_ratio_quality": 0.5945733658726886
+      },
+      {
+        "von_mises_MPa": 94.8294982830762,
+        "element_id": 15753,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.406068871297719,
+          14.610090695,
+          3.5714597072500003
+        ],
+        "element_volume_mm3": 0.43179563140045113,
+        "corner_mean_ratio_quality": 0.8723799014537645
+      },
+      {
+        "von_mises_MPa": 94.6489758239056,
+        "element_id": 19885,
+        "integration_point": 4,
+        "element_corner_centroid_mm": [
+          32.739247164999995,
+          12.3165998325,
+          3.4687528894999997
+        ],
+        "element_volume_mm3": 0.0005096692594727837,
+        "corner_mean_ratio_quality": 0.6151996641159485
+      },
+      {
+        "von_mises_MPa": 94.41990576497682,
+        "element_id": 18165,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          32.7243391275,
+          17.6824570625,
+          0.0312470619191315
+        ],
+        "element_volume_mm3": 0.0006286625192742915,
+        "corner_mean_ratio_quality": 0.5945733658726886
+      },
+      {
+        "von_mises_MPa": 93.59764504752192,
+        "element_id": 19451,
+        "integration_point": 2,
+        "element_corner_centroid_mm": [
+          33.128916435,
+          12.2996808125,
+          3.4687530252500003
+        ],
+        "element_volume_mm3": 0.00042199509464365927,
+        "corner_mean_ratio_quality": 0.5661717144978556
+      },
+      {
+        "von_mises_MPa": 93.32263022293664,
+        "element_id": 20609,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          33.088810644999995,
+          12.476123835,
+          3.29412880625
+        ],
+        "element_volume_mm3": 0.00038242639401874526,
+        "corner_mean_ratio_quality": 0.6487864695318646
+      }
+    ],
+    "limitations": [
+      "Reported locations are element corner centroids, not exact integration-point coordinates",
+      "Quality describes straight corner tetrahedra, not a full quadratic Jacobian assessment",
+      "Peak location and quality do not establish stress convergence or physical validity"
+    ],
+    "run_id": "6106f5e9-6ef3-4c2b-8ce4-0775bf1ae2e8",
+    "manifest_sha256": "cf4a5722225a61587209b74a1583028d21449288745d0a83a46286b9a1bbafd6",
+    "archive_sha256": "5f6a4c823b8be13c517609bcd8af471112b15454b9da2816940d9ca782ef547a"
+  },
+  {
+    "elements": 18409,
+    "minimum_corner_quality": 0.10041626720861829,
+    "one_percentile_corner_quality": 0.32738133797675323,
+    "median_corner_quality": 0.7947454180693357,
+    "top_integration_point_stresses": [
+      {
+        "von_mises_MPa": 257.40728842962216,
+        "element_id": 16809,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.21096375413500001,
+          0.250366521805675,
+          3.7387836345
+        ],
+        "element_volume_mm3": 0.0018479756821688405,
+        "corner_mean_ratio_quality": 0.21208304734242414
+      },
+      {
+        "von_mises_MPa": 248.2188882920327,
+        "element_id": 16933,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          0.1335303461875,
+          29.7892679125,
+          3.7305565237500002
+        ],
+        "element_volume_mm3": 0.0006967801000905163,
+        "corner_mean_ratio_quality": 0.3907372885351231
+      },
+      {
+        "von_mises_MPa": 186.00748627143855,
+        "element_id": 16933,
+        "integration_point": 2,
+        "element_corner_centroid_mm": [
+          0.1335303461875,
+          29.7892679125,
+          3.7305565237500002
+        ],
+        "element_volume_mm3": 0.0006967801000905163,
+        "corner_mean_ratio_quality": 0.3907372885351231
+      },
+      {
+        "von_mises_MPa": 183.53671729162795,
+        "element_id": 16809,
+        "integration_point": 2,
+        "element_corner_centroid_mm": [
+          0.21096375413500001,
+          0.250366521805675,
+          3.7387836345
+        ],
+        "element_volume_mm3": 0.0018479756821688405,
+        "corner_mean_ratio_quality": 0.21208304734242414
+      },
+      {
+        "von_mises_MPa": 163.4170288027745,
+        "element_id": 16754,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          0.24787141078132502,
+          29.66941006,
+          3.40016750025
+        ],
+        "element_volume_mm3": 0.014758830043921742,
+        "corner_mean_ratio_quality": 0.3383896512406048
+      },
+      {
+        "von_mises_MPa": 156.5562266557584,
+        "element_id": 16934,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.0976460273035,
+          29.7651394775,
+          3.75949654575
+        ],
+        "element_volume_mm3": 0.0006967800999636186,
+        "corner_mean_ratio_quality": 0.37497629344680233
+      },
+      {
+        "von_mises_MPa": 153.05842096393226,
+        "element_id": 16934,
+        "integration_point": 2,
+        "element_corner_centroid_mm": [
+          0.0976460273035,
+          29.7651394775,
+          3.75949654575
+        ],
+        "element_volume_mm3": 0.0006967800999636186,
+        "corner_mean_ratio_quality": 0.37497629344680233
+      },
+      {
+        "von_mises_MPa": 145.73492980597575,
+        "element_id": 16934,
+        "integration_point": 3,
+        "element_corner_centroid_mm": [
+          0.0976460273035,
+          29.7651394775,
+          3.75949654575
+        ],
+        "element_volume_mm3": 0.0006967800999636186,
+        "corner_mean_ratio_quality": 0.37497629344680233
+      },
+      {
+        "von_mises_MPa": 144.82868852517868,
+        "element_id": 16933,
+        "integration_point": 1,
+        "element_corner_centroid_mm": [
+          0.1335303461875,
+          29.7892679125,
+          3.7305565237500002
+        ],
+        "element_volume_mm3": 0.0006967801000905163,
+        "corner_mean_ratio_quality": 0.3907372885351231
+      },
+      {
+        "von_mises_MPa": 142.4072511714723,
+        "element_id": 16934,
+        "integration_point": 4,
+        "element_corner_centroid_mm": [
+          0.0976460273035,
+          29.7651394775,
+          3.75949654575
+        ],
+        "element_volume_mm3": 0.0006967800999636186,
+        "corner_mean_ratio_quality": 0.37497629344680233
+      }
+    ],
+    "limitations": [
+      "Reported locations are element corner centroids, not exact integration-point coordinates",
+      "Quality describes straight corner tetrahedra, not a full quadratic Jacobian assessment",
+      "Peak location and quality do not establish stress convergence or physical validity"
+    ],
+    "run_id": "edac2bbf-2163-42ea-8a64-0f9647d92fb2",
+    "manifest_sha256": "5ffce13ac1d8e8bc22de85e5f3d90903e7c6c3ce83672c7530effbc79a24f215",
+    "archive_sha256": "df36922022a04f6ff7aca7f204a82ebfc84715adbaae616b30a90ef82f74d27b"
+  }
+]
