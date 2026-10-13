@@ -80,6 +80,7 @@ async function selectRun(id){
         addMetric('hotspot-values','Peak element corner quality',peak.corner_mean_ratio_quality.toFixed(3));
         addMetric('hotspot-values','Minimum mesh corner quality',diagnostic.minimum_corner_quality.toExponential(3));
         addMetric('hotspot-values','Median mesh corner quality',diagnostic.median_corner_quality.toFixed(3));
+        for(const change of diagnostic.regional_refinement?.last_changes || [])addMetric('hotspot-values',`Last regional stress change · ≥${change.centroid_exclusion_distance_mm} mm`,change.relative_last_peak_change===null?'Not available':(change.relative_last_peak_change*100).toFixed(2)+'% · informational');
         for(const region of diagnostic.regional_peaks || [])addMetric('hotspot-values',`Regional peak · centroids ≥${region.centroid_exclusion_distance_mm} mm from clamp/load`,region.maximum_von_mises_MPa===null?'No elements':region.maximum_von_mises_MPa.toFixed(2)+' MPa · not an allowable');
       }catch(error){if(ticket!==selection || error.name==='AbortError')return;addMetric('hotspot-values','Diagnostics unavailable',error.message);}
     }

@@ -1,5 +1,5 @@
 import math,unittest
-from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks
+from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks,diagnose
 
 class StressDiagnosticsTests(unittest.TestCase):
     def test_regular_tetrahedron_quality_and_scale(self):
@@ -28,3 +28,6 @@ class StressDiagnosticsTests(unittest.TestCase):
         rows=regional_peaks(stresses,centers)
         self.assertEqual([row['maximum_von_mises_MPa'] for row in rows],[80,40,40])
         self.assertEqual([row['included_elements'] for row in rows],[2,1,1]);self.assertEqual(max(stresses)[0],200)
+
+    def test_mesh_selection_is_bounded(self):
+        with self.assertRaisesRegex(ValueError,'Unsupported'):diagnose('unused.zip','../other')

@@ -55,3 +55,7 @@ New finer-source jobs use 25°; the baseline remains at 20°. No source geometry
 The hotspot report now includes stress peaks after excluding elements whose corner centroids are within 1, 2 or 3 mm of either nominal rectangle: rear clamp x=0, y=0..30, z=3.5..40, or load strip z=3.5, x=55..60, y=0..30. The same element eligibility applies to its four integration points. These distances are not exact integration-point distances and do not remove physical stress concentrations rigorously.
 
 For study c072e470, each regional maximum is 88.049 MPa while the unfiltered global peak remains 217.242 MPa. Included element counts are 15,953, 14,592 and 12,028 respectively. Evidence is in regional-stress-diagnostics.json. This identifies a diagnostic spatial pattern, not stress convergence, a safety factor or a permissible stress. The viewer keeps the global peak visible and marks regional values as not allowables.
+
+## Regional stress refinement across archived meshes
+
+The diagnostics repeat centroid-exclusion peak measurements at 2.5, 1.8 and 1.5 mm mesh targets. Evidence is in regional-stress-refinement.json. Baseline regional peaks are 95.32, 97.79 and 98.33 MPa (0.5512% final change). Finer-study peaks are 99.44, 102.98 and 88.05 MPa (14.4957% final change). These changes are informational, not convergence acceptance. Stable displacement does not establish stable stress; more refinement and validation remain required.

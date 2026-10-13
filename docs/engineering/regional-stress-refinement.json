@@ -1,0 +1,196 @@
+[
+  {
+    "run_id": "d5351ced-68c6-452f-8a31-73a40b9b8873",
+    "manifest_sha256": "b932d8c04b7863b0bd75bad82fe6bfa00b0248a413bf9d0892a94f8791ba9c05",
+    "archive_sha256": "d8fe1a8040337580e58910247142f8a0b5834f6dbbf1d339cb93457908d8205e",
+    "mesh_study": [
+      {
+        "target_size_mm": 2.5,
+        "elements": 10195,
+        "global_peak_MPa": 95.31563628703617,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 8098,
+            "maximum_von_mises_MPa": 95.31563628703617,
+            "peak_element_id": 5733
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 7233,
+            "maximum_von_mises_MPa": 95.31563628703617,
+            "peak_element_id": 5733
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 5966,
+            "maximum_von_mises_MPa": 95.31563628703617,
+            "peak_element_id": 5733
+          }
+        ]
+      },
+      {
+        "target_size_mm": 1.8,
+        "elements": 16908,
+        "global_peak_MPa": 102.4806830382751,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 13728,
+            "maximum_von_mises_MPa": 97.79048464779588,
+            "peak_element_id": 12782
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 12772,
+            "maximum_von_mises_MPa": 97.79048464779588,
+            "peak_element_id": 12782
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 10668,
+            "maximum_von_mises_MPa": 97.79048464779588,
+            "peak_element_id": 12782
+          }
+        ]
+      },
+      {
+        "target_size_mm": 1.5,
+        "elements": 25747,
+        "global_peak_MPa": 100.36474467903315,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 20644,
+            "maximum_von_mises_MPa": 98.32955145247493,
+            "peak_element_id": 19885
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 18246,
+            "maximum_von_mises_MPa": 98.32955145247493,
+            "peak_element_id": 19885
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 14386,
+            "maximum_von_mises_MPa": 98.32955145247493,
+            "peak_element_id": 19885
+          }
+        ]
+      }
+    ],
+    "last_changes": [
+      {
+        "centroid_exclusion_distance_mm": 1,
+        "relative_last_peak_change": 0.005512466848084152
+      },
+      {
+        "centroid_exclusion_distance_mm": 2,
+        "relative_last_peak_change": 0.005512466848084152
+      },
+      {
+        "centroid_exclusion_distance_mm": 3,
+        "relative_last_peak_change": 0.005512466848084152
+      }
+    ],
+    "status": "measured_not_stress_convergence_acceptance"
+  },
+  {
+    "run_id": "c072e470-2fd9-452a-aee2-19d9cb2a2329",
+    "manifest_sha256": "53b1b6c04f54805454692672e926de154a33a56b6a85158125309b0982c9f7b2",
+    "archive_sha256": "a5629cb0177f654acdbb7434f794a1f0ff691d02c6f943482a303cb4c5b1a676",
+    "mesh_study": [
+      {
+        "target_size_mm": 2.5,
+        "elements": 6985,
+        "global_peak_MPa": 235.61229449836165,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 5890,
+            "maximum_von_mises_MPa": 99.44267731031067,
+            "peak_element_id": 5135
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 5120,
+            "maximum_von_mises_MPa": 99.44267731031067,
+            "peak_element_id": 5135
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 4085,
+            "maximum_von_mises_MPa": 99.44267731031067,
+            "peak_element_id": 5135
+          }
+        ]
+      },
+      {
+        "target_size_mm": 1.8,
+        "elements": 13593,
+        "global_peak_MPa": 198.63448354929693,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 11275,
+            "maximum_von_mises_MPa": 102.97615839135877,
+            "peak_element_id": 11654
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 10298,
+            "maximum_von_mises_MPa": 102.97615839135877,
+            "peak_element_id": 11654
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 8416,
+            "maximum_von_mises_MPa": 102.97615839135877,
+            "peak_element_id": 11654
+          }
+        ]
+      },
+      {
+        "target_size_mm": 1.5,
+        "elements": 19124,
+        "global_peak_MPa": 217.2419572455153,
+        "regional_peaks": [
+          {
+            "centroid_exclusion_distance_mm": 1,
+            "included_elements": 15953,
+            "maximum_von_mises_MPa": 88.04904668971788,
+            "peak_element_id": 16308
+          },
+          {
+            "centroid_exclusion_distance_mm": 2,
+            "included_elements": 14592,
+            "maximum_von_mises_MPa": 88.04904668971788,
+            "peak_element_id": 16308
+          },
+          {
+            "centroid_exclusion_distance_mm": 3,
+            "included_elements": 12028,
+            "maximum_von_mises_MPa": 88.04904668971788,
+            "peak_element_id": 16308
+          }
+        ]
+      }
+    ],
+    "last_changes": [
+      {
+        "centroid_exclusion_distance_mm": 1,
+        "relative_last_peak_change": 0.1449569680479893
+      },
+      {
+        "centroid_exclusion_distance_mm": 2,
+        "relative_last_peak_change": 0.1449569680479893
+      },
+      {
+        "centroid_exclusion_distance_mm": 3,
+        "relative_last_peak_change": 0.1449569680479893
+      }
+    ],
+    "status": "measured_not_stress_convergence_acceptance"
+  }
+]

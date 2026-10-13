@@ -219,3 +219,7 @@
 - Added centroid-distance exclusion sweeps around nominal clamp/load rectangles, retaining unfiltered global peaks.
 - New finer study regional peak 88.049 MPa vs global 217.242 MPa; no allowable/convergence claim.
 - Browser verified measured values and limits; all 48 unit tests and seven viewer checks pass.
+
+## 2026-10-13 — Archived regional stress refinement
+- Measured regional peaks across all three meshes: final changes 0.5512% baseline and 14.4957% finer.
+- Viewer verified informational labels; all 49 unit tests and seven viewer checks pass.

@@ -34,9 +34,10 @@ def regional_peaks(stresses,centers):
         rows.append({'centroid_exclusion_distance_mm':gap,'included_elements':len({row[1] for row in included}),'maximum_von_mises_MPa':peak[0] if peak else None,'peak_element_id':peak[1] if peak else None})
     return rows
 
-def diagnose(archive):
+def diagnose(archive,mesh_name="mesh-1.5"):
+    if mesh_name not in ("mesh-2.5","mesh-1.8","mesh-1.5"):raise ValueError("Unsupported bracket mesh")
     with zipfile.ZipFile(archive) as z:
-        deck=z.read('mesh-1.5/bracket.inp').decode();data=z.read('mesh-1.5/bracket.dat').decode()
+        deck=z.read(mesh_name+'/bracket.inp').decode();data=z.read(mesh_name+'/bracket.dat').decode()
     nodes={};elements={};section=None
     for line in deck.splitlines():
         if line.startswith('*'):section='nodes' if line=='*NODE' else 'elements' if line.startswith('*ELEMENT,') else None
@@ -51,3 +52,14 @@ def diagnose(archive):
         peaks.append({'von_mises_MPa':stress,'element_id':eid,'integration_point':ip,'element_corner_centroid_mm':center,'element_volume_mm3':quality[eid][0],'corner_mean_ratio_quality':quality[eid][1]})
     qualities=sorted(q for volume,q in quality.values())
     return {'regional_peaks':regional_peaks(stresses,centers),'regional_note':'Element centroid exclusion from nominal rear clamp and load rectangles; not exact integration-point distance, convergence or an allowable','elements':len(elements),'minimum_corner_quality':qualities[0],'one_percentile_corner_quality':qualities[int(.01*(len(qualities)-1))],'median_corner_quality':qualities[len(qualities)//2],'top_integration_point_stresses':peaks,'limitations':['Reported locations are element corner centroids, not exact integration-point coordinates','Quality describes straight corner tetrahedra, not a full quadratic Jacobian assessment','Peak location and quality do not establish stress convergence or physical validity']}
+
+def regional_refinement(archive,fine=None):
+    studies=[]
+    for size in (2.5,1.8,1.5):
+        result=fine if size==1.5 and fine is not None else diagnose(archive,'mesh-'+str(size))
+        studies.append({'target_size_mm':size,'elements':result['elements'],'global_peak_MPa':result['top_integration_point_stresses'][0]['von_mises_MPa'],'regional_peaks':result['regional_peaks']})
+    changes=[]
+    for previous,current in zip(studies[-2]['regional_peaks'],studies[-1]['regional_peaks']):
+        a,b=previous['maximum_von_mises_MPa'],current['maximum_von_mises_MPa']
+        changes.append({'centroid_exclusion_distance_mm':current['centroid_exclusion_distance_mm'],'relative_last_peak_change':abs(b/a-1) if a and b is not None else None})
+    return {'mesh_study':studies,'last_changes':changes,'status':'measured_not_stress_convergence_acceptance'}

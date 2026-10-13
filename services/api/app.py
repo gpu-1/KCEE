@@ -143,11 +143,12 @@ def geometry_measurements(run_id: UUID):
 
 @app.get('/runs/{run_id}/stress-diagnostics')
 def stress_diagnostics(run_id: UUID):
-    from kcee.stress_diagnostics import diagnose
+    from kcee.stress_diagnostics import diagnose,regional_refinement
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Diagnostics require a bracket structural run')
         result=diagnose(ARTIFACTS/str(run_id)/'fea-artifacts.zip')
+        result['regional_refinement']=regional_refinement(ARTIFACTS/str(run_id)/'fea-artifacts.zip',result)
         import json
         from kcee.surface_load import stl_strip_area
         source_area=stl_strip_area(ARTIFACTS/str(run_id)/'bracket.stl');fea=json.loads((ARTIFACTS/str(run_id)/'fea.json').read_text())
