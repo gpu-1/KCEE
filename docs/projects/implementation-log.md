@@ -199,3 +199,8 @@
 - Original STL patch comparison reveals baseline 0.00256% vs finer 15.3773% mesh-area error.
 - Added future 5% source-area gate and retrospective viewer warning without modifying saved manifests.
 - Previous numerical passes were limited to their recorded checks; finer geometry requires further meshing investigation.
+
+## 2026-10-13 — Load-surface tolerance investigation
+- Added repeatable read-only source/preview area sweep at four top-face tolerances.
+- Finer mesh selection is sensitive at 0.05–0.1 mm; larger masks include more curved source geometry.
+- Preserved production mask/gate; documented preview subdivision limitations and unresolved surface representation.

@@ -29,3 +29,11 @@ Recorded revised studies are d5351ced (baseline) and 90f8cb89 (finer), with full
 A retrospective check now clips the original STL with the same x≥55 mm/top-face tolerance used for loading, then compares its area with the fine volume mesh load strip. For clipped-load baseline d5351ced, source/mesh areas are 130.930924/130.927573 mm² (0.00256% error). For finer study 90f8cb89, they are 135.823083/114.937223 mm² (15.3773% error). This reveals a local source-to-volume-mesh representation discrepancy not caught by total volume/within-study patch checks.
 
 New solves require source load-area agreement within 5% as an additional numerical gate; this threshold is a demo diagnostic, not a physical acceptance criterion. Existing immutable validation statuses are preserved, with a retrospective Needs attention warning in the viewer. The finer study must not be accepted on its previous checks alone. Further work must resolve the top-surface representation and area selection before interpreting geometry sensitivity.
+
+## Load-surface selection sensitivity
+
+Run `python3 scripts/check_load_surface.py runs/<id> --manifest-sha256 <trusted-hash> --output <new-report.json>` for a read-only tolerance sweep. load-surface-sensitivity.json records the two clipped-load studies. Mesh values use the subdivided preview surface; face inclusion can differ slightly from the original quadratic-face mask.
+
+For the finer study, the preview strip area grows from 114.937 mm² at 0.05 mm top-face tolerance to 130.415 mm² at 0.1 mm; the original STL remains 135.823 mm² at both tolerances. At 0.2 mm, the source selection grows to 148.039 mm², showing that a wider mask includes additional curved surface. The baseline is much less sensitive at 0.05–0.1 mm.
+
+This identifies sensitivity to the remeshed top-surface representation and face mask. It does not quantify nearest-surface distance or prove the cause of mesh distortion. The production 0.05 mm mask and 5% source-area gate remain unchanged. Do not widen the tolerance simply to pass the gate; a validated surface tagging or geometry-preserving mesh procedure is still needed.
