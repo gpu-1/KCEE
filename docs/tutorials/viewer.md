@@ -18,3 +18,7 @@ Follow the [current bracket walkthrough](bracket.md) for the native generation/F
 ## Model list management
 
 Select a saved model and choose Remove from list. The confirmation shows its name and UUID. Confirming hides only that run; cancel leaves the list unchanged. Show removed models switches to hidden entries. Select one and confirm Restore to list to return it. This preserves files, provenance and independent parent/child results. Removal is disabled during job creation.
+
+## Compare saved bracket studies
+
+Select a Bracket FEA run and choose Use as comparison reference, then select another Bracket FEA run. Both records/artifacts are verified before displaying geometry, mesh settings, load-patch area, displacement and unconverged peak stress. Clear comparison removes the reference. The reference lasts for the current viewer session. Different geometry/meshing/load discretization prevents attributing changes to one factor.

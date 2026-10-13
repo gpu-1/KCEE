@@ -158,3 +158,7 @@
 ## 2026-10-13 — Viewer stress diagnostics
 - Added archive-verified hotspot centroid and corner mesh-quality panel.
 - Verified finer run against archived report and unsupported benchmark rejection; browser verified actual values. Six viewer checks/build pass.
+
+## 2026-10-13 — Saved study comparison
+- Added verified reference pinning and side-by-side geometry/mesh/load/result comparison.
+- Browser verified original vs finer bracket values and +0.425% loaded displacement change; no stress acceptance claim.

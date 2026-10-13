@@ -3,6 +3,7 @@ import {STLLoader} from 'three/addons/loaders/STLLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {request, loadRun, artifactUrl} from './client.js';
 const $=id=>document.getElementById(id);
+let comparisonId=null,currentStudy=null;
 let fieldData=null, sourceStl=null, archiveDigest=null;
 let mesh, renderer, controls, camera, scene, boundaryMarkers;
 let modelCenter=new THREE.Vector3(),isBracketStudy=false;
@@ -14,7 +15,7 @@ function updateCreation(){ $("remove-run").disabled=creating || removing || !sel
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
-function clearDetails(){$('stress-diagnostics').hidden=true;$('hotspot-values').replaceChildren();$('geometry-measurements').hidden=true;$('hole-values').replaceChildren();selectedVerified=false;$('remove-run').disabled=true;isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function clearDetails(){currentStudy=null;$('pin-comparison').disabled=true;$('comparison').hidden=true;$('comparison-rows').replaceChildren();$('stress-diagnostics').hidden=true;$('hotspot-values').replaceChildren();$('geometry-measurements').hidden=true;$('hole-values').replaceChildren();selectedVerified=false;$('remove-run').disabled=true;isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
 function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
 function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
 function fitModel(){
@@ -95,6 +96,7 @@ async function selectRun(id){
     addMetric('provenance','Run ID',record.id);if(record.parent_id)addMetric('provenance','Parent design',record.parent_id);addMetric('provenance','Created',new Date(record.created_at).toLocaleString());addMetric('provenance','Geometry',result.geometry_backend);addMetric('provenance','Structural model',result.structural_backend);addMetric('provenance','Validation status',record.validation_status);addMetric('provenance','Manifest SHA-256',record.manifest_sha256);
     selectedIsNative=result.geometry_backend.startsWith('PicoGK');updateCreation();
     if(result.fea){$('result-title').textContent=result.kind==='bracket_structural'?'Bracket structural study':'Cantilever verification';$('mesh-study').hidden=false;$('displacement-heading').textContent=result.kind==='bracket_structural'?'Loaded patch (mm)':'Tip (mm)';$('stress-heading').hidden=result.kind!=='bracket_structural';$('mesh-note').hidden=result.kind!=='bracket_structural';for(const mesh of result.fea.mesh_study){const row=document.createElement('tr');for(const value of [mesh.elements,mesh.tip_deflection_mm.toFixed(6),mesh.reaction_z_N.toFixed(4),...(result.kind==='bracket_structural'?[mesh.maximum_von_mises_MPa.toFixed(2)]:[])]){const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell);}$('mesh-rows').appendChild(row);}$('solver-files').href=artifactUrl(id,'fea-artifacts.zip');$('solver-files').hidden=false;}
+    currentStudy=result.kind==='bracket_structural'?{id,result}:null;$('pin-comparison').disabled=!currentStudy;await showComparison(ticket,signal);if(ticket!==selection)return;
     $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Bracket numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
   } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
 }
@@ -193,3 +195,22 @@ $('confirm-remove').onclick=async()=>{
 
 $('remove-confirm').addEventListener('cancel',event=>{if(removing)event.preventDefault();});
 $('remove-confirm').addEventListener('close',()=>{if(!removing)pendingRemoval=null;$('remove-run').focus();});
+
+async function showComparison(ticket,signal){
+  $('clear-comparison').hidden=!comparisonId;
+  $('comparison-status').textContent=comparisonId?'Reference: '+comparisonId:'Select a bracket FEA study and use it as a reference, then select another study.';
+  if(!comparisonId || !currentStudy || comparisonId===currentStudy.id)return;
+  try{
+    const referenceId=comparisonId;const reference=await loadRun(referenceId,signal);if(ticket!==selection || comparisonId!==referenceId)return;
+    if(reference.result.kind!=='bracket_structural')throw new Error('Reference must be a bracket FEA study');
+    $('comparison-reference').textContent='Reference '+comparisonId.slice(0,8);$('comparison-current').textContent='Selected '+currentStudy.id.slice(0,8);
+    const a=reference.result,b=currentStudy.result;
+    const measures=[['Voxel size (mm)',r=>r.geometry?.voxel_size_mm],['Surface classification (degrees)',r=>r.fea.surface_classification_angle_degrees],['Load-strip local target (mm)',r=>r.fea.load_strip_local_target_mm??'Not recorded'],['Fine elements',r=>r.fea.mesh_study.at(-1).elements],['Load-patch area (mm²)',r=>r.fea.mesh_study.at(-1).load_patch_area_mm2],['Loaded displacement (mm)',r=>r.fea.mesh_study.at(-1).tip_deflection_mm],['Peak stress (MPa) · unconverged',r=>r.fea.mesh_study.at(-1).maximum_von_mises_MPa],['Validation',r=>r.validation_status]];
+    $('comparison-rows').replaceChildren();
+    for(const [label,value] of measures){const row=document.createElement('tr');for(const item of [label,value(a),value(b)]){const cell=document.createElement('td');cell.textContent=typeof item==='number'?(Number.isInteger(item)?String(item):item.toFixed(4)):item??'Not recorded';row.appendChild(cell);}$('comparison-rows').appendChild(row);}
+    const difference=(b.fea.mesh_study.at(-1).tip_deflection_mm/a.fea.mesh_study.at(-1).tip_deflection_mm-1)*100;
+    $('comparison-status').textContent='Both saved runs verified. Loaded displacement change: '+difference.toFixed(3)+'%. Changes cannot be attributed to geometry alone.';$('comparison').hidden=false;
+  }catch(error){if(ticket!==selection || error.name==='AbortError')return;$('comparison-status').textContent='Comparison unavailable: '+error.message;}
+}
+$('pin-comparison').onclick=()=>{if(!currentStudy)return;comparisonId=currentStudy.id;$('comparison').hidden=true;showComparison(selection,activeRequest.signal);};
+$('clear-comparison').onclick=()=>{comparisonId=null;$('comparison').hidden=true;$('comparison-rows').replaceChildren();showComparison(selection,activeRequest.signal);};
