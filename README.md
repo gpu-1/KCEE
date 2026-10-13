@@ -6,7 +6,7 @@ Private computational engineering platform for Apple Silicon. Initial scaffold, 
 python3 -m kcee.demo --output runs
 python3 -m unittest discover -s tests -v
 ```
-Each run creates a watertight L-bracket STL, analytical cantilever screening, thickness search, report, speech summary, and SHA-256 provenance manifest. Geometry is a deterministic mesh fallback; PicoGK and FEA are pending. No AI or solver result is fabricated.
+Each run creates a watertight L-bracket STL, analytical cantilever screening, thickness search, report, speech summary, and SHA-256 provenance manifest. Geometry defaults to a deterministic mesh fallback. Native PicoGK generation with mounting holes is available using `--geometry-backend picogk`; see [native setup](host/macos/picogk/README.md). FEA remains pending. No AI or solver result is fabricated.
 
 ## Local services
 ```sh

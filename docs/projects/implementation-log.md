@@ -19,3 +19,13 @@
 - Browser verified demo creation, geometry rendering and displayed results; imported the original demo into saved history.
 - Local viewer/API/database services are running with private ignored settings.
 - All results retain analytical screening limitations; PicoGK/solver adapters remain next work.
+
+## 2026-10-13 — Native geometry milestone
+- Implemented real PicoGK 2.3 bracket generation using pinned .NET 9.0.318 on Apple Silicon.
+- Added four mounting holes, a fillet-like voxel transition, bounded runtime/resources and explicit failure records.
+- Captured native/adapter hashes, kernel settings, geometry request and voxel-derived mass in provenance.
+- Removed duplicate-vertex zero-area triangles from voxel mesh export.
+- Native checks verify closed oriented meshes, four-hole topology, provenance and plain-bracket volume within 3%.
+- Container API still creates the baseline mesh; host-generated native runs are imported for viewing. Solver-backed stress/deflection remain pending.
+- Ten unit tests, six viewer client tests, five live API/proxy/database checks and native geometry regressions pass.
+- Native run 81c4ade0-895c-4c1d-9399-f838c331e652 was imported and visually checked in the Three.js viewer.

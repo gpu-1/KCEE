@@ -38,7 +38,8 @@ def stl(g):
         lines+=['endloop','endfacet']
     return '\n'.join(lines+['endsolid bracket'])+'\n'
 
-def run(output, requirements=DEFAULT):
+def run(output, requirements=DEFAULT, geometry_backend="mesh", picogk_executable=None):
+    if geometry_backend not in ("mesh","picogk"): raise ValueError("Unknown geometry backend")
     req=json.loads(Path(requirements).read_text()); validate(req)
     run_id=str(uuid.uuid4()); dest=Path(output)/run_id; dest.mkdir(parents=True,exist_ok=False)
     g=req['geometry_mm']; upper=min(g['length'],g['height'])
@@ -54,7 +55,19 @@ def run(output, requirements=DEFAULT):
     mass=g['width']*best['thickness_mm']*(g['length']+g['height']-best['thickness_mm'])*1e-9*req['density_kg_m3']
     result={'validation_status':'unvalidated_analytical_screening','geometry_backend':'deterministic_mesh_fallback','structural_backend':'Euler-Bernoulli cantilever approximation','selected':best,'mass_kg':mass,'candidates':candidates,'assumptions':['SI loads, geometry in mm, MPa=N/mm^2','Perfectly fixed root, end point load, linear elasticity','No holes, fillets, stress concentrations, bolt contact, buckling or fatigue','Thermal, CFD and Cantera not applicable to this demo; not executed']}
     (dest/'requirements.json').write_text(json.dumps(req,indent=2))
-    (dest/'bracket.stl').write_text(stl(geometry))
+    if geometry_backend=='picogk':
+        from kcee.picogk import generate, GeometryError
+        try:
+            metadata=generate(dest,geometry,req.get('geometry_options'),picogk_executable)
+        except GeometryError as exc:
+            (dest/'failure.json').write_text(json.dumps({'run_id':run_id,'stage':'geometry','status':'failed','error':str(exc)},indent=2))
+            raise
+        result['geometry_backend']='PicoGK '+metadata['package_version']
+        result['geometry']=metadata
+        result['mass_kg']=metadata['volume_mm3']*1e-9*req['density_kg_m3']
+        result['assumptions'].append('PicoGK holes/fillet geometry is not represented in the analytical stress/deflection model; mass uses voxel volume')
+    else:
+        (dest/'bracket.stl').write_text(stl(geometry))
     (dest/'result.json').write_text(json.dumps(result,indent=2))
     (dest/'voice-summary.json').write_text(json.dumps({'level':'RESULT','text':'Bracket screening complete. Design remains unvalidated. Selected thickness '+str(best['thickness_mm'])+' millimeters.','delivery':'queued_artifact_only; Kokoro not connected'},indent=2))
     (dest/'report.md').write_text('# Bracket screening\n\nUNVALIDATED: analytical approximation only.\n\nThickness: '+str(best['thickness_mm'])+' mm\n\n'+json.dumps(best,indent=2)+'\n\nAssumptions:\n'+ '\n'.join('- '+x for x in result['assumptions']))
@@ -65,5 +78,5 @@ def run(output, requirements=DEFAULT):
     (dest/'manifest.json').write_text(json.dumps(manifest,indent=2)); return dest
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(); parser.add_argument('--output',default='runs'); parser.add_argument('--requirements',default=str(DEFAULT)); args=parser.parse_args()
-    print(run(args.output,args.requirements))
+    parser=argparse.ArgumentParser(); parser.add_argument('--output',default='runs'); parser.add_argument('--requirements',default=str(DEFAULT)); parser.add_argument('--geometry-backend',choices=['mesh','picogk'],default='mesh'); args=parser.parse_args()
+    print(run(args.output,args.requirements,args.geometry_backend))

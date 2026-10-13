@@ -5,7 +5,7 @@
 | PostgreSQL/pgvector | Docker | Run registry and integrity API implemented; knowledge ingestion pending |
 | Three.js | Docker/browser | Saved-run history, verified geometry/results and local STL viewer |
 | llama.cpp Metal | macOS | Launcher/layout; adapter pending |
-| PicoGK | macOS .NET | Contract/layout; kernel integration pending |
+| PicoGK | macOS .NET | Native command-line bracket generation implemented; HTTP gateway pending |
 | CalculiX / FEniCSx | Worker containers | Structural/thermal adapter pending |
 | SU2 / OpenFOAM | Worker containers | CFD adapter pending |
 | Cantera | Worker container | Thermochemistry adapter pending |

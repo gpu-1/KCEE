@@ -2,7 +2,7 @@
 1. API dependencies and API/database image digests locked; ARM64 registry integration tested. Viewer dependencies/image digest now locked; saved-run viewer builds and client checks included.
 2. Run persistence, append-only history and integrity checks implemented. Next: local knowledge ingestion/embedding model.
 3. Restricted native gateway; Metal AI structured proposal API and runtime manifests.
-4. PicoGK bracket generation with holes/fillets and deterministic export tests.
+4. Native PicoGK bracket, mounting holes, fillet-like voxel transition and closed-mesh/volume checks implemented. Next: resolution convergence and authenticated API gateway.
 5. Gmsh/CalculiX structural benchmark, thermal worker; then FEniCSx, SU2/OpenFOAM and Cantera profiles with validated examples.
 6. Materials/process rule database and solver-backed optimization.
 7. Kokoro priority queue/audio playback, whisper.cpp opt-in recording/transcription.

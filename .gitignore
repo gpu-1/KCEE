@@ -9,3 +9,6 @@ runs/*
 models/*
 !models/.gitkeep
 .DS_Store
+.local/
+**/bin/
+**/obj/
