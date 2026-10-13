@@ -1,3 +1,4 @@
+import zipfile
 import logging
 import os
 from pathlib import Path
@@ -98,3 +99,17 @@ def analyze_bracket(run_id: UUID):
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Analysis artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'parent_design_id':str(run_id),'validation_status':__import__('json').loads((dest/'result.json').read_text())['validation_status']}
+
+@app.get('/runs/{run_id}/displacement-surface')
+def surface_field(run_id: UUID):
+    from kcee.fields import displacement_surface
+    try:
+        registry.verify(ARTIFACTS,run_id)
+        record=registry.get(run_id)
+        if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Displacement preview requires a bracket structural run')
+        field=displacement_surface(ARTIFACTS/str(run_id)/'fea-artifacts.zip')
+        field['source_archive_sha256']=record['manifest']['artifacts']['fea-artifacts.zip']
+        return field
+    except KeyError:raise HTTPException(404,'Unknown run')
+    except IntegrityError:raise HTTPException(409,'Run integrity check failed')
+    except (ValueError,zipfile.BadZipFile):raise HTTPException(422,'Solver field is incomplete')

@@ -59,3 +59,8 @@
 - Added wireframe and aspect-aware camera fit for inspecting actual bracket geometry.
 - Refinement tables distinguish loaded-patch displacement from cantilever tip displacement and show bracket peak stress with its convergence limitation.
 - Benchmark creation now shares the busy state with bracket generation/analysis to prevent overlapping submissions.
+
+## 2026-10-13 — Solver displacement preview
+- Added verified fine-mesh archive extraction, original nodal displacement colors and explicit 1×/10×/25× deformation scales.
+- Quadratic boundary faces are subdivided using solver midside nodes; preview is a piecewise-linear display, not a new solve.
+- Existing immutable runs remain unchanged. Stress-field display and engineering validation remain pending.
