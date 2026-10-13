@@ -142,3 +142,6 @@ function updateBoundaries(){
   scene.add(boundaryMarkers);
 }
 $('boundaries').onchange=updateBoundaries;
+
+$('geometry-help-link').onclick=event=>{event.preventDefault();$('geometry-help').showModal();};
+$('geometry-help').addEventListener('close',()=> $('geometry-help-link').focus());
