@@ -86,3 +86,8 @@
 - Reject non-positive tetrahedron volume, inconsistent shared midside nodes and shared-face orientation.
 - Reference tests verify removal of an internal face between two quadratic tetrahedra and outward surface triangle normals.
 - All 30 unit tests pass; actual bracket surface and field values remain unchanged.
+
+## 2026-10-13 — Archive-to-preview acceptance check
+- Added repeatable read-only verification of saved bracket fields against their SHA-256-verified solver archive.
+- Verified run 6106f5e9: 24,686 surface nodes, 49,384 triangles, closed/oriented edges and 9,821.594885 mm³ volume matching the fine solver mesh.
+- Geometry/displacement vectors match exactly; derived magnitudes agree within 1e-12 rounding tolerance. Engineering validation remains pending.

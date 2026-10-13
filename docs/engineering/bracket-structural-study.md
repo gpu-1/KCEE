@@ -13,3 +13,7 @@ Each analysis creates a child design with the selected parent UUID, parent manif
 Worker limits: internal-only service, 1 GB memory, two CPUs, one job at a time, 256 MB temporary scratch, 300-second bracket-job timeout and 120 seconds per CalculiX solve. Start with `docker compose --profile viewer --profile fea up --build -d --wait`. Native geometry worker startup remains separate. Regression: `python3 scripts/check_bracket_fea.py --run-id NATIVE_RUN_UUID` against the running local API.
 
 Next: independently verify the tetrahedral formulation on more benchmarks, refine geometry/mesh resolution, define real mount/contact conditions, validate material allowables, test load cases and compare with physical measurements. Bracket fabrication approval, fatigue, buckling and thermal coupling remain outside this study.
+
+## Verify displayed fields
+
+Run `python3 scripts/check_bracket_fields.py --run-id <saved-bracket-analysis-id>` while the API is running. This read-only check downloads and verifies the solver archive, compares preview geometry/displacement vectors exactly, and compares derived magnitudes at 1e-12 relative/absolute tolerance for platform rounding. It also checks closed, consistently oriented surface edges and agreement with the fine solver mesh volume. It does not establish physical validity or stress convergence.
