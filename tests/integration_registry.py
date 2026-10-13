@@ -14,6 +14,13 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_visibility_history_append_only(self):
+        for sql in ('UPDATE run_visibility_events SET hidden=hidden','DELETE FROM run_visibility_events','TRUNCATE run_visibility_events'):
+            with Registry().connect() as conn:
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):conn.execute(sql)
+            with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
+                with self.assertRaises(psycopg.errors.RaiseException):conn.execute(sql)
+
     def test_visibility_confirmation_and_restore(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         before=request('/runs/'+run_id)[1]['manifest_sha256']

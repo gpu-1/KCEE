@@ -107,3 +107,7 @@
 - Show removed models and confirmed Restore to list provide reversible recovery.
 - Separate append-only visibility events retain immutable run files/provenance and parent relationships. Existing database migration applied locally.
 - Browser cancellation verified; isolated API checks cover confirmation mismatch, hide/restore and unchanged manifest.
+
+## 2026-10-13 — Removal flow and history protection
+- Disable removal during active job creation and prevent dismissing a pending visibility save.
+- Add append-only triggers for visibility events and integration tests for application/owner mutation rejection.

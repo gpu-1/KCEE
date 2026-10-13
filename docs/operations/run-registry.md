@@ -31,3 +31,5 @@ References: [Psycopg transactions](https://www.psycopg.org/psycopg3/docs/basic/t
 Select a model and choose Remove from list, then confirm its displayed identity. Files, manifests and parent/child links remain intact. Show removed models lists hidden entries; select one and confirm Restore to list to bring it back. Visibility changes are stored as separate events, with no edits to run provenance.
 
 Existing databases require `docker compose exec -T postgres psql -U kcee -d kcee -v ON_ERROR_STOP=1 < infra/postgres/004-run-visibility.sql`. New databases apply this schema automatically.
+
+Visibility history is protected against updates, deletes and truncation by database triggers. Apply `infra/postgres/005-visibility-history.sql` with the same migration command for existing databases. Removal/restoration adds events; it never edits previous events. The viewer blocks removal while a job is being created and blocks cancellation while a visibility change is saving.
