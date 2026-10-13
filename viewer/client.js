@@ -48,3 +48,8 @@ export function comparisonEvidence(reference,selected,measures,difference){
   if(!Number.isFinite(difference))throw new Error('Invalid displacement comparison');
   return {schema_version:1,exported_at:new Date().toISOString(),reference:source(reference),selected:source(selected),measures,loaded_displacement_change_percent:difference,limitations:['Geometry, meshing and load-patch discretization may differ','Stress peaks remain unconverged','Artifact verification does not establish engineering acceptance']};
 }
+
+export function comparisonMarkdown(report){
+  const cell=value=>String(value??'Not recorded').replace(/\|/g,'\\|').replace(/[\r\n]+/g,' ');
+  return ['# KCEE saved bracket study comparison','',`Exported: ${report.exported_at}`,'','This is a derived comparison of verified saved runs. Engineering validation remains pending.','',`Reference run: ${report.reference.run_id}`,`Selected run: ${report.selected.run_id}`,'','| Measure | Reference | Selected |','|---|---|---|',...report.measures.map(row=>`| ${cell(row.measure)} | ${cell(row.reference)} | ${cell(row.selected)} |`),'',`Loaded displacement change: ${report.loaded_displacement_change_percent}%`,'','## Source provenance','',...['reference','selected'].flatMap(key=>{const source=report[key];return [`${key}: ${source.run_id}`,`Manifest SHA-256: ${source.manifest_sha256}`,`STL SHA-256: ${source.source_stl_sha256}`,`Solver archive SHA-256: ${source.solver_archive_sha256}`,`Recorded validation: ${source.validation_status}`,''];}),'## Interpretation limits','',...report.limitations.map(text=>'- '+cell(text)),''].join('\n');
+}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence} from '../client.js';
+import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence,comparisonMarkdown} from '../client.js';
 const id='12345678-1234-1234-1234-123456789abc';
 const result=JSON.stringify({validation_status:'unvalidated_analytical_screening'}),stl='solid example';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -26,4 +26,10 @@ test('comparison export preserves provenance, precision and limitations',()=>{
  assert.equal(report.reference.solver_archive_sha256,hash('archive'));assert.deepEqual(report.measures,values);assert.equal(report.loaded_displacement_change_percent,.4247797761340433);assert.ok(report.limitations.includes('Stress peaks remain unconverged'));
  const broken=structuredClone(study);broken.record.manifest.run_id='wrong';assert.throws(()=>comparisonEvidence(broken,study,values,0),/identity/);
  const missing=structuredClone(study);missing.record.manifest_sha256=null;assert.throws(()=>comparisonEvidence(missing,study,values,0),/provenance/);
+});
+
+test('readable comparison preserves evidence and escapes table separators',()=>{
+ const source={run_id:id,manifest_sha256:hash('m'),source_stl_sha256:hash('s'),solver_archive_sha256:hash('a'),validation_status:'pending'};
+ const text=comparisonMarkdown({exported_at:'2026-10-13',reference:source,selected:source,measures:[{measure:'Stress | note',reference:1,selected:2}],loaded_displacement_change_percent:1,limitations:['Stress remains unconverged']});
+ assert.ok(text.includes(hash('a')));assert.ok(text.includes('Stress \\| note'));assert.ok(text.includes('Stress remains unconverged'));
 });

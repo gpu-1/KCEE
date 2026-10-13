@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import {STLLoader} from 'three/addons/loaders/STLLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {request, loadRun, artifactUrl, comparisonEvidence} from './client.js';
+import {request, loadRun, artifactUrl, comparisonEvidence, comparisonMarkdown} from './client.js';
 const $=id=>document.getElementById(id);
-let comparisonId=null,currentStudy=null,comparisonUrl=null;
-function clearComparisonExport(){if(comparisonUrl)URL.revokeObjectURL(comparisonUrl);comparisonUrl=null;$("comparison-json").value="";$("comparison-json-view").open=false;$("download-comparison").removeAttribute("href");}
+let comparisonId=null,currentStudy=null,comparisonUrl=null,comparisonMarkdownUrl=null;
+function clearComparisonExport(){if(comparisonMarkdownUrl)URL.revokeObjectURL(comparisonMarkdownUrl);comparisonMarkdownUrl=null;$("download-comparison-markdown").removeAttribute("href");$("comparison-markdown").value="";$("comparison-markdown-view").open=false;if(comparisonUrl)URL.revokeObjectURL(comparisonUrl);comparisonUrl=null;$("comparison-json").value="";$("comparison-json-view").open=false;$("download-comparison").removeAttribute("href");}
 let fieldData=null, sourceStl=null, archiveDigest=null;
 let mesh, renderer, controls, camera, scene, boundaryMarkers;
 let modelCenter=new THREE.Vector3(),isBracketStudy=false;
@@ -217,6 +217,7 @@ async function showComparison(ticket,signal){
     for(const [label,value] of measures){const row=document.createElement('tr');for(const item of [label,value(a),value(b)]){const cell=document.createElement('td');cell.textContent=typeof item==='number'?(Number.isInteger(item)?String(item):item.toFixed(4)):item??'Not recorded';row.appendChild(cell);}$('comparison-rows').appendChild(row);}
     const difference=(b.fea.mesh_study.at(-1).tip_deflection_mm/a.fea.mesh_study.at(-1).tip_deflection_mm-1)*100;
     const evidence=comparisonEvidence(reference,currentStudy,measures.map(([label,value])=>({measure:label,reference:value(a)??null,selected:value(b)??null})),difference);
+    $('comparison-markdown').value=comparisonMarkdown(evidence);comparisonMarkdownUrl=URL.createObjectURL(new Blob([$('comparison-markdown').value],{type:'text/markdown'}));$('download-comparison-markdown').href=comparisonMarkdownUrl;$('download-comparison-markdown').download=`kcee-comparison-${comparisonId.slice(0,8)}-${currentStudy.id.slice(0,8)}.md`;
     $('comparison-json').value=JSON.stringify(evidence,null,2);comparisonUrl=URL.createObjectURL(new Blob([$('comparison-json').value],{type:'application/json'}));$('download-comparison').href=comparisonUrl;$('download-comparison').download=`kcee-comparison-${comparisonId.slice(0,8)}-${currentStudy.id.slice(0,8)}.json`;
     $('comparison-status').textContent='Both saved runs verified. Loaded displacement change: '+difference.toFixed(3)+'%. Changes cannot be attributed to geometry alone.';$('comparison').hidden=false;
   }catch(error){if(ticket!==selection || error.name==='AbortError')return;$('comparison-status').textContent='Comparison unavailable: '+error.message;}
@@ -248,3 +249,5 @@ $('show-failures').onclick=async()=>{
     }
   }catch(error){if(error.name!=='AbortError' && failureRequest===controller)$('failure-status').textContent=error.message;}
 };
+
+$('select-comparison-markdown').onclick=()=>{$('comparison-markdown').focus();$('comparison-markdown').select();};

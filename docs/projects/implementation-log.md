@@ -227,3 +227,7 @@
 ## 2026-10-13 — Comparison loading provenance
 - Include integration method, source load-area error and recorded gate status in comparison table and JSON receipt.
 - Older missing checks are explicitly Not recorded rather than assumed to pass.
+
+## 2026-10-13 — Readable comparison report
+- Added Markdown report/download and inline full-text selection from the same verified comparison evidence.
+- Test provenance retention, interpretation limits and Markdown table escaping; eight viewer checks pass. Browser verified complete 2,020-character selection.
