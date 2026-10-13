@@ -4,15 +4,16 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {request, loadRun, artifactUrl} from './client.js';
 const $=id=>document.getElementById(id);
 let fieldData=null, sourceStl=null, archiveDigest=null;
-let mesh, renderer, controls, camera, scene;
+let mesh, renderer, controls, camera, scene, boundaryMarkers;
+let modelCenter=new THREE.Vector3(),isBracketStudy=false;
 let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
 let nativeAvailable=false,creating=false,structuralAvailable=false,selectedIsNative=false;
 function updateCreation(){ $("fea").disabled=creating || !structuralAvailable; $("analyze").disabled=creating || !structuralAvailable || !selectedIsNative; $("create").disabled=creating || ($("backend").value==="picogk" && !nativeAvailable); }
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
-function clearModel(){ if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
-function clearDetails(){fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
+function clearDetails(){isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
 function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
 function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
 function fitModel(){
@@ -28,10 +29,10 @@ function displayGeometry(bytes){
   if(!renderer) throw new Error('3D rendering unavailable on this browser.');
   const geometry=new STLLoader().parse(bytes);const positions=geometry.attributes.position?.array;
   if(!positions?.length || positions.length%9 || !positions.every(Number.isFinite)){geometry.dispose();throw new Error('STL contains invalid geometry');}
-  geometry.computeVertexNormals();geometry.center();geometry.computeBoundingSphere();const r=geometry.boundingSphere.radius;
+  geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.boundingBox.getCenter(modelCenter);geometry.center();geometry.computeBoundingSphere();const r=geometry.boundingSphere.radius;
   if(!Number.isFinite(r)||r<=0){geometry.dispose();throw new Error('STL has no usable extent');}
   mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x69cabc,roughness:.5,wireframe:$('wireframe').checked}));scene.add(mesh);
-  fitModel();$('fit').disabled=false;$('wireframe').disabled=false;$('empty').hidden=true;
+  fitModel();$('fit').disabled=false;$('wireframe').disabled=false;$('empty').hidden=true;updateBoundaries();
 }
 try {
   scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xffffff,0x446079,3));
@@ -51,7 +52,7 @@ async function selectRun(id){
     const chosen=result.selected;
     for(const key of ['thickness_mm','stress_MPa','tip_deflection_mm','factor_of_safety'])if(!Number.isFinite(chosen?.[key]))throw new Error('Screening result contains invalid values');
     if(!Number.isFinite(result.mass_kg)||!Array.isArray(result.assumptions))throw new Error('Screening result is incomplete');
-    archiveDigest=record.manifest.artifacts['fea-artifacts.zip'];sourceStl=stl;if(renderer)displayGeometry(stl);$('field').disabled=!renderer || result.kind!=='bracket_structural';
+    isBracketStudy=result.kind==='bracket_structural';$('boundaries').disabled=!renderer || !isBracketStudy;archiveDigest=record.manifest.artifacts['fea-artifacts.zip'];sourceStl=stl;if(renderer)displayGeometry(stl);$('field').disabled=!renderer || result.kind!=='bracket_structural';
     addMetric('metrics','Selected thickness',chosen.thickness_mm.toFixed(1)+' mm');addMetric('metrics','Mass', (result.mass_kg*1000).toFixed(1)+' g');
     addMetric('metrics',result.kind==='bracket_structural'?'Ideal-cantilever stress':'Analytical stress',chosen.stress_MPa.toFixed(2)+' MPa');addMetric('metrics',result.kind==='bracket_structural'?'Ideal-cantilever estimate':'Estimated deflection',chosen.tip_deflection_mm.toFixed(3)+' mm');if(result.fea){const fine=result.fea.mesh_study.at(-1);addMetric('metrics',result.kind==='bracket_structural'?'FEA loaded-patch displacement':'FEA tip deflection',fine.tip_deflection_mm.toFixed(3)+' mm');if(result.kind==='bracket_structural'){addMetric('metrics','Source volume agreement error',(result.fea.relative_source_volume_error*100).toFixed(2)+'%');addMetric('metrics','Mesh peak stress · not converged',fine.maximum_von_mises_MPa.toFixed(2)+' MPa');}else addMetric('metrics','Analytical comparison error',(result.fea.relative_displacement_error*100).toFixed(2)+'%');addMetric('metrics','Last mesh displacement change',(result.fea.last_mesh_displacement_change*100).toFixed(2)+'%');addMetric('metrics','Support reaction',fine.reaction_z_N.toFixed(3)+' N');}else addMetric('metrics','Analytical factor of safety',chosen.factor_of_safety.toFixed(2));
     const displayedAssumptions=result.kind==='bracket_structural'?['Actual native PicoGK STL, including mounting holes and root transition',result.fea.boundary,result.fea.load,'Linear isotropic elasticity and small displacement; illustrative material properties',result.fea.stress_note,'Numerical checks do not establish engineering validation','Analytical estimates are separate ideal-cantilever references']:result.assumptions;
@@ -104,8 +105,8 @@ function renderField(){
     const p=data.positions[i],u=data.displacements[i];points.push(...p.map((x,j)=>x+u[j]*scale));
     color.setHSL((1-Math.min(1,(stress?data.von_mises_MPa[i]:Math.hypot(...u))/(maximum || 1)))*.66,1,.5);colors.push(color.r,color.g,color.b);
   }
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setIndex(data.triangles.flat());geometry.computeVertexNormals();geometry.center();geometry.computeBoundingSphere();
-  mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,wireframe:$('wireframe').checked}));scene.add(mesh);fitModel();$('empty').hidden=true;$('fit').disabled=false;$('wireframe').disabled=false;
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setIndex(data.triangles.flat());geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.boundingBox.getCenter(modelCenter);geometry.center();geometry.computeBoundingSphere();
+  mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,wireframe:$('wireframe').checked}));scene.add(mesh);fitModel();$('empty').hidden=true;updateBoundaries();$('fit').disabled=false;$('wireframe').disabled=false;
   $('field-legend').textContent=`${stress?'Von Mises stress · averaged nodal values':'Displacement magnitude'} · blue 0 → red ${maximum.toFixed(3)} ${stress?'MPa':'mm'} · deformation ${scale}×${stress?' · not converged; not an allowable':''}`;
 }
 $('scale').onchange=()=>{if($('field').checked)renderField();};
@@ -121,3 +122,16 @@ $('field').onchange=async()=>{
   }catch(error){if(ticket!==selection)return;$('field').checked=false;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true;$('status').textContent='Displacement field unavailable: '+error.message;}
   finally{if(ticket===selection)$('field').disabled=false;}
 };
+
+function updateBoundaries(){
+  if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});boundaryMarkers=null;}
+  $('boundary-legend').hidden=!$('boundaries').checked || !isBracketStudy;
+  if(!$('boundaries').checked || !isBracketStudy || !mesh)return;
+  boundaryMarkers=new THREE.Group();boundaryMarkers.position.copy(modelCenter).multiplyScalar(-1);
+  function outline(points,color){const geometry=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p)));boundaryMarkers.add(new THREE.LineLoop(geometry,new THREE.LineBasicMaterial({color,depthTest:false,transparent:true,opacity:.9})));}
+  outline([[0,0,3.5],[0,30,3.5],[0,30,40],[0,0,40]],0xffa940);
+  outline([[55,0,3.5],[60,0,3.5],[60,30,3.5],[55,30,3.5]],0xff6ec7);
+  for(const y of [5,15,25])boundaryMarkers.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,-1),new THREE.Vector3(57.5,y,15.5),12,0xff6ec7,3,1.5));
+  scene.add(boundaryMarkers);
+}
+$('boundaries').onchange=updateBoundaries;
