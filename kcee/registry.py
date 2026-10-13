@@ -32,7 +32,7 @@ class Registry:
 
     def list(self,limit=50,offset=0):
         with self.connect() as conn:
-            return conn.execute('SELECT id,parent_id,created_at,validation_status,manifest_sha256 FROM design_runs ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s',(limit,offset)).fetchall()
+            return conn.execute("SELECT id,parent_id,created_at,validation_status,manifest_sha256,COALESCE(manifest->>'kind','bracket') AS kind FROM design_runs ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s",(limit,offset)).fetchall()
 
     def verify(self,root,run_id):
         record=self.get(run_id)

@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 
-parser=argparse.ArgumentParser();parser.add_argument("--viewer",action="store_true");args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument("--viewer",action="store_true");parser.add_argument("--fea",action="store_true");args=parser.parse_args()
 root=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
     checkout=Path(tmp)/'project'
@@ -18,10 +18,15 @@ with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
     if args.viewer:
         environment['KCEE_TEST_VIEWER_URL']='http://viewer:5173'
         command+=['--profile','viewer']
+    if args.fea:
+        environment['KCEE_TEST_FEA']='1'
+        command+=['--profile','fea']
     try:
         subprocess.run(command+['config','--quiet'],cwd=checkout,env=environment,check=True)
         if args.viewer:
             subprocess.run(command+['up','--build','-d','--wait','viewer'],cwd=checkout,env=environment,check=True)
+        if args.fea:
+            subprocess.run(command+['up','--build','-d','--wait','structural'],cwd=checkout,env=environment,check=True)
         subprocess.run(command+['run','--rm','--build','test'],cwd=checkout,env=environment,check=True)
     finally:
         subprocess.run(command+['down','-v','--remove-orphans'],cwd=checkout,env=environment,check=True)

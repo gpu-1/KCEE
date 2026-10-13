@@ -77,6 +77,20 @@ class RegistryIntegration(unittest.TestCase):
             req=Request(BASE+'/runs/bracket',data=json.dumps({'geometry_backend':backend}).encode(),method='POST',headers={'Content-Type':'application/json'})
             with self.assertRaises(HTTPError) as context: urlopen(req,timeout=15)
             self.assertEqual(context.exception.code,expected)
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Structural profile not requested')
+    def test_structural_benchmark_provenance(self):
+        self.assertTrue(request('/capabilities')[1]['structural']['calculix'])
+        status,data=request('/runs/structural-benchmark','POST');self.assertEqual(status,201)
+        run_id=data['run_id'];record=request('/runs/'+run_id)[1]
+        self.assertEqual(record['manifest']['kind'],'structural_benchmark')
+        self.assertEqual(record['validation_status'],'benchmark_verified_only')
+        self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+        directory=Path('/data/runs')/run_id
+        result=json.loads((directory/'result.json').read_text())
+        self.assertTrue(all(result['fea']['checks'].values()))
+        self.assertLess(result['fea']['relative_displacement_error'],.05)
+        import zipfile
+        with zipfile.ZipFile(directory/'fea-artifacts.zip') as archive:self.assertIn('mesh-24/beam.frd',archive.namelist())
     def test_owner_append_only_trigger(self):
         for sql in ('UPDATE design_runs SET validation_status=validation_status','DELETE FROM design_runs','TRUNCATE design_runs'):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:

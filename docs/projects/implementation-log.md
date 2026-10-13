@@ -37,3 +37,12 @@
 - Sixteen unit tests, six viewer client tests and six live API/database/proxy regression tests pass.
 - Browser verified native creation, saved provenance, worker shutdown/recovery and explicit baseline selection.
 - Worker remains running locally; startup after reboot is explicit. Numerical structural analysis remains pending.
+
+## 2026-10-13 — Structural verification milestone
+- Added internal ARM64 CalculiX 2.20 worker and a separate quadratic-solid cantilever benchmark.
+- Verified three meshes, analytical displacement agreement, displacement refinement and load/reaction balance.
+- Fine displacement 0.287810 mm versus 0.292052 mm reference (1.452%); final refinement change 0.346%.
+- Added API/viewer benchmark creation, separate run labels, refinement table and archived solver input/field/log downloads.
+- Eighteen unit tests, six viewer client checks and seven live full-stack integration tests pass.
+- Browser verified benchmark a491fa36-523a-48be-91f2-651e172a298e and displayed solver-derived results.
+- Full FEA of the native PicoGK bracket, converged stress allowables and persistent failed-solver history remain pending.

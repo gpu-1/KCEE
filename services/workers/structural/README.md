@@ -1,3 +1,3 @@
-# structural worker
+# Structural worker
 
-Adapter scaffolding. No solver executed. Contract: versioned job inputs with units, mesh/material/load hashes; outputs include convergence, diagnostics, field artifacts, backend version and validation status. Unavailable backend must fail explicitly. See docs/ROADMAP.md.
+CalculiX 2.20 on ARM64 Debian runs the quadratic-solid cantilever verification benchmark. See docs/engineering/structural-benchmark.md. Internal POST /benchmark uses fixed inputs; no arbitrary solver commands or files are accepted. Bracket meshing/analysis remains pending.

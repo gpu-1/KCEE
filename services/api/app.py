@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from typing import Literal
 from kcee.picogk import GeometryError
 from kcee.geometry_queue import available
+from kcee.fea_run import run_benchmark,solver_available
+from kcee.fea import SolverError
 from kcee.demo import run
 from kcee.registry import Registry
 from kcee.provenance import IntegrityError
@@ -37,7 +39,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'validation':'analytical_screening_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -69,3 +71,12 @@ def verify_run(run_id: UUID):
     except KeyError: raise HTTPException(404,'Run not found')
     except IntegrityError as exc: raise HTTPException(409,str(exc))
     except psycopg.Error: raise HTTPException(503,'Database unavailable')
+
+@app.post('/runs/structural-benchmark',status_code=201)
+def structural_benchmark():
+    ready()
+    try: dest=run_benchmark(ARTIFACTS)
+    except SolverError as exc:raise HTTPException(503,str(exc))
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Benchmark artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'validation_status':'benchmark_verified_only'}
