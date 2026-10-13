@@ -180,3 +180,7 @@
 - Added read-only discovery and viewer dialog for retained failure records and solver diagnostic archives.
 - Browser verified five failures from the finer-geometry investigation; clear distinction from verified successes.
 - Tests reject mismatched identities, malformed/non-object records and symlinked diagnostic archives.
+
+## 2026-10-13 — Failure reason previews
+- Added bounded job-log classification into readable failure reasons with generic fallback.
+- Oversized, missing and corrupt logs cannot produce unrestricted previews. Browser verified reasons from existing failures. All 43 unit tests pass.

@@ -1,6 +1,6 @@
-import json,tempfile,unittest
+import json,tempfile,unittest,zipfile
 from pathlib import Path
-from kcee.failures import list_failures
+from kcee.failures import list_failures,failure_reason
 
 class FailureTests(unittest.TestCase):
     def test_valid_failure_and_unsafe_records(self):
@@ -13,3 +13,12 @@ class FailureTests(unittest.TestCase):
             record['run_id']='wrong';path.write_text(json.dumps(record));self.assertEqual(list_failures(root),[])
             path.write_text('malformed');self.assertEqual(list_failures(root),[])
             path.write_text('[]');self.assertEqual(list_failures(root),[])
+
+    def test_bounded_diagnostic_reason(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'diagnostics.zip'
+            with zipfile.ZipFile(path,'w') as z:z.writestr('job.log','Traceback\nException: Invalid boundary mesh (overlapping facets)\n')
+            self.assertIn('overlapping',failure_reason(path))
+            with zipfile.ZipFile(path,'w') as z:z.writestr('job.log','x'*(128*1024+1))
+            self.assertIn('preview limit',failure_reason(path))
+            path.write_bytes(b'invalid');self.assertIn('unreadable',failure_reason(path))
