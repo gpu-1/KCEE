@@ -139,3 +139,8 @@
 ## 2026-10-13 — Current workflow documentation
 - Updated README, bracket/viewer walkthroughs and install guidance to match implemented native FEA, colors, bore measurements, reversible removal and recovery/readiness checks.
 - Removed obsolete pending-adapter statements while retaining actual engineering limitations.
+
+## 2026-10-13 — Finer geometry FEA investigation
+- Attempted the 0.35 mm native bracket under existing study conditions; Gmsh rejected surface parameterization.
+- Smaller-angle probe passed parametrization but volume meshing rejected overlapping facets; retained failure archives and recorded evidence.
+- Restored production adapter settings. Existing results unchanged; geometry-dependent structural convergence remains unresolved. All 36 unit tests pass.

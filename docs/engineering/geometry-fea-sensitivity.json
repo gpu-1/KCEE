@@ -1,0 +1,25 @@
+{
+  "source_run_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
+  "source_voxel_size_mm": 0.35,
+  "source_stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
+  "status": "volume_meshing_failed_no_structural_result",
+  "attempts": [
+    {
+      "classification_angle_degrees": 20,
+      "stage": "surface_parametrization",
+      "error": "Wrong topology of boundary mesh for parametrization",
+      "diagnostic_run_id": "c8a9cbe3-adca-4820-a34c-c9aecb776e84"
+    },
+    {
+      "classification_angle_degrees": 10,
+      "stage": "volume_mesh",
+      "error": "Invalid boundary mesh (overlapping facets) on surface 663 surface 664",
+      "diagnostic_run_id": "3dfc953d-539d-47d1-972b-28e8bac4324f"
+    }
+  ],
+  "limitations": [
+    "Closed edge topology and volume checks do not rule out overlapping or nearly coincident STL facets",
+    "No repeated structural result exists for the finer source",
+    "Production meshing adapter restored to its previously validated settings"
+  ]
+}

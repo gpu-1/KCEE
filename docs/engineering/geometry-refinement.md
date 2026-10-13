@@ -23,3 +23,9 @@ Across four holes, radial envelopes at 0.75 mm voxels span approximately 4.864�
 The hole measurement command now samples 0.875, 1.75 and 2.625 mm through the 3.5 mm plate, verifies source dimensions and nominal hole settings, and rejects incompatible geometry. Recorded values are in hole-profile.json; the earlier mid-section report remains unchanged.
 
 Combined radial envelopes across all holes and sampled depths are 4.864–5.255 mm at 0.75 mm voxels, 4.937–5.000 mm at 0.5 mm, and 4.969–4.999 mm at 0.35 mm. The coarse geometry has a local widening not apparent in the mid-section alone. These are radial section envelopes, not fitted bore diameters. Entry/exit surfaces, exact hole-center deviations, root geometry and manufacturing acceptance remain unverified.
+
+## Structural sensitivity attempt
+
+The 0.35 mm source was registered as native run 15802ef9-5085-40b6-979b-91f03d7c6841 and submitted to the same bracket study. Gmsh failed parametrization at 20°. A temporary 10° probe passed parametrization but failed volume meshing with overlapping boundary facets. No structural result or success manifest was generated. Diagnostics remain in the local failed runs; identifiers and error evidence are recorded in geometry-fea-sensitivity.json. The production adapter retains the existing validated 20° settings.
+
+This shows that closed edge topology, bore measurements and global volume checks are insufficient to establish STL suitability for volumetric meshing. Further work must characterize overlaps/near-coincident facets or choose a validated alternative meshing method before comparing structural responses across geometry resolutions. Do not infer fine-resolution stress convergence from the geometry study.
