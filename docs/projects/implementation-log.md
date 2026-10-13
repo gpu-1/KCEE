@@ -81,3 +81,8 @@
 - Verified von Mises conversion against uniaxial, hydrostatic and pure-shear stress tensors.
 - Reject incomplete stress fields, invalid C3D10 node references and non-manifold volume faces.
 - All 26 unit tests pass; archived bracket remains 49,384 preview triangles with unchanged stress/displacement values.
+
+## 2026-10-13 — Shared-face and orientation verification
+- Reject non-positive tetrahedron volume, inconsistent shared midside nodes and shared-face orientation.
+- Reference tests verify removal of an internal face between two quadratic tetrahedra and outward surface triangle normals.
+- All 30 unit tests pass; actual bracket surface and field values remain unchanged.

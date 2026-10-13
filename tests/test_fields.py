@@ -49,4 +49,35 @@ class FieldsTest(unittest.TestCase):
 
     def test_duplicate_volume_elements_rejected(self):
         def change(files):files['mesh-1.5/bracket.inp']+='2,1,2,3,4,5,6,7,8,9,10\n3,1,2,3,4,5,6,7,8,9,10\n'
-        with self.assertRaisesRegex(ValueError,'Non-manifold'):displacement_surface(self.transformed(change))
+        with self.assertRaisesRegex(ValueError,'orientation'):displacement_surface(self.transformed(change))
+
+    def test_surface_triangles_point_outward(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'a.zip';self.archive(p);field=displacement_surface(p)
+            for triangle in field['triangles']:
+                a,b,c=[field['positions'][i] for i in triangle]
+                u=[b[i]-a[i] for i in range(3)];v=[c[i]-a[i] for i in range(3)]
+                normal=(u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0])
+                outward=[(a[i]+b[i]+c[i])/3-.25 for i in range(3)]
+                self.assertGreater(sum(normal[i]*outward[i] for i in range(3)),0)
+
+    def paired(self,files,mismatch=False):
+        name='mesh-1.5/bracket.inp'
+        extra='11,0,0,-1\n12,0,0,-0.5\n13,0,0.5,-0.5\n14,0.5,0,-0.5\n'
+        files[name]=files[name].replace('*ELEMENT',extra+'*ELEMENT')+'2,1,3,2,11,7,6,5,12,13,14\n'
+        if mismatch:files[name]=files[name].replace('2,1,3,2,11,7,6,5,12,13,14','2,1,3,2,11,6,7,5,12,13,14')
+        extra_frd=''.join(f' -1{i:10d}'+''.join(f'{0.:12.5E}' for j in range(3))+'\n' for i in range(11,15))
+        s=files['mesh-1.5/bracket.frd'];files['mesh-1.5/bracket.frd']=s[:s.index(' -3')]+extra_frd+' -3\n'
+
+    def test_shared_face_is_removed(self):
+        field=displacement_surface(self.transformed(self.paired))
+        self.assertEqual(len(field['triangles']),24)
+        for triangle in field['triangles']:
+            self.assertFalse(all(field['positions'][i][2]==0 for i in triangle))
+
+    def test_shared_midsides_must_agree(self):
+        with self.assertRaisesRegex(ValueError,'midside'):displacement_surface(self.transformed(lambda files:self.paired(files,True)))
+
+    def test_inverted_tetrahedron_is_rejected(self):
+        def change(files):files['mesh-1.5/bracket.inp']=files['mesh-1.5/bracket.inp'].replace('1,1,2,3,4,5,6,7,8,9,10','1,1,3,2,4,7,6,5,8,10,9')
+        with self.assertRaisesRegex(ValueError,'volume'):displacement_surface(self.transformed(change))
