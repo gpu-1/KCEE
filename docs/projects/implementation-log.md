@@ -154,3 +154,7 @@
 - Located archived integration-point peaks and their element corner centroids/quality for both bracket studies.
 - Finer peak is near lower rear clamp edge; baseline contains poor corner elements elsewhere. No causal or convergence claim.
 - Verified mean-ratio metric against an equilateral tetrahedron, scaling and inverted-element rejection; all 38 tests pass.
+
+## 2026-10-13 — Viewer stress diagnostics
+- Added archive-verified hotspot centroid and corner mesh-quality panel.
+- Verified finer run against archived report and unsupported benchmark rejection; browser verified actual values. Six viewer checks/build pass.

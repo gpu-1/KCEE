@@ -140,3 +140,17 @@ def geometry_measurements(run_id: UUID):
     except IntegrityError as exc:raise HTTPException(409,str(exc))
     except ValueError as exc:raise HTTPException(422,str(exc))
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/runs/{run_id}/stress-diagnostics')
+def stress_diagnostics(run_id: UUID):
+    from kcee.stress_diagnostics import diagnose
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Diagnostics require a bracket structural run')
+        result=diagnose(ARTIFACTS/str(run_id)/'fea-artifacts.zip')
+        result.update({'run_id':str(run_id),'source_archive_sha256':record['manifest']['artifacts']['fea-artifacts.zip']})
+        return result
+    except KeyError:raise HTTPException(404,'Unknown or incomplete run')
+    except IntegrityError as exc:raise HTTPException(409,str(exc))
+    except (ValueError,zipfile.BadZipFile) as exc:raise HTTPException(422,str(exc))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
