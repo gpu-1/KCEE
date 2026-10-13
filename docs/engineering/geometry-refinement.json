@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "geometry": "same default four-hole bracket; selected thickness 3.5 mm",
+  "study": [
+    {
+      "run_id": "583065b9-6c60-46a5-b47c-32e763c4f2a2",
+      "manifest_sha256": "d1c4a85e84b67a136017d2f7cd682a2ece7dec2db4802bafc228d27979e5059b",
+      "voxel_size_mm": 0.75,
+      "voxel_volume_mm3": 9727.117,
+      "surface_volume_mm3": 9693.206858801384,
+      "triangle_count": 25776,
+      "euler_characteristic": -6,
+      "stl_sha256": "72f72892128b14dd34b192f4fe6bf0c86138c728e58d2318af2e0a0ec8222f99"
+    },
+    {
+      "run_id": "8ea82f30-eb46-4402-b4ea-c0e624b21753",
+      "manifest_sha256": "892df8045cf7bed408de6550add3a55a0a3d161705990dd856a305b6144ee659",
+      "voxel_size_mm": 0.5,
+      "voxel_volume_mm3": 9793.418,
+      "surface_volume_mm3": 9811.610723053198,
+      "triangle_count": 63196,
+      "euler_characteristic": -6,
+      "stl_sha256": "6b3c217a3d05a705ec3b5de3a4f894e5fe638de284a76b7b00f87cfad4dad91b"
+    },
+    {
+      "run_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
+      "manifest_sha256": "44103325953fc74a9044f62db945534bf63c54b44514cee02c73689c0e393759",
+      "voxel_size_mm": 0.35,
+      "voxel_volume_mm3": 9843.418,
+      "surface_volume_mm3": 9826.017639006002,
+      "triangle_count": 115044,
+      "euler_characteristic": -6,
+      "stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385"
+    }
+  ],
+  "last_voxel_volume_change": 0.005105469816564456,
+  "last_surface_volume_change": 0.0014683538064708124,
+  "status": "geometry_refinement_measured_not_engineering_validated",
+  "limitations": [
+    "Three resolutions do not prove asymptotic geometry convergence",
+    "Volume agreement does not establish local feature accuracy",
+    "FEA is not repeated at these resolutions; stress convergence remains pending"
+  ]
+}

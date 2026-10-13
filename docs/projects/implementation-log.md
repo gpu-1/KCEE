@@ -111,3 +111,8 @@
 ## 2026-10-13 — Removal flow and history protection
 - Disable removal during active job creation and prevent dismissing a pending visibility save.
 - Add append-only triggers for visibility events and integration tests for application/owner mutation rejection.
+
+## 2026-10-13 — Native geometry refinement study
+- Generated default four-hole bracket at 0.75/0.5/0.35 mm voxels with verified manifests and closed-mesh/topology checks.
+- Last voxel volume change 0.5105%, STL surface volume change 0.1468%; no repeated FEA or stress convergence claim.
+- Stored reproducible study summary and command; original study artifacts remain under .local/studies.
