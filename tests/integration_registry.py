@@ -91,6 +91,8 @@ class RegistryIntegration(unittest.TestCase):
         self.assertLess(result['fea']['relative_displacement_error'],.05)
         import zipfile
         with zipfile.ZipFile(directory/'fea-artifacts.zip') as archive:self.assertIn('mesh-24/beam.frd',archive.namelist())
+        with self.assertRaises(HTTPError) as context:request('/runs/'+run_id+'/structural','POST')
+        self.assertEqual(context.exception.code,422)
     def test_owner_append_only_trigger(self):
         for sql in ('UPDATE design_runs SET validation_status=validation_status','DELETE FROM design_runs','TRUNCATE design_runs'):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:

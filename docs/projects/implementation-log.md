@@ -46,3 +46,11 @@
 - Eighteen unit tests, six viewer client checks and seven live full-stack integration tests pass.
 - Browser verified benchmark a491fa36-523a-48be-91f2-651e172a298e and displayed solver-derived results.
 - Full FEA of the native PicoGK bracket, converged stress allowables and persistent failed-solver history remain pending.
+
+## 2026-10-13 — Actual native bracket structural study
+- Meshed the original four-hole PicoGK STL with Gmsh 4.8.4 and solved three C3D10 refinement levels in CalculiX 2.20.
+- Fine mesh: 47,113 nodes / 25,747 elements; loaded-patch displacement approximately 0.780281 mm; final displacement change 0.494%.
+- Force balance, load-patch refinement, source-volume agreement (0.288%) and element/midside checks pass.
+- Added Analyze selected bracket, separate cantilever benchmark labeling, parent/source hash tracing and retained failure diagnostics.
+- Actual viewer analysis 6106f5e9-6ef3-4c2b-8ce4-0775bf1ae2e8 retains parent 8637ec75-588c-4d23-8a36-641efa47ea98 and identical source STL.
+- Engineering validation, physical mounting/contact, geometry convergence and converged stress allowables remain pending.

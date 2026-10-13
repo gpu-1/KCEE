@@ -11,6 +11,7 @@ from kcee.picogk import GeometryError
 from kcee.geometry_queue import available
 from kcee.fea_run import run_benchmark,solver_available
 from kcee.fea import SolverError
+from kcee.bracket_analysis import analyze,BracketAnalysisError
 from kcee.demo import run
 from kcee.registry import Registry
 from kcee.provenance import IntegrityError
@@ -80,3 +81,20 @@ def structural_benchmark():
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Benchmark artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'validation_status':'benchmark_verified_only'}
+
+@app.post('/runs/{run_id}/structural',status_code=201)
+def analyze_bracket(run_id: UUID):
+    ready()
+    try:
+        record=registry.get(run_id)
+        if record is None:raise HTTPException(404,'Run not found')
+        registry.verify(ARTIFACTS,run_id)
+        if not (ARTIFACTS/str(run_id)/'geometry.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket; the cantilever benchmark cannot be analyzed as a bracket')
+        dest=analyze(ARTIFACTS,run_id,record)
+    except IntegrityError as exc:raise HTTPException(409,str(exc))
+    except BracketAnalysisError as exc:raise HTTPException(503,{'message':str(exc),'run_id':exc.run_id})
+    except ValueError as exc:raise HTTPException(422,str(exc))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Analysis artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'parent_design_id':str(run_id),'validation_status':__import__('json').loads((dest/'result.json').read_text())['validation_status']}
