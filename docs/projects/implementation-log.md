@@ -184,3 +184,8 @@
 ## 2026-10-13 — Failure reason previews
 - Added bounded job-log classification into readable failure reasons with generic fallback.
 - Oversized, missing and corrupt logs cannot produce unrestricted previews. Browser verified reasons from existing failures. All 43 unit tests pass.
+
+## 2026-10-13 — Failed-analysis parent navigation
+- Added Open parent design actions; parent models pass normal provenance checks before display.
+- Cancel pending failure-list requests when closing/reopening the dialog.
+- Browser verified finer bracket parent 15802ef9 and Artifacts verified status; seven viewer checks/build pass.

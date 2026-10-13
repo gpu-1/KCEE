@@ -221,10 +221,13 @@ $('clear-comparison').onclick=()=>{comparisonId=null;$('comparison').hidden=true
 
 $('select-comparison-json').onclick=()=>{$('comparison-json').focus();$('comparison-json').select();};
 
+let failureRequest;
+$('failure-dialog').addEventListener('close',()=>failureRequest?.abort());
 $('show-failures').onclick=async()=>{
+  failureRequest?.abort();const controller=new AbortController();failureRequest=controller;
   $('failure-list').replaceChildren();$('failure-status').textContent='Loading retained failures…';$('failure-dialog').showModal();
   try{
-    const data=await request('/failures?limit=50');
+    const data=await request('/failures?limit=50',{signal:controller.signal});if(failureRequest!==controller || !$('failure-dialog').open)return;
     $('failure-status').textContent=data.items.length?`${data.items.length} recent retained failures`:'No retained failure records.';
     for(const failure of data.items){
       const item=document.createElement('section');item.className='failure-item';
@@ -233,7 +236,10 @@ $('show-failures').onclick=async()=>{
       if(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(failure.run_id)){
         for(const [name,label] of [['failure.json','Download failure record'],...(failure.has_solver_archive?[['failed-solver-artifacts.zip','Download solver diagnostics']]:[])]){const link=document.createElement('a');link.href=`/api/artifacts/${failure.run_id}/${name}`;link.download='';link.textContent=label;item.appendChild(link);}
       }
+      if(failure.parent_id && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(failure.parent_id)){
+        const open=document.createElement('button');open.textContent='Open parent design';open.onclick=()=>{$('failure-dialog').close();selectRun(failure.parent_id);};item.appendChild(open);
+      }
       $('failure-list').appendChild(item);
     }
-  }catch(error){$('failure-status').textContent=error.message;}
+  }catch(error){if(error.name!=='AbortError' && failureRequest===controller)$('failure-status').textContent=error.message;}
 };
