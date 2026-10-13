@@ -91,3 +91,8 @@
 - Added repeatable read-only verification of saved bracket fields against their SHA-256-verified solver archive.
 - Verified run 6106f5e9: 24,686 surface nodes, 49,384 triangles, closed/oriented edges and 9,821.594885 mm³ volume matching the fine solver mesh.
 - Geometry/displacement vectors match exactly; derived magnitudes agree within 1e-12 rounding tolerance. Engineering validation remains pending.
+
+## 2026-10-13 — Verified run backup/restore
+- Added exclusive single-run bundle export and checked restoration into new UUID directories.
+- Tested actual bracket byte-identical round trip plus overwrite rejection; unit tests cover unsafe paths and hash failures.
+- Database registration remains explicit; this does not claim complete project migration.
