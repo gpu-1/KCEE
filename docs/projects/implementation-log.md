@@ -76,3 +76,8 @@
 ## 2026-10-13 — Visible numerical checks
 - Viewer exposes recorded force balance, displacement/load-patch refinement and source-volume checks with measured percentages.
 - Peak stress change is informational and does not claim established stress convergence or engineering validation.
+
+## 2026-10-13 — Field extraction verification
+- Verified von Mises conversion against uniaxial, hydrostatic and pure-shear stress tensors.
+- Reject incomplete stress fields, invalid C3D10 node references and non-manifold volume faces.
+- All 26 unit tests pass; archived bracket remains 49,384 preview triangles with unchanged stress/displacement values.

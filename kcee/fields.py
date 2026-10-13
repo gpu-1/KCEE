@@ -22,11 +22,14 @@ def displacement_surface(archive):
             else:
                 sx,sy,sz,xy,yz,zx=values
                 stress[int(line[3:13])]=math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(xy*xy+yz*yz+zx*zx))
-    faces={}
+    faces={};face_counts={}
     # CalculiX C3D10 corner and edge ordering; outward orientation for positive tetrahedra.
     for e in elements:
+        if len(e)!=10 or len(set(e))!=10 or any(n not in nodes for n in e):raise ValueError('Invalid C3D10 connectivity')
         for indices in ((0,2,1,6,5,4),(0,1,3,4,8,7),(1,2,3,5,9,8),(2,0,3,6,7,9)):
             face=[e[i] for i in indices];key=tuple(sorted(face[:3]))
+            face_counts[key]=face_counts.get(key,0)+1
+            if face_counts[key]>2:raise ValueError('Non-manifold volume mesh')
             if key in faces:faces[key]=None
             else:faces[key]=face
     triangles=[]
