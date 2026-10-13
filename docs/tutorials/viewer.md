@@ -10,3 +10,11 @@ The Vite preview service proxies /api to the local API container, avoiding brows
 Regression checks: `python3 scripts/check_integration.py --viewer` builds an isolated database/API/viewer stack, checks the API proxy including run creation and artifact downloads, then cleans up its own test volume. Viewer client tests run during its image build.
 
 Native creation: provision PicoGK, start `python3 scripts/start_geometry_worker.py`, and refresh. Select Native PicoGK, then Create bracket demo. An unavailable worker disables native creation. Baseline mesh is a separate explicit choice.
+
+## Structural results and geometry checks
+
+Follow the [current bracket walkthrough](bracket.md) for the native generation/FEA sequence. Solver colors explicitly select displacement in mm or averaged nodal von Mises stress in MPa. Deformation scale is a display setting; numerical results remain unchanged. Load/support markers stay on the undeformed reference and show nominal regions. Numerical checks and hole measurements have explicit validation limitations.
+
+## Model list management
+
+Select a saved model and choose Remove from list. The confirmation shows its name and UUID. Confirming hides only that run; cancel leaves the list unchanged. Show removed models switches to hidden entries. Select one and confirm Restore to list to return it. This preserves files, provenance and independent parent/child results. Removal is disabled during job creation.

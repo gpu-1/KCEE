@@ -1,5 +1,5 @@
 # Kaobra Computational Engineering Engine
-Private computational engineering platform for Apple Silicon. Initial scaffold, not a validated engineering product.
+Private computational engineering platform for Apple Silicon. Working bracket demonstrator with native geometry, structural analysis and traceable results. Engineering validation remains pending.
 
 ## Run the bracket demonstrator
 ```sh
@@ -17,10 +17,12 @@ cp .env.example .env
 ```
 API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
 
-The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence and integrity checks are implemented; real solver adapters remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
+The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. AI, voice, thermal, CFD and chemistry integrations remain scaffolds. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
 
 For native viewer generation, provision PicoGK and run `python3 scripts/start_geometry_worker.py`; then refresh the viewer. See [native worker](docs/operations/native-geometry-worker.md).
 
-Run the structural verification worker with `docker compose --profile viewer --profile fea up --build -d --wait`, then choose Run FEA benchmark. See [benchmark scope and checks](docs/engineering/structural-benchmark.md). This is separate from bracket validation.
+Run the structural verification worker with `docker compose --profile viewer --profile fea up --build -d --wait`, then choose Run cantilever benchmark. See [benchmark scope and checks](docs/engineering/structural-benchmark.md). This is separate from bracket validation.
 
 For the actual native bracket, select its saved run and use Analyze selected bracket. This creates a traced structural child run using the original STL. See [assumptions and numerical limits](docs/engineering/bracket-structural-study.md). Engineering validation remains pending.
+
+The viewer includes separate displacement/stress colors, explicit deformation scales, nominal load/support markers, numerical checks and native bore measurements. The ? icon beside Geometry explains the two generation options. Remove from list asks for confirmation and retains artifacts; Show removed models allows restoration. See [backup/restore](docs/operations/backups.md), [geometry refinement](docs/engineering/geometry-refinement.md) and [Mac Studio readiness](docs/operations/migration.md).

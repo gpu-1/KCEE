@@ -135,3 +135,7 @@
 - Added read-only host, runtime/service and optional trusted saved-run readiness checks with JSON output.
 - All eight checks pass on the current Mac; unavailable API correctly reports needs_attention and nonzero exit.
 - Destination reproduction and unimplemented subsystem acceptance remain pending.
+
+## 2026-10-13 — Current workflow documentation
+- Updated README, bracket/viewer walkthroughs and install guidance to match implemented native FEA, colors, bore measurements, reversible removal and recovery/readiness checks.
+- Removed obsolete pending-adapter statements while retaining actual engineering limitations.
