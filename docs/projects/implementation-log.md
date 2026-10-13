@@ -54,3 +54,8 @@
 - Added Analyze selected bracket, separate cantilever benchmark labeling, parent/source hash tracing and retained failure diagnostics.
 - Actual viewer analysis 6106f5e9-6ef3-4c2b-8ce4-0775bf1ae2e8 retains parent 8637ec75-588c-4d23-8a36-641efa47ea98 and identical source STL.
 - Engineering validation, physical mounting/contact, geometry convergence and converged stress allowables remain pending.
+
+## 2026-10-13 — Bracket inspection controls
+- Added wireframe and aspect-aware camera fit for inspecting actual bracket geometry.
+- Refinement tables distinguish loaded-patch displacement from cantilever tip displacement and show bracket peak stress with its convergence limitation.
+- Benchmark creation now shares the busy state with bracket generation/analysis to prevent overlapping submissions.
