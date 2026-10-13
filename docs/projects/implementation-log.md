@@ -241,3 +241,8 @@
 - Added live integration coverage for unsupported diagnostic models, unknown run IDs, tampered artifacts and failure-list/success-list separation.
 - All 49 unit tests and 11 isolated full-stack integration tests pass with viewer/structural profiles. Disposable test services/volume were cleaned up.
 - Updated roadmap to reflect completed reports, comparisons, recovery and current-host checks; engineering stress validation remains pending.
+
+## 2026-10-13 — Automated repository regression workflow
+- Added pinned GitHub Actions jobs for Python 3.9/3.11, Node 22 viewer checks/build and isolated Linux ARM64 full-stack tests.
+- Read-only permissions, no persisted checkout credentials, bounded job durations and superseded-run cancellation.
+- Workflow YAML structure validated locally; hosted run outcome must be checked separately. Native macOS acceptance remains local.
