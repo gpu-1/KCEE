@@ -3,6 +3,7 @@ import hashlib,io,json,math,os,subprocess,zipfile
 from pathlib import Path
 import gmsh
 from kcee.fea import SolverError,table
+from kcee.surface_load import strip_weights
 
 def mesh(stl,directory,size,classification_angle=20):
     gmsh.initialize();gmsh.option.setNumber('General.Terminal',0);gmsh.logger.start()
@@ -36,11 +37,10 @@ def mesh(stl,directory,size,classification_angle=20):
         types,surface_ids,faces=gmsh.model.mesh.getElements(2);index=list(types).index(9);raw=list(map(int,faces[index]));loads={};area_total=0
         for i in range(0,len(raw),6):
             face=raw[i:i+6];a,b,c=[nodes[n] for n in face[:3]]
-            if min(p[0] for p in (a,b,c))<54 or max(abs(p[2]-3.5) for p in (a,b,c))>.05:continue
-            if sum(p[0] for p in (a,b,c))/3<55:continue
-            u=[b[j]-a[j] for j in range(3)];v=[c[j]-a[j] for j in range(3)];cross=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]]
-            area=math.sqrt(sum(x*x for x in cross))/2;area_total+=area
-            for node in face[3:]:loads[node]=loads.get(node,0)+area/3
+            if max(abs(p[2]-3.5) for p in (a,b,c))>.05:continue
+            area,weights=strip_weights((a,b,c),55);area_total+=area
+            if area<=0:continue
+            for node,weight in zip(face,weights):loads[node]=loads.get(node,0)+weight
         if area_total<75:raise SolverError('Free-end load patch not resolved')
         loads={node:-100*weight/area_total for node,weight in loads.items()}
         minimum=math.inf;volume=0
@@ -83,7 +83,7 @@ def solve(stl,destination,expected_volume=None,classification_angle=20):
     patch_change=abs(study[-1]['load_patch_area_mm2']/study[-2]['load_patch_area_mm2']-1)
     volume_error=abs(study[-1]['volume_mm3']/expected_volume-1) if expected_volume else None
     checks={'load_patch_refinement':patch_change<.05,'source_volume_agreement':volume_error is not None and volume_error<.02,'force_balance':all(abs(item['reaction_z_N']-100)<.1 for item in study),'displacement_refinement':change<.05}
-    result={'schema_version':1,'backend':'CalculiX','version':'2.20','mesher_version':study[-1]['mesher_version'],'mesher_api_version':gmsh.__version__,'element_type':'C3D10','geometry':'native_PicoGK_STL','source_stl_sha256':hashlib.sha256(Path(stl).read_bytes()).hexdigest(),'mesh_study':study,'last_mesh_displacement_change':change,'last_load_patch_area_change':patch_change,'relative_source_volume_error':volume_error,'load_strip_local_target_mm':1.0 if classification_angle==30 else None,'surface_classification_angle_degrees':classification_angle,'adapter_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'solver_binary_sha256':hashlib.sha256(Path('/usr/bin/ccx').read_bytes()).hexdigest(),'checks':checks,'validation_status':'numerical_checks_passed_not_engineering_validated' if all(checks.values()) else 'numerical_checks_failed','boundary':'All translations fixed on rear upright face x≈0, z>3.5 mm; ideal clamp, not bolt contact','load':'100 N downward distributed over top free-end strip x>=55 mm using consistent quadratic-face weights','material':{'youngs_modulus_MPa':69000,'poisson_ratio':.33,'source':'Illustrative aluminum properties'},'stress_note':'Peak stresses are not accepted as converged allowables; mounting and load-patch edges can be singular.'}
+    result={'schema_version':1,'backend':'CalculiX','version':'2.20','mesher_version':study[-1]['mesher_version'],'mesher_api_version':gmsh.__version__,'element_type':'C3D10','geometry':'native_PicoGK_STL','source_stl_sha256':hashlib.sha256(Path(stl).read_bytes()).hexdigest(),'mesh_study':study,'last_mesh_displacement_change':change,'last_load_patch_area_change':patch_change,'relative_source_volume_error':volume_error,'load_strip_local_target_mm':1.0 if classification_angle==30 else None,'surface_classification_angle_degrees':classification_angle,'load_integration_source_sha256':hashlib.sha256(Path(__file__).with_name('surface_load.py').read_bytes()).hexdigest(),'adapter_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'solver_binary_sha256':hashlib.sha256(Path('/usr/bin/ccx').read_bytes()).hexdigest(),'checks':checks,'validation_status':'numerical_checks_passed_not_engineering_validated' if all(checks.values()) else 'numerical_checks_failed','boundary':'All translations fixed on rear upright face x≈0, z>3.5 mm; ideal clamp, not bolt contact','load':'100 N downward distributed over top free-end strip x>=55 mm using exact clipped-planar-face quadratic integration','material':{'youngs_modulus_MPa':69000,'poisson_ratio':.33,'source':'Illustrative aluminum properties'},'stress_note':'Peak stresses are not accepted as converged allowables; mounting and load-patch edges can be singular.'}
     (destination/'fea.json').write_text(json.dumps(result,indent=2))
     archive=io.BytesIO()
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zipped:

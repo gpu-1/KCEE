@@ -189,3 +189,8 @@
 - Added Open parent design actions; parent models pass normal provenance checks before display.
 - Cancel pending failure-list requests when closing/reopening the dialog.
 - Browser verified finer bracket parent 15802ef9 and Artifacts verified status; seven viewer checks/build pass.
+
+## 2026-10-13 — Clipped quadratic-face traction
+- Replace centroid-selected whole-face loading with clipped strip integration preserving force and first moment.
+- Verify analytical full/partial-face area and moment tests; all 46 unit tests pass.
+- Two new real bracket studies pass numerical and field checks; last patch-area changes 0.0003406%/0.582955%. Different resolved top surfaces and unconverged stress remain limitations.

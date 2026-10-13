@@ -17,3 +17,9 @@ Next: independently verify the tetrahedral formulation on more benchmarks, refin
 ## Verify displayed fields
 
 Run `python3 scripts/check_bracket_fields.py --run-id <saved-bracket-analysis-id>` while the API is running. This read-only check downloads and verifies the solver archive, compares preview geometry/displacement vectors exactly, and compares derived magnitudes at 1e-12 relative/absolute tolerance for platform rounding. It also checks closed, consistently oriented surface edges and agreement with the fine solver mesh volume. It does not establish physical validity or stress convergence.
+
+## Clipped-face load integration
+
+New studies clip each planar top face at x=55 mm and integrate quadratic face shape functions over the clipped polygon using degree-two triangle quadrature. This preserves total traction force and its first moment on each planar face instead of selecting whole triangles by centroid. Consistent corner weights can be negative on a partially loaded quadratic face. Solver midside positions remain linear; the source STL is unchanged. The global total is normalized to 100 N. The existing top-face z tolerance and ideal clamp remain.
+
+Recorded revised studies are d5351ced (baseline) and 90f8cb89 (finer), with full identifiers/evidence in clipped-load-study.json. Final displacements are 0.780636 and 0.783470 mm. Last patch-area changes are 0.0003406% and 0.582955%; baseline/finer final patch areas remain 130.928 and 114.937 mm², so cross-geometry differences are not isolated. Both pass numerical checks and archive-to-preview verification. Stress peaks remain unconverged. Existing saved studies were not modified. New studies record the integration helper source hash.
