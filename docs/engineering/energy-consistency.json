@@ -1,0 +1,28 @@
+[
+  {
+    "run_id": "d5351ced-68c6-452f-8a31-73a40b9b8873",
+    "manifest_sha256": "b932d8c04b7863b0bd75bad82fe6bfa00b0248a413bf9d0892a94f8791ba9c05",
+    "solver_archive_sha256": "d8fe1a8040337580e58910247142f8a0b5834f6dbbf1d339cb93457908d8205e",
+    "energy_consistency": {
+      "strain_energy_N_mm": 39.03177801964664,
+      "half_load_work_N_mm": 39.03177803441354,
+      "relative_error": 3.7833025601230474e-10,
+      "passes_demo_tolerance": true,
+      "relative_tolerance": 0.001,
+      "method": "Four equal-weight C3D10 integration points; isotropic linear elasticity; zero prescribed support displacement"
+    }
+  },
+  {
+    "run_id": "c072e470-2fd9-452a-aee2-19d9cb2a2329",
+    "manifest_sha256": "53b1b6c04f54805454692672e926de154a33a56b6a85158125309b0982c9f7b2",
+    "solver_archive_sha256": "a5629cb0177f654acdbb7434f794a1f0ff691d02c6f943482a303cb4c5b1a676",
+    "energy_consistency": {
+      "strain_energy_N_mm": 39.5340784053091,
+      "half_load_work_N_mm": 39.53407814206325,
+      "relative_error": 6.6587071412271825e-09,
+      "passes_demo_tolerance": true,
+      "relative_tolerance": 0.001,
+      "method": "Four equal-weight C3D10 integration points; isotropic linear elasticity; zero prescribed support displacement"
+    }
+  }
+]

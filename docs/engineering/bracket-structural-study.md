@@ -59,3 +59,9 @@ For study c072e470, each regional maximum is 88.049 MPa while the unfiltered glo
 ## Regional stress refinement across archived meshes
 
 The diagnostics repeat centroid-exclusion peak measurements at 2.5, 1.8 and 1.5 mm mesh targets. Evidence is in regional-stress-refinement.json. Baseline regional peaks are 95.32, 97.79 and 98.33 MPa (0.5512% final change). Finer-study peaks are 99.44, 102.98 and 88.05 MPa (14.4957% final change). These changes are informational, not convergence acceptance. Stable displacement does not establish stable stress; more refinement and validation remain required.
+
+## Stress-energy / load-work consistency
+
+For straight-sided C3D10 elements, the diagnostic integrates isotropic elastic energy density from the six printed stress components at four equal-weight tetrahedral integration points. Material E/Poisson ratio are read from the archived input. It compares this with one-half the sum of applied nodal forces times their signed solved displacements. This identity assumes small-strain linear elasticity and zero prescribed support displacement. Values are N·mm.
+
+The baseline clipped-load study gives 39.03177802 N·mm and relative discrepancy 3.78e-10; finer 25° study gives 39.53407841 N·mm and discrepancy 6.66e-9. Source hashes and method are recorded in energy-consistency.json. A 0.1% demonstration tolerance is displayed as a diagnostic only. Printed output rounding affects the last digits. Agreement does not establish constitutive validity, stress convergence or physical acceptance, and does not change saved validation statuses.

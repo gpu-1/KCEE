@@ -256,3 +256,8 @@
 - Show all five recorded numerical checks together, including source load-strip agreement.
 - Historical absent checks show Not recorded; status text distinguishes recorded checks from retrospective diagnostics.
 - Explicit absence of local strip refinement distinguished from missing historical metadata in comparisons. Browser verified current/legacy study labels; ten viewer tests pass.
+
+## 2026-10-13 — Elastic energy consistency
+- Added stress-derived isotropic strain energy vs half nodal load-work diagnostic using archived material/input/output data.
+- Both reviewed real studies agree within printed-output rounding; viewer verifies finer energy 39.5341 N·mm.
+- Test uniaxial/hydrostatic/shear energy and invalid material/tensors; all 53 unit tests pass. Engineering stress convergence remains pending.

@@ -73,7 +73,9 @@ async function selectRun(id){
       try{
         const diagnostic=await request(`/runs/${id}/stress-diagnostics`,{signal});if(ticket!==selection)return;
         if(diagnostic.run_id!==id || diagnostic.source_archive_sha256!==record.manifest.artifacts['fea-artifacts.zip'])throw new Error('Stress archive identity mismatch');
-        verifiedDiagnostic=diagnostic;const peak=diagnostic.top_integration_point_stresses[0];sourceLoadWarning=!diagnostic.source_load_patch_agreement;
+        verifiedDiagnostic=diagnostic;const energy=diagnostic.energy_consistency;
+        if(energy){addMetric('hotspot-values','Energy vs half load work',`${energy.passes_demo_tolerance?'Pass':'Needs attention'} · ${(energy.relative_error*100).toExponential(2)}% error`);addMetric('hotspot-values','Strain energy',energy.strain_energy_N_mm.toFixed(4)+' N·mm');}
+        const peak=diagnostic.top_integration_point_stresses[0];sourceLoadWarning=!diagnostic.source_load_patch_agreement;
         addMetric('hotspot-values','Load strip vs original STL',`${diagnostic.source_load_patch_agreement?'Pass':'Needs attention'} · ${(diagnostic.relative_source_load_patch_area_error*100).toFixed(3)}% area error`);
         addMetric('hotspot-values','Original STL load-strip area',diagnostic.source_load_patch_area_mm2.toFixed(3)+' mm²');
         addMetric('hotspot-values','Peak element / integration point',peak.element_id+' / '+peak.integration_point);
