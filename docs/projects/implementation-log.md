@@ -194,3 +194,8 @@
 - Replace centroid-selected whole-face loading with clipped strip integration preserving force and first moment.
 - Verify analytical full/partial-face area and moment tests; all 46 unit tests pass.
 - Two new real bracket studies pass numerical and field checks; last patch-area changes 0.0003406%/0.582955%. Different resolved top surfaces and unconverged stress remain limitations.
+
+## 2026-10-13 — Source load-strip discrepancy identified
+- Original STL patch comparison reveals baseline 0.00256% vs finer 15.3773% mesh-area error.
+- Added future 5% source-area gate and retrospective viewer warning without modifying saved manifests.
+- Previous numerical passes were limited to their recorded checks; finer geometry requires further meshing investigation.

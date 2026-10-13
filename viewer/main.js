@@ -48,6 +48,7 @@ try {
 } catch {renderer=null;$('empty').textContent='3D rendering unavailable. Run history and reports remain accessible.';}
 function highlight(){for(const button of $('runs').querySelectorAll('button'))button.setAttribute('aria-current',String(button.dataset.id===selectedId));}
 async function selectRun(id){
+  let sourceLoadWarning=false;
   const {ticket,signal}=beginSelection();selectedId=id;highlight();$('model-title').textContent='Bracket '+id.slice(0,8);badge('integrity','Verifying…');$('status').textContent='Checking provenance and downloading geometry…';
   try {
     const {record,result,stl}=await loadRun(id,signal);if(ticket!==selection)return;
@@ -71,7 +72,9 @@ async function selectRun(id){
       try{
         const diagnostic=await request(`/runs/${id}/stress-diagnostics`,{signal});if(ticket!==selection)return;
         if(diagnostic.run_id!==id || diagnostic.source_archive_sha256!==record.manifest.artifacts['fea-artifacts.zip'])throw new Error('Stress archive identity mismatch');
-        const peak=diagnostic.top_integration_point_stresses[0];
+        const peak=diagnostic.top_integration_point_stresses[0];sourceLoadWarning=!diagnostic.source_load_patch_agreement;
+        addMetric('hotspot-values','Load strip vs original STL',`${diagnostic.source_load_patch_agreement?'Pass':'Needs attention'} · ${(diagnostic.relative_source_load_patch_area_error*100).toFixed(3)}% area error`);
+        addMetric('hotspot-values','Original STL load-strip area',diagnostic.source_load_patch_area_mm2.toFixed(3)+' mm²');
         addMetric('hotspot-values','Peak element / integration point',peak.element_id+' / '+peak.integration_point);
         addMetric('hotspot-values','Peak element centroid · x, y, z',peak.element_corner_centroid_mm.map(v=>v.toFixed(3)).join(', ')+' mm');
         addMetric('hotspot-values','Peak element corner quality',peak.corner_mean_ratio_quality.toFixed(3));
@@ -98,7 +101,7 @@ async function selectRun(id){
     selectedIsNative=result.geometry_backend.startsWith('PicoGK');updateCreation();
     if(result.fea){$('result-title').textContent=result.kind==='bracket_structural'?'Bracket structural study':'Cantilever verification';$('mesh-study').hidden=false;$('displacement-heading').textContent=result.kind==='bracket_structural'?'Loaded patch (mm)':'Tip (mm)';$('stress-heading').hidden=result.kind!=='bracket_structural';$('mesh-note').hidden=result.kind!=='bracket_structural';for(const mesh of result.fea.mesh_study){const row=document.createElement('tr');for(const value of [mesh.elements,mesh.tip_deflection_mm.toFixed(6),mesh.reaction_z_N.toFixed(4),...(result.kind==='bracket_structural'?[mesh.maximum_von_mises_MPa.toFixed(2)]:[])]){const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell);}$('mesh-rows').appendChild(row);}$('solver-files').href=artifactUrl(id,'fea-artifacts.zip');$('solver-files').hidden=false;}
     currentStudy=result.kind==='bracket_structural'?{id,result,record}:null;$('pin-comparison').disabled=!currentStudy;await showComparison(ticket,signal);if(ticket!==selection)return;
-    $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Bracket numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
+    $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Bracket numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(sourceLoadWarning?' Retrospective check: load-strip area differs from the original STL by more than 5%; study needs attention.':'')+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
   } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
 }
 async function refresh(){

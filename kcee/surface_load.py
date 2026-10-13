@@ -20,3 +20,18 @@ def strip_weights(corners,x_min=55):
             shape=[l[j]*(2*l[j]-1) for j in range(3)]+[4*l[0]*l[1],4*l[1]*l[2],4*l[2]*l[0]]
             for j in range(6):weights[j]+=area*shape[j]/3
     return total,weights
+
+def stl_strip_area(path):
+    import struct
+    from pathlib import Path
+    raw=Path(path).read_bytes()
+    if len(raw)<84:raise ValueError('Invalid binary STL')
+    count=struct.unpack_from('<I',raw,80)[0]
+    if len(raw)!=84+50*count:raise ValueError('Invalid binary STL length')
+    area=0.
+    for i in range(count):
+        values=struct.unpack_from('<12fH',raw,84+50*i);corners=[values[j:j+3] for j in (3,6,9)]
+        if not all(math.isfinite(x) for p in corners for x in p):raise ValueError('Non-finite STL')
+        if max(abs(p[2]-3.5) for p in corners)<=.05:area+=strip_weights(corners)[0]
+    if area<=0:raise ValueError('Source load strip not resolved')
+    return area

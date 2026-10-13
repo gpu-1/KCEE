@@ -148,6 +148,11 @@ def stress_diagnostics(run_id: UUID):
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Diagnostics require a bracket structural run')
         result=diagnose(ARTIFACTS/str(run_id)/'fea-artifacts.zip')
+        import json
+        from kcee.surface_load import stl_strip_area
+        source_area=stl_strip_area(ARTIFACTS/str(run_id)/'bracket.stl');fea=json.loads((ARTIFACTS/str(run_id)/'fea.json').read_text())
+        error=abs(fea['mesh_study'][-1]['load_patch_area_mm2']/source_area-1)
+        result.update({'source_load_patch_area_mm2':source_area,'relative_source_load_patch_area_error':error,'source_load_patch_agreement':error<.05})
         result.update({'run_id':str(run_id),'source_archive_sha256':record['manifest']['artifacts']['fea-artifacts.zip']})
         return result
     except KeyError:raise HTTPException(404,'Unknown or incomplete run')
