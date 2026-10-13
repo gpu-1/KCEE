@@ -204,3 +204,8 @@
 - Added repeatable read-only source/preview area sweep at four top-face tolerances.
 - Finer mesh selection is sensitive at 0.05–0.1 mm; larger masks include more curved source geometry.
 - Preserved production mask/gate; documented preview subdivision limitations and unresolved surface representation.
+
+## 2026-10-13 — Planar top-patch partition probe
+- Verified original finer STL and inspected classified entities at 20°/30° without modifying geometry.
+- Neither isolates a wholly planar top entity; 30° top candidates span up to 3.5033 mm in z. Whole-patch planar projection would be unjustified.
+- Added reproducible probe and evidence; production settings/source-area warnings remain unchanged.

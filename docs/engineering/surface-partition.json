@@ -1,0 +1,80 @@
+{
+  "run_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
+  "source_stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
+  "gmsh_version": "4.8.4",
+  "partitions": [
+    {
+      "angle_degrees": 20,
+      "planar_top_surface_ids": [],
+      "top_region_candidate_surfaces": [
+        {
+          "surface_id": 356,
+          "nodes": 80,
+          "z_min_mm": 3.3127284049987793,
+          "z_max_mm": 3.4997613430023193,
+          "z_span_mm": 0.18703293800354004
+        },
+        {
+          "surface_id": 357,
+          "nodes": 1240,
+          "z_min_mm": 3.4761850833892822,
+          "z_max_mm": 3.5000014305114746,
+          "z_span_mm": 0.023816347122192383
+        },
+        {
+          "surface_id": 422,
+          "nodes": 1338,
+          "z_min_mm": 3.4707536697387695,
+          "z_max_mm": 3.4999966621398926,
+          "z_span_mm": 0.029242992401123047
+        },
+        {
+          "surface_id": 456,
+          "nodes": 144,
+          "z_min_mm": 3.2457802295684814,
+          "z_max_mm": 3.4959545135498047,
+          "z_span_mm": 0.25017428398132324
+        },
+        {
+          "surface_id": 464,
+          "nodes": 4,
+          "z_min_mm": 3.2505064010620117,
+          "z_max_mm": 3.4761850833892822,
+          "z_span_mm": 0.2256786823272705
+        },
+        {
+          "surface_id": 465,
+          "nodes": 66,
+          "z_min_mm": 3.3013405799865723,
+          "z_max_mm": 3.4769132137298584,
+          "z_span_mm": 0.17557263374328613
+        }
+      ]
+    },
+    {
+      "angle_degrees": 30,
+      "planar_top_surface_ids": [],
+      "top_region_candidate_surfaces": [
+        {
+          "surface_id": 25,
+          "nodes": 3031,
+          "z_min_mm": -0.0033441202249377966,
+          "z_max_mm": 3.4999966621398926,
+          "z_span_mm": 3.5033407823648304
+        },
+        {
+          "surface_id": 85,
+          "nodes": 1314,
+          "z_min_mm": 3.2505064010620117,
+          "z_max_mm": 3.5000014305114746,
+          "z_span_mm": 0.2494950294494629
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Surface membership includes boundary nodes",
+    "This probes classification only; no solver geometry is changed",
+    "Planarity threshold is a diagnostic 0.0001 mm, not manufacturing acceptance"
+  ]
+}

@@ -37,3 +37,9 @@ Run `python3 scripts/check_load_surface.py runs/<id> --manifest-sha256 <trusted-
 For the finer study, the preview strip area grows from 114.937 mm² at 0.05 mm top-face tolerance to 130.415 mm² at 0.1 mm; the original STL remains 135.823 mm² at both tolerances. At 0.2 mm, the source selection grows to 148.039 mm², showing that a wider mask includes additional curved surface. The baseline is much less sensitive at 0.05–0.1 mm.
 
 This identifies sensitivity to the remeshed top-surface representation and face mask. It does not quantify nearest-surface distance or prove the cause of mesh distortion. The production 0.05 mm mask and 5% source-area gate remain unchanged. Do not widen the tolerance simply to pass the gate; a validated surface tagging or geometry-preserving mesh procedure is still needed.
+
+## Original surface partition probe
+
+Run `docker compose exec -T structural python - --run-id <native-run-id> < scripts/probe_surface_partition.py` to inspect classified original STL entities without parameterizing, meshing or solving. The probe verifies the database run and downloaded STL hash before classification. surface-partition.json records the finer source at 20°/30°.
+
+Neither classification isolates a top entity whose nodes (including boundary nodes) all lie in a horizontal plane within 0.0001 mm. At 30°, one candidate touching the free-end top region spans 3.5033 mm in z; another spans 0.2495 mm. Thus projecting whole classified entities to z≈3.5 would alter nonplanar portions of the source. This diagnoses partition membership, not exact remeshing error. A separate planar-patch partition or a geometry-preserving constrained mesh approach is needed; the existing source-area warning remains.
