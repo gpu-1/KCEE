@@ -175,3 +175,8 @@
 ## 2026-10-13 — Complete stress diagnostic data checks
 - Require four unique, finite integration-point stress records per C3D10 element. Reject invalid IDs and non-finite geometry.
 - Both archived and live bracket diagnostics pass with unchanged peak values; all 41 unit tests pass.
+
+## 2026-10-13 — Retained failure workspace view
+- Added read-only discovery and viewer dialog for retained failure records and solver diagnostic archives.
+- Browser verified five failures from the finer-geometry investigation; clear distinction from verified successes.
+- Tests reject mismatched identities, malformed/non-object records and symlinked diagnostic archives.

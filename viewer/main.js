@@ -220,3 +220,20 @@ $('pin-comparison').onclick=()=>{if(!currentStudy)return;comparisonId=currentStu
 $('clear-comparison').onclick=()=>{comparisonId=null;$('comparison').hidden=true;$('comparison-rows').replaceChildren();showComparison(selection,activeRequest.signal);};
 
 $('select-comparison-json').onclick=()=>{$('comparison-json').focus();$('comparison-json').select();};
+
+$('show-failures').onclick=async()=>{
+  $('failure-list').replaceChildren();$('failure-status').textContent='Loading retained failures…';$('failure-dialog').showModal();
+  try{
+    const data=await request('/failures?limit=50');
+    $('failure-status').textContent=data.items.length?`${data.items.length} recent retained failures`:'No retained failure records.';
+    for(const failure of data.items){
+      const item=document.createElement('section');item.className='failure-item';
+      const title=document.createElement('h3');title.textContent=failure.stage+' · '+failure.run_id.slice(0,8);item.appendChild(title);
+      for(const text of [failure.run_id,'Retained '+new Date(failure.retained_at_epoch*1000).toLocaleString(),...(failure.parent_id?['Parent design: '+failure.parent_id]:[])]){const p=document.createElement('p');p.className='hint';p.textContent=text;item.appendChild(p);}
+      if(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(failure.run_id)){
+        for(const [name,label] of [['failure.json','Download failure record'],...(failure.has_solver_archive?[['failed-solver-artifacts.zip','Download solver diagnostics']]:[])]){const link=document.createElement('a');link.href=`/api/artifacts/${failure.run_id}/${name}`;link.download='';link.textContent=label;item.appendChild(link);}
+      }
+      $('failure-list').appendChild(item);
+    }
+  }catch(error){$('failure-status').textContent=error.message;}
+};

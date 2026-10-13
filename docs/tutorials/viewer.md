@@ -26,3 +26,7 @@ Select a Bracket FEA run and choose Use as comparison reference, then select ano
 Download comparison (JSON) exports the verified reference/selected source hashes, full-precision comparison values, export time and validation limitations. The comparison file is a derived review artifact; keep the original run bundles for complete solver evidence. Browser download handling depends on the browser used.
 
 If downloads do not complete, expand View or copy comparison JSON and choose Select all JSON, then copy the selected text. This contains the same receipt as the download. Changing or clearing the comparison clears the old receipt.
+
+## Retained failures
+
+Retained failed runs opens recent local failure records with run/parent identity and downloads for failure.json and available solver diagnostics. These records are discovered from local failure directories and are not registered successful runs or verified engineering results. Malformed and symlinked records are skipped. The default view shows up to 50 recent failures.

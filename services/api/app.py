@@ -154,3 +154,8 @@ def stress_diagnostics(run_id: UUID):
     except IntegrityError as exc:raise HTTPException(409,str(exc))
     except (ValueError,zipfile.BadZipFile) as exc:raise HTTPException(422,str(exc))
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/failures')
+def retained_failures(limit: int=Query(50,ge=1,le=100)):
+    from kcee.failures import list_failures
+    return {'items':list_failures(ARTIFACTS,limit),'limit':limit,'scope':'retained_local_failure_records'}
