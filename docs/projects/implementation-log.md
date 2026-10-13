@@ -126,3 +126,7 @@
 - Extended verified bore measurements to quarter/mid/three-quarter plate sections.
 - Found coarse-resolution radial envelope widening to approximately 5.255 mm; finer studies remain near nominal.
 - Reject unsupported geometry and invalid section depths; all 36 unit tests pass.
+
+## 2026-10-13 — Selected-run geometry measurements
+- Added verified native-run API and viewer panel for four bore envelopes at three depths.
+- Verified live/local measurements within 1e-12 rounding tolerance and non-native run rejection. Browser verified actual bracket; six viewer checks/build passed.
