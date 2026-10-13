@@ -130,3 +130,8 @@
 ## 2026-10-13 — Selected-run geometry measurements
 - Added verified native-run API and viewer panel for four bore envelopes at three depths.
 - Verified live/local measurements within 1e-12 rounding tolerance and non-native run rejection. Browser verified actual bracket; six viewer checks/build passed.
+
+## 2026-10-13 — Portable host readiness report
+- Added read-only host, runtime/service and optional trusted saved-run readiness checks with JSON output.
+- All eight checks pass on the current Mac; unavailable API correctly reports needs_attention and nonzero exit.
+- Destination reproduction and unimplemented subsystem acceptance remain pending.
