@@ -43,3 +43,9 @@ This identifies sensitivity to the remeshed top-surface representation and face 
 Run `docker compose exec -T structural python - --run-id <native-run-id> < scripts/probe_surface_partition.py` to inspect classified original STL entities without parameterizing, meshing or solving. The probe verifies the database run and downloaded STL hash before classification. surface-partition.json records the finer source at 20°/30°.
 
 Neither classification isolates a top entity whose nodes (including boundary nodes) all lie in a horizontal plane within 0.0001 mm. At 30°, one candidate touching the free-end top region spans 3.5033 mm in z; another spans 0.2495 mm. Thus projecting whole classified entities to z≈3.5 would alter nonplanar portions of the source. This diagnoses partition membership, not exact remeshing error. A separate planar-patch partition or a geometry-preserving constrained mesh approach is needed; the existing source-area warning remains.
+
+## Improved finer-STL classification
+
+Fine-mesh probes on the unchanged 0.35 mm source measured source strip errors of 3.038% at 25°, 24.558% at 35°, and 15.539% at 45°. A new full 25° study c072e470-2fd9-452a-aee2-19d9cb2a2329 passes all five numerical gates, including source load-strip agreement, and archive-to-preview verification. Its fine displacement is 0.790682 mm and unconverged peak stress is 217.242 MPa. Full evidence is in finer-25deg-study.json.
+
+New finer-source jobs use 25°; the baseline remains at 20°. No source geometry or load tolerance is changed. Existing 30° studies retain their retrospective warning. This addresses the area-agreement gate, not exact surface fidelity or engineering acceptance. Reproduce bounded probes with `docker compose exec -T structural python - --run-id <native-run-id> < scripts/probe_meshing_angles.py`. The source hash is checked and no solve/registered run is created by the probe.

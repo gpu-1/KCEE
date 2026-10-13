@@ -58,7 +58,7 @@ def mesh(stl,directory,size,classification_angle=20):
         gmsh.logger.stop();gmsh.finalize()
 
 def solve(stl,destination,expected_volume=None,classification_angle=20):
-    if classification_angle not in (20,30):raise SolverError("Unsupported surface classification angle")
+    if classification_angle not in (20,25,30):raise SolverError("Unsupported surface classification angle")
     destination=Path(destination);destination.mkdir(parents=True,exist_ok=True);study=[]
     for size in (2.5,1.8,1.5):
         directory=destination/('mesh-'+str(size));directory.mkdir()
@@ -94,6 +94,6 @@ def solve(stl,destination,expected_volume=None,classification_angle=20):
 
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--stl',required=True);parser.add_argument('--output',required=True);parser.add_argument('--classification-angle',type=int,choices=(20,30),default=20);parser.add_argument('--expected-volume',type=float,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--stl',required=True);parser.add_argument('--output',required=True);parser.add_argument('--classification-angle',type=int,choices=(20,25,30),default=20);parser.add_argument('--expected-volume',type=float,required=True);args=parser.parse_args()
     result,archive=solve(args.stl,args.output,args.expected_volume,args.classification_angle)
     (Path(args.output)/'fea-artifacts.zip').write_bytes(archive)

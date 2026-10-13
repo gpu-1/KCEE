@@ -209,3 +209,8 @@
 - Verified original finer STL and inspected classified entities at 20°/30° without modifying geometry.
 - Neither isolates a wholly planar top entity; 30° top candidates span up to 3.5033 mm in z. Whole-patch planar projection would be unjustified.
 - Added reproducible probe and evidence; production settings/source-area warnings remain unchanged.
+
+## 2026-10-13 — Improved finer-STL meshing classification
+- Compared 25°/35°/45° fine meshes without source changes; 25° has lowest source-patch area discrepancy (3.038%).
+- Full 25° study c072e470 passes all five numerical gates and field verification; displacement 0.790682 mm, unconverged stress 217.242 MPa.
+- New finer jobs use traced 25° setting; baseline remains unchanged. Old warnings and immutable artifacts preserved; 47 unit tests pass.

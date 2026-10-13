@@ -24,7 +24,7 @@ class Handler(BaseHTTPRequestHandler):
                     if len(stl)>8*1024*1024:raise ValueError('STL exceeds bounded demo size')
                     path=Path(tmp)/'source.stl';path.write_bytes(stl);output=Path(tmp)/'study'
                     angle=data.get('classification_angle',20)
-                    if angle not in (20,30):raise ValueError('Unsupported classification angle')
+                    if angle not in (20,25,30):raise ValueError('Unsupported classification angle')
                     process=subprocess.run([sys.executable,'-m','kcee.bracket_fea','--stl',str(path),'--output',str(output),'--expected-volume',str(float(data['expected_volume_mm3'])),'--classification-angle',str(angle)],capture_output=True,text=True,timeout=300)
                     (Path(tmp)/'job.log').write_text(process.stdout+'\n'+process.stderr)
                     if process.returncode!=0:raise RuntimeError('Bracket meshing/solve failed; see retained job.log')

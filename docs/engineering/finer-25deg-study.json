@@ -1,0 +1,106 @@
+{
+  "run_id": "c072e470-2fd9-452a-aee2-19d9cb2a2329",
+  "parent_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
+  "fine_mesh": {
+    "maximum_midside_mapping_error_mm": 0.0,
+    "mesher_version": "4.8.4",
+    "target_size_mm": 1.5,
+    "nodes": 35684,
+    "elements": 19124,
+    "volume_mm3": 9795.767097692717,
+    "minimum_tetrahedron_volume_mm3": 6.780215381576764e-05,
+    "load_patch_area_mm2": 131.6965321279494,
+    "fixed_nodes": 2561,
+    "tip_deflection_mm": 0.7906815628368744,
+    "reaction_z_N": 99.99997847874705,
+    "maximum_von_mises_MPa": 217.2419572455153
+  },
+  "checks": {
+    "load_patch_source_agreement": true,
+    "load_patch_refinement": true,
+    "source_volume_agreement": true,
+    "force_balance": true,
+    "displacement_refinement": true
+  },
+  "status": "numerical_checks_passed_not_engineering_validated",
+  "fea": {
+    "source_load_patch_area_mm2": 135.8230827484467,
+    "relative_source_load_patch_area_error": 0.03038180651620115,
+    "schema_version": 1,
+    "backend": "CalculiX",
+    "version": "2.20",
+    "mesher_version": "4.8.4",
+    "mesher_api_version": "4.8.0",
+    "element_type": "C3D10",
+    "geometry": "native_PicoGK_STL",
+    "source_stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
+    "mesh_study": [
+      {
+        "maximum_midside_mapping_error_mm": 0.0,
+        "mesher_version": "4.8.4",
+        "target_size_mm": 2.5,
+        "nodes": 14573,
+        "elements": 6985,
+        "volume_mm3": 9781.987901167118,
+        "minimum_tetrahedron_volume_mm3": 8.944248190399752e-06,
+        "load_patch_area_mm2": 126.97759596530166,
+        "fixed_nodes": 1122,
+        "tip_deflection_mm": 0.7743906048845821,
+        "reaction_z_N": 100.0000374907941,
+        "maximum_von_mises_MPa": 235.61229449836165
+      },
+      {
+        "maximum_midside_mapping_error_mm": 0.0,
+        "mesher_version": "4.8.4",
+        "target_size_mm": 1.8,
+        "nodes": 25902,
+        "elements": 13593,
+        "volume_mm3": 9786.90984993004,
+        "minimum_tetrahedron_volume_mm3": 8.944248424124578e-06,
+        "load_patch_area_mm2": 129.96160215819037,
+        "fixed_nodes": 1922,
+        "tip_deflection_mm": 0.7880645619427624,
+        "reaction_z_N": 100.00000929531946,
+        "maximum_von_mises_MPa": 198.63448354929693
+      },
+      {
+        "maximum_midside_mapping_error_mm": 0.0,
+        "mesher_version": "4.8.4",
+        "target_size_mm": 1.5,
+        "nodes": 35684,
+        "elements": 19124,
+        "volume_mm3": 9795.767097692717,
+        "minimum_tetrahedron_volume_mm3": 6.780215381576764e-05,
+        "load_patch_area_mm2": 131.6965321279494,
+        "fixed_nodes": 2561,
+        "tip_deflection_mm": 0.7906815628368744,
+        "reaction_z_N": 99.99997847874705,
+        "maximum_von_mises_MPa": 217.2419572455153
+      }
+    ],
+    "last_mesh_displacement_change": 0.003320795047122127,
+    "last_load_patch_area_change": 0.013349558184480248,
+    "relative_source_volume_error": 0.004840889852212205,
+    "load_strip_local_target_mm": null,
+    "surface_classification_angle_degrees": 25,
+    "load_integration_source_sha256": "f9d30e65b71f69367f0dd3edaa1d4069372ab4f11953056e98c4072e2e3e5386",
+    "adapter_source_sha256": "fd2c13fc726134015696e8df4f9bc886d993830c9c0d42fa1c849a97d9452d31",
+    "solver_binary_sha256": "55949b455cf6f2ce78da087b2e60199f65a64433a7bc36ac809ab09f073dde34",
+    "checks": {
+      "load_patch_source_agreement": true,
+      "load_patch_refinement": true,
+      "source_volume_agreement": true,
+      "force_balance": true,
+      "displacement_refinement": true
+    },
+    "validation_status": "numerical_checks_passed_not_engineering_validated",
+    "boundary": "All translations fixed on rear upright face x\u22480, z>3.5 mm; ideal clamp, not bolt contact",
+    "load": "100 N downward distributed over top free-end strip x>=55 mm using exact clipped-planar-face quadratic integration",
+    "material": {
+      "youngs_modulus_MPa": 69000,
+      "poisson_ratio": 0.33,
+      "source": "Illustrative aluminum properties"
+    },
+    "stress_note": "Peak stresses are not accepted as converged allowables; mounting and load-patch edges can be singular."
+  }
+}
