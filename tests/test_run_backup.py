@@ -25,3 +25,25 @@ class BackupTests(unittest.TestCase):
             root=Path(d);source=run(root/'runs');_,digest=verify_directory(source);bundle=root/'backup.zip';receipt=export_run(source,bundle,digest);target=root/source.name
             with self.assertRaises(IntegrityError):restore_run(bundle,target,receipt['bundle_sha256'],'0'*64)
             self.assertFalse(target.exists())
+
+    def test_changed_run_during_export_is_rejected(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source=run(root/'runs');manifest,digest=verify_directory(source);bundle=root/'backup.zip'
+            def verified_then_changed(*args,**kwargs):
+                (source/'report.md').write_text('changed after verification')
+                return manifest,digest
+            with patch('kcee.run_backup.verify_directory',side_effect=verified_then_changed):
+                with self.assertRaisesRegex(IntegrityError,'changed'):export_run(source,bundle,digest)
+            self.assertFalse(bundle.exists())
+
+    def test_modified_artifact_in_bundle_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source=run(root/'runs');_,digest=verify_directory(source);bundle=root/'backup.zip';export_run(source,bundle,digest)
+            with zipfile.ZipFile(bundle) as z:files={name:z.read(name) for name in z.namelist()}
+            files['report.md']=b'altered'
+            with zipfile.ZipFile(bundle,'w') as z:
+                for name,data in files.items():z.writestr(name,data)
+            target=root/source.name
+            with self.assertRaisesRegex(IntegrityError,'Artifact hash mismatch'):restore_run(bundle,target,hashlib.sha256(bundle.read_bytes()).hexdigest(),digest)
+            self.assertFalse(target.exists())

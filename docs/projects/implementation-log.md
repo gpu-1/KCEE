@@ -96,3 +96,8 @@
 - Added exclusive single-run bundle export and checked restoration into new UUID directories.
 - Tested actual bracket byte-identical round trip plus overwrite rejection; unit tests cover unsafe paths and hash failures.
 - Database registration remains explicit; this does not claim complete project migration.
+
+## 2026-10-13 — Backup snapshot verification
+- Export verifies the exact in-memory bytes written to the bundle against the trusted manifest.
+- Restore parses the same in-memory bundle bytes whose checksum was verified.
+- Added run-change-during-export and altered-artifact restore tests; all 35 unit tests pass. Actual bracket round trip remains byte-identical.
