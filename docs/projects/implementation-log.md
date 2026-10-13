@@ -64,3 +64,7 @@
 - Added verified fine-mesh archive extraction, original nodal displacement colors and explicit 1×/10×/25× deformation scales.
 - Quadratic boundary faces are subdivided using solver midside nodes; preview is a piecewise-linear display, not a new solve.
 - Existing immutable runs remain unchanged. Stress-field display and engineering validation remain pending.
+
+## 2026-10-13 — Separate stress/displacement colors
+- Added von Mises colors from archived CalculiX averaged nodal stress tensors, distinct from integration-point peak stresses.
+- Explicit quantity selector, MPa/mm legends, unconverged stress label and undeformed option clarify interpretation.

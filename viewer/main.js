@@ -12,7 +12,7 @@ function updateCreation(){ $("fea").disabled=creating || !structuralAvailable; $
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){ if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
-function clearDetails(){fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function clearDetails(){fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
 function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
 function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
 function fitModel(){
@@ -96,24 +96,28 @@ $('analyze').onclick=async()=>{const parent=selectedId;creating=true;beginSelect
 function renderField(){
   if(!fieldData)return;
   clearModel();const data=fieldData,scale=Number($('scale').value),geometry=new THREE.BufferGeometry();
+  const stress=$('quantity').value==='stress';
+  if(stress && !data.von_mises_MPa)throw new Error('Nodal stress field unavailable');
+  const maximum=stress?data.maximum_surface_von_mises_MPa:data.maximum_displacement_mm;
   const points=[],colors=[],color=new THREE.Color();
   for(let i=0;i<data.positions.length;i++){
     const p=data.positions[i],u=data.displacements[i];points.push(...p.map((x,j)=>x+u[j]*scale));
-    color.setHSL((1-Math.hypot(...u)/data.maximum_displacement_mm)*.66,1,.5);colors.push(color.r,color.g,color.b);
+    color.setHSL((1-Math.min(1,(stress?data.von_mises_MPa[i]:Math.hypot(...u))/(maximum || 1)))*.66,1,.5);colors.push(color.r,color.g,color.b);
   }
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setIndex(data.triangles.flat());geometry.computeVertexNormals();geometry.center();geometry.computeBoundingSphere();
   mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,wireframe:$('wireframe').checked}));scene.add(mesh);fitModel();$('empty').hidden=true;$('fit').disabled=false;$('wireframe').disabled=false;
-  $('field-legend').textContent=`Displacement magnitude · blue 0 → red ${data.maximum_displacement_mm.toFixed(3)} mm · deformation ${scale}× · fine solver mesh surface`;
+  $('field-legend').textContent=`${stress?'Von Mises stress · averaged nodal values':'Displacement magnitude'} · blue 0 → red ${maximum.toFixed(3)} ${stress?'MPa':'mm'} · deformation ${scale}×${stress?' · not converged; not an allowable':''}`;
 }
-$('scale').onchange=renderField;
+$('scale').onchange=()=>{if($('field').checked)renderField();};
+$('quantity').onchange=()=>{if($('field').checked)renderField();};
 $('field').onchange=async()=>{
   const ticket=selection,id=selectedId;
-  $('scale-label').hidden=!$('field').checked;$('field-legend').hidden=!$('field').checked;
+  $('scale-label').hidden=!$('field').checked;$('quantity-label').hidden=!$('field').checked;$('field-legend').hidden=!$('field').checked;
   if(!$('field').checked){clearModel();displayGeometry(sourceStl);return;}
   $('field').disabled=true;
   try{
     if(!fieldData){const data=await request(`/runs/${id}/displacement-surface`,{signal:activeRequest.signal});if(ticket!==selection)return;if(data.source_archive_sha256!==archiveDigest)throw new Error('Field archive identity mismatch');fieldData=data;}
     renderField();
-  }catch(error){if(ticket!==selection)return;$('field').checked=false;$('scale-label').hidden=true;$('field-legend').hidden=true;$('status').textContent='Displacement field unavailable: '+error.message;}
+  }catch(error){if(ticket!==selection)return;$('field').checked=false;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true;$('status').textContent='Displacement field unavailable: '+error.message;}
   finally{if(ticket===selection)$('field').disabled=false;}
 };

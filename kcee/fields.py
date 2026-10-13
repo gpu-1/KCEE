@@ -12,12 +12,16 @@ def displacement_surface(archive):
         elif section=='nodes':
             values=line.split(',');nodes[int(values[0])]=list(map(float,values[1:4]))
         elif section=='elements':elements.append(list(map(int,line.split(',')[1:])))
-    displacement={};active=False
+    displacement={};stress={};active=None
     for line in frd.splitlines():
-        if line.startswith(' -4'):active=line[5:17].strip()=='DISP'
-        elif active and line.startswith(' -3'):active=False
-        elif active and line.startswith(' -1'):
-            displacement[int(line[3:13])]=[float(line[start:start+12]) for start in (13,25,37)]
+        if line.startswith(' -4'):active=line[5:17].strip()
+        elif active and line.startswith(' -3'):active=None
+        elif active in ('DISP','STRESS') and line.startswith(' -1'):
+            values=[float(line[start:start+12]) for start in (range(13,85,12) if active=='STRESS' else (13,25,37))]
+            if active=='DISP':displacement[int(line[3:13])]=values
+            else:
+                sx,sy,sz,xy,yz,zx=values
+                stress[int(line[3:13])]=math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(xy*xy+yz*yz+zx*zx))
     faces={}
     # CalculiX C3D10 corner and edge ordering; outward orientation for positive tetrahedra.
     for e in elements:
@@ -34,4 +38,7 @@ def displacement_surface(archive):
     if not ids or any(n not in displacement for n in ids):raise ValueError('Incomplete solver displacement field')
     positions=[nodes[n] for n in ids];vectors=[displacement[n] for n in ids]
     if not all(math.isfinite(x) for p in positions+vectors for x in p):raise ValueError('Non-finite solver field')
-    return {'schema_version':1,'units':'mm','mesh':'fine C3D10 boundary, four linear triangles per quadratic face','positions':positions,'displacements':vectors,'triangles':[[lookup[n] for n in t] for t in triangles],'maximum_displacement_mm':max(math.sqrt(sum(x*x for x in p)) for p in vectors)}
+    if stress and any(n not in stress for n in ids):raise ValueError('Incomplete solver stress field')
+    stress_values=[stress[n] for n in ids] if stress else None
+    if stress_values is not None and not all(math.isfinite(x) for x in stress_values):raise ValueError('Non-finite stress field')
+    return {'von_mises_MPa':stress_values,'maximum_surface_von_mises_MPa':max(stress_values) if stress_values else None,'stress_method':'CalculiX extrapolated/averaged nodal stresses; not integration-point peaks or converged allowables','schema_version':1,'units':'mm','mesh':'fine C3D10 boundary, four linear triangles per quadratic face','positions':positions,'displacements':vectors,'triangles':[[lookup[n] for n in t] for t in triangles],'maximum_displacement_mm':max(math.sqrt(sum(x*x for x in p)) for p in vectors)}
