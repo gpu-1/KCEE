@@ -2,7 +2,7 @@
   "source_run_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
   "source_voxel_size_mm": 0.35,
   "source_stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
-  "status": "volume_meshing_failed_no_structural_result",
+  "status": "finer_study_completed_with_changed_meshing",
   "attempts": [
     {
       "classification_angle_degrees": 20,
@@ -18,8 +18,35 @@
     }
   ],
   "limitations": [
-    "Closed edge topology and volume checks do not rule out overlapping or nearly coincident STL facets",
-    "No repeated structural result exists for the finer source",
-    "Production meshing adapter restored to its previously validated settings"
-  ]
+    "Comparison changes geometry and mesh classification/local load refinement together",
+    "Fine load-patch area differs from baseline; this is not isolated geometry sensitivity",
+    "Peak stress remains unconverged; no allowable or factor-of-safety acceptance"
+  ],
+  "completed_study": {
+    "run_id": "edac2bbf-2163-42ea-8a64-0f9647d92fb2",
+    "parent_id": "15802ef9-5085-40b6-979b-91f03d7c6841",
+    "fine_mesh": {
+      "maximum_midside_mapping_error_mm": 0.0,
+      "mesher_version": "4.8.4",
+      "target_size_mm": 1.5,
+      "nodes": 34041,
+      "elements": 18409,
+      "volume_mm3": 9768.437745493165,
+      "minimum_tetrahedron_volume_mm3": 6.780215381576764e-05,
+      "load_patch_area_mm2": 114.41123991857457,
+      "fixed_nodes": 2512,
+      "tip_deflection_mm": 0.7835951600371827,
+      "reaction_z_N": 99.99998946262022,
+      "maximum_von_mises_MPa": 257.40728842962216
+    },
+    "checks": {
+      "load_patch_refinement": true,
+      "source_volume_agreement": true,
+      "force_balance": true,
+      "displacement_refinement": true
+    },
+    "status": "numerical_checks_passed_not_engineering_validated",
+    "surface_classification_angle_degrees": 30,
+    "load_strip_local_target_mm": 1.0
+  }
 }

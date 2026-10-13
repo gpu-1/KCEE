@@ -29,3 +29,9 @@ Combined radial envelopes across all holes and sampled depths are 4.864–5.255 
 The 0.35 mm source was registered as native run 15802ef9-5085-40b6-979b-91f03d7c6841 and submitted to the same bracket study. Gmsh failed parametrization at 20°. A temporary 10° probe passed parametrization but failed volume meshing with overlapping boundary facets. No structural result or success manifest was generated. Diagnostics remain in the local failed runs; identifiers and error evidence are recorded in geometry-fea-sensitivity.json. The production adapter retains the existing validated 20° settings.
 
 This shows that closed edge topology, bore measurements and global volume checks are insufficient to establish STL suitability for volumetric meshing. Further work must characterize overlaps/near-coincident facets or choose a validated alternative meshing method before comparing structural responses across geometry resolutions. Do not infer fine-resolution stress convergence from the geometry study.
+
+## Successful finer structural study
+
+Further unmodified-STL probes meshed at 30°/45°. The completed 0.35 mm study uses explicit 30° classification and a 1 mm local size field around the load strip, including a compatible global minimum. The existing 0.5 mm path keeps its original 20° settings. Both choices are recorded in solver provenance. Run edac2bbf-2163-42ea-8a64-0f9647d92fb2 passes numerical checks and archive-to-preview verification.
+
+Fine loaded-patch displacement is 0.783595 mm versus 0.780281 mm baseline (+0.425%). Peak integration-point von Mises stress is 257.407 MPa versus 100.199 MPa baseline. The load patch area is 114.411 mm² versus 130.849 mm² baseline. Geometry and meshing/load discretization changed together, so these differences cannot be attributed solely to voxel resolution. Stress convergence and physical acceptance remain unresolved. Earlier failed diagnostics are retained.

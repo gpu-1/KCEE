@@ -18,7 +18,7 @@ def analyze(root,parent_id,record):
     run_id=str(uuid.uuid4());dest=Path(root)/run_id;dest.mkdir()
     for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(source/name,dest/name)
     metadata=json.loads((dest/'geometry.json').read_text());stl=(dest/'bracket.stl').read_bytes()
-    payload={'stl_base64':base64.b64encode(stl).decode(),'expected_volume_mm3':metadata['volume_mm3']}
+    payload={'stl_base64':base64.b64encode(stl).decode(),'expected_volume_mm3':metadata['volume_mm3'],'classification_angle':30 if metadata['voxel_size_mm']<.5 else 20}
     try:
         req=Request(os.environ.get('STRUCTURAL_URL','http://structural:8005')+'/bracket',data=json.dumps(payload).encode(),headers={'Content-Type':'application/json'},method='POST')
         with urlopen(req,timeout=320) as response:data=json.load(response)

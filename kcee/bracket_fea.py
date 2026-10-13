@@ -4,14 +4,18 @@ from pathlib import Path
 import gmsh
 from kcee.fea import SolverError,table
 
-def mesh(stl,directory,size):
+def mesh(stl,directory,size,classification_angle=20):
     gmsh.initialize();gmsh.option.setNumber('General.Terminal',0);gmsh.logger.start()
     try:
-        gmsh.merge(str(stl));gmsh.model.mesh.classifySurfaces(math.pi/9,True,True,math.pi);gmsh.model.mesh.createGeometry()
+        gmsh.merge(str(stl));gmsh.model.mesh.classifySurfaces(math.radians(classification_angle),True,True,math.pi);gmsh.model.mesh.createGeometry()
         surfaces=[tag for dim,tag in gmsh.model.getEntities(2)]
         shell=gmsh.model.geo.addSurfaceLoop(surfaces);gmsh.model.geo.addVolume([shell]);gmsh.model.geo.synchronize()
-        gmsh.option.setNumber('Mesh.MeshSizeMin',size);gmsh.option.setNumber('Mesh.MeshSizeMax',size)
+        gmsh.option.setNumber('Mesh.MeshSizeMin',min(size,1.0) if classification_angle==30 else size);gmsh.option.setNumber('Mesh.MeshSizeMax',size)
         gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',0);gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0);gmsh.option.setNumber('Mesh.MeshSizeExtendFromBoundary',0)
+        if classification_angle==30:
+            field=gmsh.model.mesh.field.add('Box')
+            for option,value in {'VIn':1.0,'VOut':size,'XMin':53,'XMax':61,'YMin':-1,'YMax':31,'ZMin':2.5,'ZMax':4.5}.items():gmsh.model.mesh.field.setNumber(field,option,value)
+            gmsh.model.mesh.field.setAsBackgroundMesh(field)
         gmsh.option.setNumber('Mesh.Algorithm3D',1);gmsh.option.setNumber('Mesh.SecondOrderLinear',1)
         gmsh.model.mesh.generate(3);gmsh.model.mesh.setOrder(2)
         tags,coordinates,_=gmsh.model.mesh.getNodes();nodes={int(tag):tuple(map(float,coordinates[i*3:i*3+3])) for i,tag in enumerate(tags)}
@@ -53,11 +57,12 @@ def mesh(stl,directory,size):
         (directory/'gmsh.log').write_text('\n'.join(gmsh.logger.get()))
         gmsh.logger.stop();gmsh.finalize()
 
-def solve(stl,destination,expected_volume=None):
+def solve(stl,destination,expected_volume=None,classification_angle=20):
+    if classification_angle not in (20,30):raise SolverError("Unsupported surface classification angle")
     destination=Path(destination);destination.mkdir(parents=True,exist_ok=True);study=[]
     for size in (2.5,1.8,1.5):
         directory=destination/('mesh-'+str(size));directory.mkdir()
-        nodes,elements,fixed,loads,summary=mesh(stl,directory,size)
+        nodes,elements,fixed,loads,summary=mesh(stl,directory,size,classification_angle)
         if len(nodes)>50000:raise SolverError('Mesh exceeds demo node budget')
         def set_lines(name,ids):return ['*NSET,NSET='+name]+[','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16)]
         lines=['*NODE']+[str(n)+','+','.join(f'{value:.9E}' for value in p) for n,p in nodes.items()]+['*ELEMENT,TYPE=C3D10,ELSET=SOLID']+[str(i)+','+','.join(map(str,e)) for i,e in enumerate(elements,1)]
@@ -78,7 +83,7 @@ def solve(stl,destination,expected_volume=None):
     patch_change=abs(study[-1]['load_patch_area_mm2']/study[-2]['load_patch_area_mm2']-1)
     volume_error=abs(study[-1]['volume_mm3']/expected_volume-1) if expected_volume else None
     checks={'load_patch_refinement':patch_change<.05,'source_volume_agreement':volume_error is not None and volume_error<.02,'force_balance':all(abs(item['reaction_z_N']-100)<.1 for item in study),'displacement_refinement':change<.05}
-    result={'schema_version':1,'backend':'CalculiX','version':'2.20','mesher_version':study[-1]['mesher_version'],'mesher_api_version':gmsh.__version__,'element_type':'C3D10','geometry':'native_PicoGK_STL','source_stl_sha256':hashlib.sha256(Path(stl).read_bytes()).hexdigest(),'mesh_study':study,'last_mesh_displacement_change':change,'last_load_patch_area_change':patch_change,'relative_source_volume_error':volume_error,'surface_classification_angle_degrees':20,'adapter_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'solver_binary_sha256':hashlib.sha256(Path('/usr/bin/ccx').read_bytes()).hexdigest(),'checks':checks,'validation_status':'numerical_checks_passed_not_engineering_validated' if all(checks.values()) else 'numerical_checks_failed','boundary':'All translations fixed on rear upright face x≈0, z>3.5 mm; ideal clamp, not bolt contact','load':'100 N downward distributed over top free-end strip x>=55 mm using consistent quadratic-face weights','material':{'youngs_modulus_MPa':69000,'poisson_ratio':.33,'source':'Illustrative aluminum properties'},'stress_note':'Peak stresses are not accepted as converged allowables; mounting and load-patch edges can be singular.'}
+    result={'schema_version':1,'backend':'CalculiX','version':'2.20','mesher_version':study[-1]['mesher_version'],'mesher_api_version':gmsh.__version__,'element_type':'C3D10','geometry':'native_PicoGK_STL','source_stl_sha256':hashlib.sha256(Path(stl).read_bytes()).hexdigest(),'mesh_study':study,'last_mesh_displacement_change':change,'last_load_patch_area_change':patch_change,'relative_source_volume_error':volume_error,'load_strip_local_target_mm':1.0 if classification_angle==30 else None,'surface_classification_angle_degrees':classification_angle,'adapter_source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'solver_binary_sha256':hashlib.sha256(Path('/usr/bin/ccx').read_bytes()).hexdigest(),'checks':checks,'validation_status':'numerical_checks_passed_not_engineering_validated' if all(checks.values()) else 'numerical_checks_failed','boundary':'All translations fixed on rear upright face x≈0, z>3.5 mm; ideal clamp, not bolt contact','load':'100 N downward distributed over top free-end strip x>=55 mm using consistent quadratic-face weights','material':{'youngs_modulus_MPa':69000,'poisson_ratio':.33,'source':'Illustrative aluminum properties'},'stress_note':'Peak stresses are not accepted as converged allowables; mounting and load-patch edges can be singular.'}
     (destination/'fea.json').write_text(json.dumps(result,indent=2))
     archive=io.BytesIO()
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zipped:
@@ -88,6 +93,6 @@ def solve(stl,destination,expected_volume=None):
 
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--stl',required=True);parser.add_argument('--output',required=True);parser.add_argument('--expected-volume',type=float,required=True);args=parser.parse_args()
-    result,archive=solve(args.stl,args.output,args.expected_volume)
+    parser=argparse.ArgumentParser();parser.add_argument('--stl',required=True);parser.add_argument('--output',required=True);parser.add_argument('--classification-angle',type=int,choices=(20,30),default=20);parser.add_argument('--expected-volume',type=float,required=True);args=parser.parse_args()
+    result,archive=solve(args.stl,args.output,args.expected_volume,args.classification_angle)
     (Path(args.output)/'fea-artifacts.zip').write_bytes(archive)

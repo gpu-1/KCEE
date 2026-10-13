@@ -23,7 +23,9 @@ class Handler(BaseHTTPRequestHandler):
                     data=json.loads(self.rfile.read(length));stl=base64.b64decode(data['stl_base64'],validate=True)
                     if len(stl)>8*1024*1024:raise ValueError('STL exceeds bounded demo size')
                     path=Path(tmp)/'source.stl';path.write_bytes(stl);output=Path(tmp)/'study'
-                    process=subprocess.run([sys.executable,'-m','kcee.bracket_fea','--stl',str(path),'--output',str(output),'--expected-volume',str(float(data['expected_volume_mm3']))],capture_output=True,text=True,timeout=300)
+                    angle=data.get('classification_angle',20)
+                    if angle not in (20,30):raise ValueError('Unsupported classification angle')
+                    process=subprocess.run([sys.executable,'-m','kcee.bracket_fea','--stl',str(path),'--output',str(output),'--expected-volume',str(float(data['expected_volume_mm3'])),'--classification-angle',str(angle)],capture_output=True,text=True,timeout=300)
                     (Path(tmp)/'job.log').write_text(process.stdout+'\n'+process.stderr)
                     if process.returncode!=0:raise RuntimeError('Bracket meshing/solve failed; see retained job.log')
                     result=json.loads((output/'fea.json').read_text());archive=(output/'fea-artifacts.zip').read_bytes()

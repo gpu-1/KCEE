@@ -144,3 +144,8 @@
 - Attempted the 0.35 mm native bracket under existing study conditions; Gmsh rejected surface parameterization.
 - Smaller-angle probe passed parametrization but volume meshing rejected overlapping facets; retained failure archives and recorded evidence.
 - Restored production adapter settings. Existing results unchanged; geometry-dependent structural convergence remains unresolved. All 36 unit tests pass.
+
+## 2026-10-13 — Completed finer native bracket FEA
+- Explicit 30° classification with local 1 mm load-strip refinement resolves the unmodified 0.35 mm STL; original 0.5 mm path remains at 20°.
+- Run edac2bbf passes numerical and archive-field checks: displacement 0.783595 mm, peak stress 257.407 MPa.
+- Load-patch area and meshing differ; no isolated geometry-sensitivity or stress acceptance claim. All 36 unit tests pass.
