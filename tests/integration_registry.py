@@ -58,6 +58,19 @@ class RegistryIntegration(unittest.TestCase):
             with self.assertRaises(IntegrityError): Registry().register(directory)
         finally: path.write_bytes(raw)
         self.assertEqual(Registry().verify('/data/runs',run_id)['integrity'],'verified')
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_VIEWER_URL'), 'Viewer profile not requested')
+    def test_viewer_proxy(self):
+        base=os.environ['KCEE_TEST_VIEWER_URL']
+        with urlopen(base,timeout=15) as response:
+            self.assertIn('Design workspace',response.read().decode())
+        with urlopen(base+'/api/ready',timeout=15) as response:
+            self.assertEqual(json.load(response)['status'],'ready')
+        req=Request(base+'/api/runs/bracket',data=b'',method='POST')
+        with urlopen(req,timeout=15) as response: data=json.load(response)
+        with urlopen(base+'/api/runs/'+data['run_id']+'/verify',timeout=15) as response:
+            self.assertEqual(json.load(response)['integrity'],'verified')
+        with urlopen(base+'/api/artifacts/'+data['run_id']+'/bracket.stl',timeout=15) as response:
+            self.assertTrue(response.read().startswith(b'solid bracket'))
     def test_owner_append_only_trigger(self):
         for sql in ('UPDATE design_runs SET validation_status=validation_status','DELETE FROM design_runs','TRUNCATE design_runs'):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:

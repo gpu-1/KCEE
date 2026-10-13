@@ -1,10 +1,70 @@
 import * as THREE from 'three';
 import {STLLoader} from 'three/addons/loaders/STLLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(45,1,0.1,10000);
-const renderer=new THREE.WebGLRenderer({antialias:true}); document.body.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xffffff,0x445566,3));
-const controls=new OrbitControls(camera,renderer.domElement); camera.position.set(100,100,100); let mesh;
-function resize(){renderer.setSize(innerWidth,Math.max(100,innerHeight-130));camera.aspect=innerWidth/Math.max(100,innerHeight-130);camera.updateProjectionMatrix();} addEventListener('resize',resize);resize();
-document.querySelector('#file').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;const geo=new STLLoader().parse(await file.arrayBuffer());geo.computeVertexNormals();geo.center();geo.computeBoundingSphere();if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();}mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x45c4c0,roughness:0.55}));scene.add(mesh);const r=geo.boundingSphere.radius;camera.position.set(r*2,r*2,r*2);controls.target.set(0,0,0);document.querySelector('#status').textContent=file.name+' · units mm · screening only';}catch(err){document.querySelector('#status').textContent='Unable to load STL: '+err.message;}};
-renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
+import {request, loadRun, artifactUrl} from './client.js';
+const $=id=>document.getElementById(id);
+let mesh, renderer, controls, camera, scene;
+let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
+const PAGE_SIZE=10;
+function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
+function clearModel(){ if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; }
+function clearDetails(){ $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
+function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
+function displayGeometry(bytes){
+  if(!renderer) throw new Error('3D rendering unavailable on this browser.');
+  const geometry=new STLLoader().parse(bytes);const positions=geometry.attributes.position?.array;
+  if(!positions?.length || positions.length%9 || !positions.every(Number.isFinite)){geometry.dispose();throw new Error('STL contains invalid geometry');}
+  geometry.computeVertexNormals();geometry.center();geometry.computeBoundingSphere();const r=geometry.boundingSphere.radius;
+  if(!Number.isFinite(r)||r<=0){geometry.dispose();throw new Error('STL has no usable extent');}
+  mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color:0x69cabc,roughness:.5}));scene.add(mesh);
+  camera.near=Math.max(r/1000,.001);camera.far=r*100;camera.position.set(r*2.1,r*1.7,r*2.1);camera.updateProjectionMatrix();controls.target.set(0,0,0);controls.update();$('empty').hidden=true;
+}
+try {
+  scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xffffff,0x446079,3));
+  const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(100,150,100);scene.add(light);
+  camera=new THREE.PerspectiveCamera(45,1,.1,10000);camera.up.set(0,0,1);camera.position.set(100,100,100);
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));$('viewport').appendChild(renderer.domElement);
+  controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+  new ResizeObserver(()=>{const width=$('viewport').clientWidth,height=$('viewport').clientHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}).observe($('viewport'));
+  renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
+} catch {renderer=null;$('empty').textContent='3D rendering unavailable. Run history and reports remain accessible.';}
+function highlight(){for(const button of $('runs').querySelectorAll('button'))button.setAttribute('aria-current',String(button.dataset.id===selectedId));}
+async function selectRun(id){
+  const {ticket,signal}=beginSelection();selectedId=id;highlight();$('model-title').textContent='Bracket '+id.slice(0,8);badge('integrity','Verifying…');$('status').textContent='Checking provenance and downloading geometry…';
+  try {
+    const {record,result,stl}=await loadRun(id,signal);if(ticket!==selection)return;
+    const chosen=result.selected;
+    for(const key of ['thickness_mm','stress_MPa','tip_deflection_mm','factor_of_safety'])if(!Number.isFinite(chosen?.[key]))throw new Error('Screening result contains invalid values');
+    if(!Number.isFinite(result.mass_kg)||!Array.isArray(result.assumptions))throw new Error('Screening result is incomplete');
+    if(renderer)displayGeometry(stl);
+    addMetric('metrics','Selected thickness',chosen.thickness_mm.toFixed(1)+' mm');addMetric('metrics','Mass', (result.mass_kg*1000).toFixed(1)+' g');
+    addMetric('metrics','Analytical stress',chosen.stress_MPa.toFixed(2)+' MPa');addMetric('metrics','Estimated deflection',chosen.tip_deflection_mm.toFixed(3)+' mm');addMetric('metrics','Analytical factor of safety',chosen.factor_of_safety.toFixed(2));
+    for(const text of result.assumptions){const li=document.createElement('li');li.textContent=text;$('assumptions').appendChild(li);}
+    addMetric('provenance','Run ID',record.id);addMetric('provenance','Created',new Date(record.created_at).toLocaleString());addMetric('provenance','Geometry',result.geometry_backend);addMetric('provenance','Structural model',result.structural_backend);addMetric('provenance','Validation status',record.validation_status);addMetric('provenance','Manifest SHA-256',record.manifest_sha256);
+    $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent='Artifact integrity verified. Analytical screening remains unvalidated.'+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
+  } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
+}
+async function refresh(){
+  listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
+  try {
+    const data=await request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}`,{signal:controller.signal});if(listRequest!==controller)return;
+    $('runs').replaceChildren();const items=data.items.slice(0,PAGE_SIZE);
+    for(const item of items){const button=document.createElement('button');button.className='run';button.dataset.id=item.id;button.textContent='Bracket '+item.id.slice(0,8);const small=document.createElement('small');small.textContent=new Date(item.created_at).toLocaleString();button.appendChild(small);button.onclick=()=>selectRun(item.id);$('runs').appendChild(button);}
+    if(!items.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No saved runs on this page.';$('runs').appendChild(empty);}
+    $('previous').disabled=offset===0;$('next').disabled=data.items.length<=PAGE_SIZE;$('page').textContent='Page '+(offset/PAGE_SIZE+1);highlight();badge('connection','API connected','good');
+    if(!selectedId)$('status').textContent=items.length?'Select a run to load verified artifacts.':'Create a bracket demo to get started.';
+  }catch(error){if(error.name==='AbortError')return;badge('connection','API unavailable','error');$('status').textContent=error.message;}finally{if(listRequest===controller)$('refresh').disabled=false;}
+}
+$('refresh').onclick=refresh;$('previous').onclick=()=>{offset=Math.max(0,offset-PAGE_SIZE);refresh();};$('next').onclick=()=>{offset+=PAGE_SIZE;refresh();};
+$('create').onclick=async()=>{
+  $('create').disabled=true;$('status').textContent='Generating and registering bracket demo…';
+  try{const data=await request('/runs/bracket',{method:'POST'});offset=0;await refresh();await selectRun(data.run_id);}
+  catch(error){$('status').textContent=error.message+(error.detail?.run_id?' Retained run: '+error.detail.run_id:'');}
+  finally{$('create').disabled=false;}
+};
+$('file').onchange=async event=>{
+  const file=event.target.files[0];if(!file)return;const {ticket}=beginSelection();selectedId=null;highlight();badge('integrity','Local file · unverified');$('model-title').textContent=file.name;$('status').textContent='Loading local file…';
+  try{if(file.size>50*1024*1024)throw new Error('Local STL exceeds the 50 MB preview limit');const bytes=await file.arrayBuffer();if(ticket!==selection)return;displayGeometry(bytes);$('status').textContent='Local geometry only. No registered provenance or screening results.';}catch(error){if(ticket===selection){clearModel();$('status').textContent=error.message;}}
+};
+refresh();

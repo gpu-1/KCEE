@@ -3,7 +3,7 @@
 |---|---|---|
 | API / bracket pipeline | Docker or Python | Implemented screening demo |
 | PostgreSQL/pgvector | Docker | Run registry and integrity API implemented; knowledge ingestion pending |
-| Three.js | Docker/browser | Local STL viewer |
+| Three.js | Docker/browser | Saved-run history, verified geometry/results and local STL viewer |
 | llama.cpp Metal | macOS | Launcher/layout; adapter pending |
 | PicoGK | macOS .NET | Contract/layout; kernel integration pending |
 | CalculiX / FEniCSx | Worker containers | Structural/thermal adapter pending |

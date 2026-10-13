@@ -12,6 +12,7 @@ services:
       PGDATABASE: kcee
       PGUSER: kcee_app
       PGPASSWORD: ${KCEE_APP_DB_PASSWORD:?Required}
+      KCEE_TEST_VIEWER_URL: ${KCEE_TEST_VIEWER_URL:-}
       KCEE_TEST_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Required}
     volumes:
       - ./runs:/data/runs

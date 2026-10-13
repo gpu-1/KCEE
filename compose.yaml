@@ -43,6 +43,15 @@ services:
   viewer:
     profiles: [viewer]
     build: ./viewer
+    environment:
+      API_PROXY_TARGET: http://api:8000
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5173/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
     ports: ["127.0.0.1:5173:5173"]
     networks: [local]
 volumes:
