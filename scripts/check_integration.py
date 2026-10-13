@@ -1,0 +1,20 @@
+"""Build/test in a disposable project; never touches the normal KCEE volume."""
+import os
+from pathlib import Path
+import secrets
+import shutil
+import subprocess
+import tempfile
+
+root=Path(__file__).resolve().parents[1]
+with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
+    checkout=Path(tmp)/'project'
+    shutil.copytree(root,checkout,ignore=shutil.ignore_patterns('.git','.env','.venv','__pycache__','node_modules','runs','models'))
+    (checkout/'runs').mkdir()
+    environment={**os.environ,'POSTGRES_PASSWORD':secrets.token_hex(24),'KCEE_APP_DB_PASSWORD':secrets.token_hex(24)}
+    command=['docker','compose','-p','kcee-check-'+secrets.token_hex(6),'-f','compose.yaml','-f','compose.test.yaml']
+    try:
+        subprocess.run(command+['config','--quiet'],cwd=checkout,env=environment,check=True)
+        subprocess.run(command+['run','--rm','--build','test'],cwd=checkout,env=environment,check=True)
+    finally:
+        subprocess.run(command+['down','-v','--remove-orphans'],cwd=checkout,env=environment,check=True)

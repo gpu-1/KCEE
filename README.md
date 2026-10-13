@@ -1,0 +1,20 @@
+# Kaobra Computational Engineering Engine
+Private computational engineering platform for Apple Silicon. Initial scaffold, not a validated engineering product.
+
+## Run the bracket demonstrator
+```sh
+python3 -m kcee.demo --output runs
+python3 -m unittest discover -s tests -v
+```
+Each run creates a watertight L-bracket STL, analytical cantilever screening, thickness search, report, speech summary, and SHA-256 provenance manifest. Geometry is a deterministic mesh fallback; PicoGK and FEA are pending. No AI or solver result is fabricated.
+
+## Local services
+```sh
+cp .env.example .env
+# Set POSTGRES_PASSWORD and KCEE_APP_DB_PASSWORD in .env
+ docker compose config
+ docker compose up --build -d
+```
+API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
+
+The viewer can load a local STL and overlays no uncomputed physics. Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence and integrity checks are implemented; real solver adapters remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).

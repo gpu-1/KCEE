@@ -1,0 +1,2 @@
+# Backup/restore
+Back up code/docs, runs with manifests, model/runtime checksums and material sources. Use `docker compose exec -T postgres pg_dump -U kcee -d kcee > backup.sql` for database backup; encrypt backups containing private engineering data. Test restoration into a separate project/database before migration. Restore SQL using psql and verify run artifact hashes. Never use `docker compose down -v` on valued data without a verified backup.

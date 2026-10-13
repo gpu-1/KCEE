@@ -1,0 +1,4 @@
+# Provenance
+Every run receives a UUID, UTC timestamp, parent ID, requirements snapshot, backend/assumptions, validation status, candidate decisions, Python version, source SHA-256, optional Git commit and per-artifact hashes. manifest.json does not hash itself. API runs are registered in PostgreSQL with SELECT/INSERT-only application privileges and mutation-blocking triggers; CLI runs require explicit registration. Full dependency/model/solver/mesh/version records and signing remain future work. See operations/run-registry.md. Commit may be null before the first Git commit; source hash identifies the demo implementation.
+
+Production design records must also capture model weights hashes, prompts/tool calls, material sources, mesh settings, boundary conditions, units, accepted/rejected changes, numerical convergence and reviewer validation. Preserve failed runs and diagnostics. Do not treat a hash alone as proof of engineering correctness.

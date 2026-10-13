@@ -1,0 +1,10 @@
+import * as THREE from 'three';
+import {STLLoader} from 'three/addons/loaders/STLLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(45,1,0.1,10000);
+const renderer=new THREE.WebGLRenderer({antialias:true}); document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x445566,3));
+const controls=new OrbitControls(camera,renderer.domElement); camera.position.set(100,100,100); let mesh;
+function resize(){renderer.setSize(innerWidth,Math.max(100,innerHeight-130));camera.aspect=innerWidth/Math.max(100,innerHeight-130);camera.updateProjectionMatrix();} addEventListener('resize',resize);resize();
+document.querySelector('#file').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;const geo=new STLLoader().parse(await file.arrayBuffer());geo.computeVertexNormals();geo.center();geo.computeBoundingSphere();if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();}mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x45c4c0,roughness:0.55}));scene.add(mesh);const r=geo.boundingSphere.radius;camera.position.set(r*2,r*2,r*2);controls.target.set(0,0,0);document.querySelector('#status').textContent=file.name+' · units mm · screening only';}catch(err){document.querySelector('#status').textContent='Unable to load STL: '+err.message;}};
+renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});

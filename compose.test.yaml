@@ -1,0 +1,23 @@
+services:
+  api:
+    ports: !reset []
+  test:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      PYTHONPATH: /app
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: kcee
+      PGUSER: kcee_app
+      PGPASSWORD: ${KCEE_APP_DB_PASSWORD:?Required}
+      KCEE_TEST_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+    volumes:
+      - ./runs:/data/runs
+      - ./tests:/tests:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      api: {condition: service_healthy}
+    command: [python, /tests/integration_registry.py]
+    networks: [local]

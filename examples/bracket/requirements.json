@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "geometry_mm": {
+    "length": 60,
+    "width": 30,
+    "height": 40,
+    "thickness": 6
+  },
+  "load_N": 100,
+  "youngs_modulus_MPa": 69000,
+  "yield_MPa": 240,
+  "density_kg_m3": 2700,
+  "minimum_factor_of_safety": 2,
+  "manufacturing": {
+    "minimum_thickness_mm": 3
+  },
+  "material_source": "Illustrative aluminum properties; replace with traceable certified data before validation."
+}

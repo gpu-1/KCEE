@@ -1,0 +1,2 @@
+# PicoGK host service
+Native .NET service reserved for actual PicoGK kernel integration. Follow upstream Apple Silicon setup; choose and lock compatible .NET/package/native-library versions together. Contract: POST /geometry/bracket with dimensional parameters → artifact path/hash, mm units, kernel/version, topology diagnostics. Port 8082 reserved. No geometry server is currently implemented; demo fallback is explicitly labeled.

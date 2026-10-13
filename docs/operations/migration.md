@@ -1,0 +1,2 @@
+# Mac Studio migration
+Stop new runs; copy repository, runs, local models and runtime manifests. Dump/restore PostgreSQL logically (do not copy a live database volume). Install Apple Silicon Docker/native runtimes on the destination, verify hashes and available unified memory, adjust model context/offload and worker concurrency. Keep paths repository-relative; launchers resolve their working root. Run unit tests and the reference bracket and compare artifact hashes excluding timestamps/UUIDs before accepting migration. Preserve historical validation status.

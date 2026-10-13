@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "architecture": "arm64",
+  "services": {
+    "llama.cpp": {
+      "version": null,
+      "binary_sha256": null,
+      "model_sha256": null,
+      "status": "not_provisioned"
+    },
+    "PicoGK": {
+      "version": null,
+      "binary_sha256": null,
+      "model_sha256": null,
+      "status": "not_provisioned"
+    },
+    "Kokoro": {
+      "version": null,
+      "binary_sha256": null,
+      "model_sha256": null,
+      "status": "not_provisioned"
+    },
+    "whisper.cpp": {
+      "version": null,
+      "binary_sha256": null,
+      "model_sha256": null,
+      "status": "not_provisioned"
+    }
+  }
+}
