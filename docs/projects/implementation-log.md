@@ -223,3 +223,7 @@
 ## 2026-10-13 — Archived regional stress refinement
 - Measured regional peaks across all three meshes: final changes 0.5512% baseline and 14.4957% finer.
 - Viewer verified informational labels; all 49 unit tests and seven viewer checks pass.
+
+## 2026-10-13 — Comparison loading provenance
+- Include integration method, source load-area error and recorded gate status in comparison table and JSON receipt.
+- Older missing checks are explicitly Not recorded rather than assumed to pass.

@@ -32,3 +32,5 @@ If downloads do not complete, expand View or copy comparison JSON and choose Sel
 Retained failed runs opens recent local failure records with run/parent identity and downloads for failure.json and available solver diagnostics. These records are discovered from local failure directories and are not registered successful runs or verified engineering results. Malformed and symlinked records are skipped. The default view shows up to 50 recent failures.
 
 Failed analyses with a retained parent reference offer Open parent design. This closes the failure view and loads the parent through normal artifact verification. Analysis is not retried automatically; review the design and assumptions before starting another study.
+
+Comparisons also show the load-integration method and recorded source load-area agreement. Not recorded means an older saved study lacks that check; it does not imply a pass. Retrospective diagnostics remain available in the hotspot panel.
