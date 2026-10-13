@@ -246,3 +246,8 @@
 - Added pinned GitHub Actions jobs for Python 3.9/3.11, Node 22 viewer checks/build and isolated Linux ARM64 full-stack tests.
 - Read-only permissions, no persisted checkout credentials, bounded job durations and superseded-run cancellation.
 - Workflow YAML structure validated locally; hosted run outcome must be checked separately. Native macOS acceptance remains local.
+
+## 2026-10-13 — Hosted CI cleanup correction
+- Hosted ARM64 ran all 11 integration tests successfully but failed deleting root-owned bind-mount files.
+- Added bounded failure annotations and unit tests, then corrected disposable API/test UID/GID and pre-created mounts. Exclude .local from test checkout.
+- Local wrapper/full-stack cleanup now succeeds; all 51 unit tests pass. Hosted rerun outcome recorded separately.

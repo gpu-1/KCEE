@@ -11,9 +11,10 @@ parser=argparse.ArgumentParser();parser.add_argument("--viewer",action="store_tr
 root=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
     checkout=Path(tmp)/'project'
-    shutil.copytree(root,checkout,ignore=shutil.ignore_patterns('.git','.env','.venv','__pycache__','node_modules','runs','models'))
+    shutil.copytree(root,checkout,ignore=shutil.ignore_patterns('.git','.env','.local','.venv','__pycache__','node_modules','runs','models'))
     (checkout/'runs').mkdir()
-    environment={**os.environ,'POSTGRES_PASSWORD':secrets.token_hex(24),'KCEE_APP_DB_PASSWORD':secrets.token_hex(24)}
+    (checkout/'.local/geometry').mkdir(parents=True)
+    environment={**os.environ,'KCEE_TEST_UID':str(os.getuid()),'KCEE_TEST_GID':str(os.getgid()),'POSTGRES_PASSWORD':secrets.token_hex(24),'KCEE_APP_DB_PASSWORD':secrets.token_hex(24)}
     command=['docker','compose','-p','kcee-check-'+secrets.token_hex(6),'-f','compose.yaml','-f','compose.test.yaml']
     if args.viewer:
         environment['KCEE_TEST_VIEWER_URL']='http://viewer:5173'

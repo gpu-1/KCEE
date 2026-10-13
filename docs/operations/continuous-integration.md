@@ -7,3 +7,5 @@ Actions are pinned to commit hashes resolved from official action tags. Reposito
 CI uses committed source and synthetic test data. Local ignored models, credentials, runtime binaries and engineering runs are not included. Native macOS PicoGK generation, Metal AI, voice and real bracket reproduction are not validated by Linux CI; use documented local checks and migration acceptance tests. CI success does not establish engineering validation.
 
 GitHub runner reference: https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+
+Integration failures emit a bounded public workflow annotation, with escaping tests for annotation text. Detailed logs remain in GitHub. Disposable API/test containers run with the invoking host UID/GID so Linux bind-mounted files can be cleaned up. The test checkout excludes .local and pre-creates its geometry mount; production container users are unchanged.

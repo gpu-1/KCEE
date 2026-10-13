@@ -2,8 +2,10 @@ services:
   viewer:
     ports: !reset []
   api:
+    user: "${KCEE_TEST_UID:?Required}:${KCEE_TEST_GID:?Required}"
     ports: !reset []
   test:
+    user: "${KCEE_TEST_UID:?Required}:${KCEE_TEST_GID:?Required}"
     build:
       context: .
       dockerfile: services/api/Dockerfile
