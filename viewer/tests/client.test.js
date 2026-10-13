@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {artifactUrl,loadRun,request,verifiedBytes} from '../client.js';
+import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence} from '../client.js';
 const id='12345678-1234-1234-1234-123456789abc';
 const result=JSON.stringify({validation_status:'unvalidated_analytical_screening'}),stl='solid example';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -18,3 +18,12 @@ test('rejects failed server verification',async t=>{mock(t,{[`/api/runs/${id}/ve
 test('preserves retained run identity in failed registration',async t=>{t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({detail:{message:'Registration failed',run_id:id}}),{status:503}));await assert.rejects(request('/runs/bracket'),error=>error.detail.run_id===id);});
 test('rejects unsafe artifact paths',()=>{assert.throws(()=>artifactUrl('../bad','result.json'));assert.throws(()=>artifactUrl(id,'../secret'));});
 test('rejects missing hashes and cancelled requests',async t=>{mock(t);await assert.rejects(verifiedBytes(id,'bracket.stl',undefined),/Missing artifact hash/);const c=new AbortController();c.abort();await assert.rejects(loadRun(id,c.signal),error=>error.name==='AbortError');});
+
+test('comparison export preserves provenance, precision and limitations',()=>{
+ const study={record:{id,validation_status:'pending',manifest_sha256:hash('manifest'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('stl'),'fea-artifacts.zip':hash('archive')}}},result:{kind:'bracket_structural',validation_status:'pending'}};
+ const values=[{measure:'Displacement',reference:.780280685488149,selected:.7835951600371827}];
+ const report=JSON.parse(JSON.stringify(comparisonEvidence(study,study,values,.4247797761340433)));
+ assert.equal(report.reference.solver_archive_sha256,hash('archive'));assert.deepEqual(report.measures,values);assert.equal(report.loaded_displacement_change_percent,.4247797761340433);assert.ok(report.limitations.includes('Stress peaks remain unconverged'));
+ const broken=structuredClone(study);broken.record.manifest.run_id='wrong';assert.throws(()=>comparisonEvidence(broken,study,values,0),/identity/);
+ const missing=structuredClone(study);missing.record.manifest_sha256=null;assert.throws(()=>comparisonEvidence(missing,study,values,0),/provenance/);
+});

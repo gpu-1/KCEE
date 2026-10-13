@@ -162,3 +162,8 @@
 ## 2026-10-13 — Saved study comparison
 - Added verified reference pinning and side-by-side geometry/mesh/load/result comparison.
 - Browser verified original vs finer bracket values and +0.425% loaded displacement change; no stress acceptance claim.
+
+## 2026-10-13 — Comparison export
+- Added JSON comparison export with independent manifest/STL/archive hashes and full-precision values.
+- Seven viewer checks pass, including identity/provenance rejection and serialized value preservation.
+- Link and filename verified in browser; in-app download event did not complete, so download completion remains unverified.

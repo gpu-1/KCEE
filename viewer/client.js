@@ -36,3 +36,15 @@ export async function loadRun(id, signal) {
   if (result.validation_status !== record.validation_status) throw new Error('Result status differs from saved record');
   return {record,result,stl};
 }
+
+export function comparisonEvidence(reference,selected,measures,difference){
+  const source=study=>{
+    const record=study.record;
+    if(record.id!==record.manifest?.run_id || study.result.kind!=='bracket_structural' || study.result.validation_status!==record.validation_status)throw new Error('Invalid comparison identity or status');
+    const hashes=[record.manifest_sha256,record.manifest.artifacts['bracket.stl'],record.manifest.artifacts['fea-artifacts.zip']];
+    if(!hashes.every(value=>/^[a-f0-9]{64}$/.test(value||'')))throw new Error('Missing comparison provenance');
+    return {run_id:record.id,manifest_sha256:hashes[0],source_stl_sha256:hashes[1],solver_archive_sha256:hashes[2],validation_status:record.validation_status};
+  };
+  if(!Number.isFinite(difference))throw new Error('Invalid displacement comparison');
+  return {schema_version:1,exported_at:new Date().toISOString(),reference:source(reference),selected:source(selected),measures,loaded_displacement_change_percent:difference,limitations:['Geometry, meshing and load-patch discretization may differ','Stress peaks remain unconverged','Artifact verification does not establish engineering acceptance']};
+}
