@@ -124,3 +124,19 @@ def change_visibility(run_id: UUID,body: VisibilityRequest):
     try:return registry.set_visibility(run_id,body.hidden)
     except KeyError:raise HTTPException(404,'Run not found')
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/runs/{run_id}/geometry-measurements')
+def geometry_measurements(run_id: UUID):
+    import json
+    from kcee.geometry_measure import hole_sections
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id);directory=ARTIFACTS/str(run_id)
+        if 'geometry-request.json' not in record['manifest']['artifacts']:raise HTTPException(422,'Bore measurements require native PicoGK geometry')
+        settings=json.loads((directory/'geometry-request.json').read_text())
+        if settings['geometry_mm']!={'length':60,'width':30,'height':40,'thickness':3.5} or settings['hole_diameter_mm']!=5 or not settings['mounting_holes']:raise HTTPException(422,'Measurements currently support the default native bracket only')
+        holes=[row for depth in (.875,1.75,2.625) for row in hole_sections(directory/'bracket.stl',depth)]
+        return {'run_id':str(run_id),'source_stl_sha256':record['manifest']['artifacts']['bracket.stl'],'nominal_diameter_mm':5,'sections_mm':[.875,1.75,2.625],'holes':holes,'status':'measured_not_manufacturing_validated'}
+    except KeyError:raise HTTPException(404,'Run not found or incomplete geometry metadata')
+    except IntegrityError as exc:raise HTTPException(409,str(exc))
+    except ValueError as exc:raise HTTPException(422,str(exc))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
