@@ -13,3 +13,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #geometry-help-link{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #526b7b;border-radius:50%;text-decoration:none;font-size:12px;font-weight:600}#geometry-help-link:hover{border-color:#8ee4d4}#geometry-help-link:focus-visible{outline:2px solid #8ee4d4;outline-offset:3px}
 
 #comparison table{table-layout:fixed}#comparison th,#comparison td{overflow-wrap:anywhere;vertical-align:top}#comparison th:first-child{width:40%}
+
+#comparison-json-view{margin:14px 0}#comparison-json-view summary{cursor:pointer;color:#8ee4d4;font-size:12px}#comparison-json{display:block;box-sizing:border-box;width:100%;height:260px;margin-top:10px;background:#101820;color:#dfe9f1;border:1px solid #526b7b;border-radius:6px;padding:10px;font:11px/1.5 ui-monospace,monospace;resize:vertical}

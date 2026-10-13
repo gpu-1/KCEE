@@ -4,7 +4,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {request, loadRun, artifactUrl, comparisonEvidence} from './client.js';
 const $=id=>document.getElementById(id);
 let comparisonId=null,currentStudy=null,comparisonUrl=null;
-function clearComparisonExport(){if(comparisonUrl)URL.revokeObjectURL(comparisonUrl);comparisonUrl=null;$("download-comparison").removeAttribute("href");}
+function clearComparisonExport(){if(comparisonUrl)URL.revokeObjectURL(comparisonUrl);comparisonUrl=null;$("comparison-json").value="";$("comparison-json-view").open=false;$("download-comparison").removeAttribute("href");}
 let fieldData=null, sourceStl=null, archiveDigest=null;
 let mesh, renderer, controls, camera, scene, boundaryMarkers;
 let modelCenter=new THREE.Vector3(),isBracketStudy=false;
@@ -212,9 +212,11 @@ async function showComparison(ticket,signal){
     for(const [label,value] of measures){const row=document.createElement('tr');for(const item of [label,value(a),value(b)]){const cell=document.createElement('td');cell.textContent=typeof item==='number'?(Number.isInteger(item)?String(item):item.toFixed(4)):item??'Not recorded';row.appendChild(cell);}$('comparison-rows').appendChild(row);}
     const difference=(b.fea.mesh_study.at(-1).tip_deflection_mm/a.fea.mesh_study.at(-1).tip_deflection_mm-1)*100;
     const evidence=comparisonEvidence(reference,currentStudy,measures.map(([label,value])=>({measure:label,reference:value(a)??null,selected:value(b)??null})),difference);
-    comparisonUrl=URL.createObjectURL(new Blob([JSON.stringify(evidence,null,2)],{type:'application/json'}));$('download-comparison').href=comparisonUrl;$('download-comparison').download=`kcee-comparison-${comparisonId.slice(0,8)}-${currentStudy.id.slice(0,8)}.json`;
+    $('comparison-json').value=JSON.stringify(evidence,null,2);comparisonUrl=URL.createObjectURL(new Blob([$('comparison-json').value],{type:'application/json'}));$('download-comparison').href=comparisonUrl;$('download-comparison').download=`kcee-comparison-${comparisonId.slice(0,8)}-${currentStudy.id.slice(0,8)}.json`;
     $('comparison-status').textContent='Both saved runs verified. Loaded displacement change: '+difference.toFixed(3)+'%. Changes cannot be attributed to geometry alone.';$('comparison').hidden=false;
   }catch(error){if(ticket!==selection || error.name==='AbortError')return;$('comparison-status').textContent='Comparison unavailable: '+error.message;}
 }
 $('pin-comparison').onclick=()=>{if(!currentStudy)return;comparisonId=currentStudy.id;$('comparison').hidden=true;showComparison(selection,activeRequest.signal);};
 $('clear-comparison').onclick=()=>{comparisonId=null;$('comparison').hidden=true;$('comparison-rows').replaceChildren();showComparison(selection,activeRequest.signal);};
+
+$('select-comparison-json').onclick=()=>{$('comparison-json').focus();$('comparison-json').select();};

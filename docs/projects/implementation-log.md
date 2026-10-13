@@ -167,3 +167,7 @@
 - Added JSON comparison export with independent manifest/STL/archive hashes and full-precision values.
 - Seven viewer checks pass, including identity/provenance rejection and serialized value preservation.
 - Link and filename verified in browser; in-app download event did not complete, so download completion remains unverified.
+
+## 2026-10-13 — Comparison copy fallback
+- Added read-only inline JSON receipt and Select all JSON for browsers without working downloads.
+- Browser verified all 2,226 receipt characters selected and correct reference identity; seven viewer checks/build pass.

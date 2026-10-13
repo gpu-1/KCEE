@@ -24,3 +24,5 @@ Select a saved model and choose Remove from list. The confirmation shows its nam
 Select a Bracket FEA run and choose Use as comparison reference, then select another Bracket FEA run. Both records/artifacts are verified before displaying geometry, mesh settings, load-patch area, displacement and unconverged peak stress. Clear comparison removes the reference. The reference lasts for the current viewer session. Different geometry/meshing/load discretization prevents attributing changes to one factor.
 
 Download comparison (JSON) exports the verified reference/selected source hashes, full-precision comparison values, export time and validation limitations. The comparison file is a derived review artifact; keep the original run bundles for complete solver evidence. Browser download handling depends on the browser used.
+
+If downloads do not complete, expand View or copy comparison JSON and choose Select all JSON, then copy the selected text. This contains the same receipt as the download. Changing or clearing the comparison clears the old receipt.
