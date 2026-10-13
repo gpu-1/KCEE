@@ -116,3 +116,8 @@
 - Generated default four-hole bracket at 0.75/0.5/0.35 mm voxels with verified manifests and closed-mesh/topology checks.
 - Last voxel volume change 0.5105%, STL surface volume change 0.1468%; no repeated FEA or stress convergence claim.
 - Stored reproducible study summary and command; original study artifacts remain under .local/studies.
+
+## 2026-10-13 — Local bore geometry measurements
+- Measured four mid-thickness bore sections across the recorded voxel refinement study.
+- Radial envelopes approach nominal 5 mm; fine resolution spans approximately 4.969–4.999 mm.
+- Verified measurement against known square-prism radial bounds; no manufacturing acceptance or stress convergence claim.

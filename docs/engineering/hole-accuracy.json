@@ -1,0 +1,137 @@
+{
+  "study": [
+    {
+      "voxel_size_mm": 0.75,
+      "stl_sha256": "72f72892128b14dd34b192f4fe6bf0c86138c728e58d2318af2e0a0ec8222f99",
+      "holes": [
+        {
+          "hole": "base-1",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.883522033691406,
+          "maximum_radial_diameter_mm": 4.96704683325758,
+          "section_segments": 56
+        },
+        {
+          "hole": "base-2",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.883522033691406,
+          "maximum_radial_diameter_mm": 4.96704683325758,
+          "section_segments": 56
+        },
+        {
+          "hole": "upright-1",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.864424184636156,
+          "maximum_radial_diameter_mm": 5.0,
+          "section_segments": 52
+        },
+        {
+          "hole": "upright-2",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.883522033691406,
+          "maximum_radial_diameter_mm": 4.967046146119249,
+          "section_segments": 56
+        }
+      ]
+    },
+    {
+      "voxel_size_mm": 0.5,
+      "stl_sha256": "6b3c217a3d05a705ec3b5de3a4f894e5fe638de284a76b7b00f87cfad4dad91b",
+      "holes": [
+        {
+          "hole": "base-1",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.9368914164742135,
+          "maximum_radial_diameter_mm": 5.0,
+          "section_segments": 80
+        },
+        {
+          "hole": "base-2",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.9368914164742135,
+          "maximum_radial_diameter_mm": 5.0,
+          "section_segments": 80
+        },
+        {
+          "hole": "upright-1",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.9368932370048,
+          "maximum_radial_diameter_mm": 5.0,
+          "section_segments": 80
+        },
+        {
+          "hole": "upright-2",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.9368914164742135,
+          "maximum_radial_diameter_mm": 5.0,
+          "section_segments": 80
+        }
+      ]
+    },
+    {
+      "voxel_size_mm": 0.35,
+      "stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
+      "holes": [
+        {
+          "hole": "base-1",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.971391799759856,
+          "maximum_radial_diameter_mm": 4.998557218206713,
+          "section_segments": 112
+        },
+        {
+          "hole": "base-2",
+          "section_axis": 2,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.969407241678806,
+          "maximum_radial_diameter_mm": 4.998599999540219,
+          "section_segments": 112
+        },
+        {
+          "hole": "upright-1",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.971391157599234,
+          "maximum_radial_diameter_mm": 4.998554408091059,
+          "section_segments": 112
+        },
+        {
+          "hole": "upright-2",
+          "section_axis": 0,
+          "section_mm": 1.75,
+          "nominal_diameter_mm": 5,
+          "minimum_radial_diameter_mm": 4.971391157599234,
+          "maximum_radial_diameter_mm": 4.998554408091059,
+          "section_segments": 112
+        }
+      ]
+    }
+  ],
+  "method": "Mid-thickness plane intersections; twice radial extrema about nominal bore center, including chord interiors",
+  "limitations": [
+    "Radial envelopes are not fitted diameters or manufacturing acceptance",
+    "Only default 60\u00d730\u00d740 bracket with 3.5 mm thickness and 5 mm holes supported",
+    "Other axial sections, feature positions and root transition accuracy remain unmeasured"
+  ],
+  "status": "geometry_measurement_not_engineering_validated"
+}
