@@ -6,6 +6,7 @@ from uuid import UUID
 import psycopg
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Literal
 from kcee.picogk import GeometryError
@@ -207,3 +208,17 @@ def refinement_explorations(run_id: UUID):
     except ValueError as error:raise HTTPException(422,str(error))
     except OSError:raise HTTPException(503,'Exploratory archives cannot be read')
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+
+@app.get('/runs/{run_id}/refinement-explorations/{key}/archive')
+def exploratory_archive(run_id: UUID,key: Literal['global-1.3','root-0.9','root-0.75']):
+    from kcee.explorations import verified_archive_bytes
+    evidence=refinement_explorations(run_id)
+    row=next((row for item in evidence['items'] for row in item['rows'] if row['download_key']==key),None)
+    if row is None:raise HTTPException(404,'No source-linked exploratory archive for this study')
+    try:
+        raw=verified_archive_bytes(os.environ.get('KCEE_EXPLORATIONS_DIR','/data/explorations'),key,row['recorded_archive_sha256'])
+        return Response(raw,media_type='application/zip',headers={'Content-Disposition':f'attachment; filename="kcee-{run_id}-{key}.zip"','X-Archive-SHA256':row['recorded_archive_sha256']})
+    except FileNotFoundError:raise HTTPException(404,'Exploratory archive unavailable on this Mac')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except OSError:raise HTTPException(503,'Exploratory archive cannot be read')

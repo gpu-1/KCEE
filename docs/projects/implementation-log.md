@@ -323,3 +323,7 @@ Study report exports now include a separate exploratory refinement table when so
 ## 2026-10-14 — Live exploratory archive verification
 
 The API now streams SHA-256 checks of fixed exploratory archives through a read-only host mount. Available matching files are marked verified; missing files remain recorded evidence only. Changed, oversized or unsafe linked archives are rejected. Website and report wording reflects the current verification state. Startup and isolated integration checkouts precreate the bind directory; a new host can still show recorded evidence without local archives.
+
+## 2026-10-14 — Verified exploratory archive downloads
+
+Added per-case ZIP downloads for available source-linked exploratory archives. The download endpoint verifies saved run identity and report linkage, then hashes the exact bytes returned; a changed archive cannot be served under its recorded hash. Only the three fixed experiment keys are accepted. Missing host archives have no download link.

@@ -1,6 +1,6 @@
 import json,tempfile,unittest,uuid,hashlib
 from pathlib import Path
-from kcee.explorations import recorded_explorations,verify_exploratory_archive
+from kcee.explorations import recorded_explorations,verify_exploratory_archive,verified_archive_bytes
 from kcee.provenance import IntegrityError
 class ExplorationTests(unittest.TestCase):
     def test_linked_evidence_and_rejection_of_changed_source(self):
@@ -27,6 +27,8 @@ class ExplorationTests(unittest.TestCase):
             self.assertEqual(verify_exploratory_archive(root,'finer-mesh-exploration.json',None,digest),'not_available')
             path.write_bytes(b'archive bytes')
             self.assertEqual(verify_exploratory_archive(root,'finer-mesh-exploration.json',None,digest),'verified')
+            self.assertEqual(verified_archive_bytes(root,'global-1.3',digest),b'archive bytes')
+            with self.assertRaises(ValueError):verified_archive_bytes(root,'../secret',digest)
             path.write_bytes(b'changed')
             with self.assertRaises(IntegrityError):verify_exploratory_archive(root,'finer-mesh-exploration.json',None,digest)
             path.unlink();path.symlink_to('/private/tmp')

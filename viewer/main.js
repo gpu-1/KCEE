@@ -101,7 +101,9 @@ async function selectRun(id){
           for(const item of evidence.items)for(const row of item.rows){
             const tr=document.createElement('tr');
             for(const value of [row.global_target_mm+' / '+(row.root_target_mm??'—'),row.nodes,row.displacement_mm.toFixed(6),row.peak_stress_MPa.toFixed(2)]){const td=document.createElement('td');td.textContent=value;tr.appendChild(td);}
-            $('exploration-rows').appendChild(tr);
+            const archiveCell=document.createElement('td');
+            if(row.archive_integrity==='verified' && ['global-1.3','root-0.9','root-0.75'].includes(row.download_key)){const link=document.createElement('a');link.href=`/api/runs/${id}/refinement-explorations/${row.download_key}/archive`;link.download='';link.textContent='Download ZIP';link.setAttribute('aria-label',`Download ${row.download_key} exploratory solver archive`);archiveCell.appendChild(link);}else archiveCell.textContent='Unavailable';
+            tr.appendChild(archiveCell);$('exploration-rows').appendChild(tr);
           }
           $('exploration-evidence').value=JSON.stringify(evidence,null,2);
           const rows=evidence.items.flatMap(item=>item.rows),verified=rows.filter(row=>row.archive_integrity==='verified').length;

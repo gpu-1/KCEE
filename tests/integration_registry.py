@@ -24,7 +24,7 @@ class RegistryIntegration(unittest.TestCase):
 
     def test_diagnostic_scope_and_integrity(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
-        for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface','refinement-explorations'):
+        for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface','refinement-explorations','refinement-explorations/global-1.3/archive'):
             with self.assertRaises(HTTPError) as error:request('/runs/'+run_id+'/'+endpoint)
             self.assertEqual(error.exception.code,422)
             with self.assertRaises(HTTPError) as error:request('/runs/00000000-0000-0000-0000-000000000000/'+endpoint)
@@ -32,7 +32,7 @@ class RegistryIntegration(unittest.TestCase):
         path=Path('/data/runs')/run_id/'report.md';original=path.read_bytes()
         try:
             path.write_text('changed')
-            for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface','refinement-explorations'):
+            for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface','refinement-explorations','refinement-explorations/global-1.3/archive'):
                 with self.assertRaises(HTTPError) as error:request('/runs/'+run_id+'/'+endpoint)
                 self.assertEqual(error.exception.code,409)
         finally:path.write_bytes(original)

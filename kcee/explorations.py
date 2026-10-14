@@ -10,6 +10,16 @@ ARCHIVES={
     (FILES[1],.75):'root-refinement-20261014/root-0.75/solver-artifacts.zip',
 }
 
+DOWNLOADS={'global-1.3':(FILES[0],None),'root-0.9':(FILES[1],.9),'root-0.75':(FILES[1],.75)}
+
+def verified_archive_bytes(root,key,expected):
+    if key not in DOWNLOADS:raise ValueError('Unsupported exploratory download')
+    name,target=DOWNLOADS[key]
+    if verify_exploratory_archive(root,name,target,expected)!='verified':raise FileNotFoundError('Exploratory archive unavailable on this Mac')
+    raw=(Path(root)/ARCHIVES[(name,target)]).read_bytes()
+    if len(raw)>512*1024*1024 or hashlib.sha256(raw).hexdigest()!=expected:raise IntegrityError('Exploratory download hash mismatch')
+    return raw
+
 def verify_exploratory_archive(root,name,target,expected):
     if root is None:return 'not_available'
     relative=ARCHIVES.get((name,target))
@@ -42,6 +52,6 @@ def recorded_explorations(directory,record,archive_root=None):
             if not re.fullmatch('[a-f0-9]{64}',archive):raise ValueError('Invalid exploration archive hash')
             numbers=[s['target_size_mm'],s['nodes'],s['elements'],s['tip_deflection_mm'],s['maximum_von_mises_MPa']]
             if not all(type(value) in (int,float) and math.isfinite(value) and value>0 for value in numbers):raise ValueError('Invalid exploration measurements')
-            rows.append({'global_target_mm':s['target_size_mm'],'root_target_mm':s.get('root_local_target_mm'),'nodes':s['nodes'],'elements':s['elements'],'displacement_mm':s['tip_deflection_mm'],'peak_stress_MPa':s['maximum_von_mises_MPa'],'recorded_archive_sha256':archive,'archive_integrity':verify_exploratory_archive(archive_root,name,s.get('root_local_target_mm'),archive)})
+            rows.append({'global_target_mm':s['target_size_mm'],'root_target_mm':s.get('root_local_target_mm'),'nodes':s['nodes'],'elements':s['elements'],'displacement_mm':s['tip_deflection_mm'],'peak_stress_MPa':s['maximum_von_mises_MPa'],'recorded_archive_sha256':archive,'archive_integrity':verify_exploratory_archive(archive_root,name,s.get('root_local_target_mm'),archive),'download_key':next((key for key,value in DOWNLOADS.items() if value==(name,s.get('root_local_target_mm'))),None)})
         items.append({'name':name,'report_sha256':hashlib.sha256(raw).hexdigest(),'rows':rows,'report':report})
     return items
