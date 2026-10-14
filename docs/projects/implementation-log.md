@@ -307,3 +307,7 @@ Moved the On/Off indicator beside Engineering services and shortened the two but
 ## 2026-10-14 — Bounded finer-mesh exploration
 
 Added a verified-source mesh probe and shared single-mesh solver procedure. The production study still uses 2.5/1.8/1.5 mm targets. The exploratory 1.3 mm case remains under 50,000 nodes, whereas 1.2 mm exceeds that limit and is not solved. Evidence and comparisons are documented separately; saved run artifacts/statuses remain unchanged and stress convergence remains pending.
+
+## 2026-10-14 — Local root sensitivity
+
+Added bounded optional root-box refinement for exploratory single-mesh solves; production defaults remain unchanged. Both 0.9/0.75 mm local targets fit the solve budget and complete with force balance and energy consistency. Stress rises substantially relative to the saved unrefined-root study despite stable displacement and unchanged load-strip area. Source and archive hashes are verified and separate evidence is documented. Stress acceptance remains pending.

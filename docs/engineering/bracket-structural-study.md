@@ -69,3 +69,7 @@ The baseline clipped-load study gives 39.03177802 N·mm and relative discrepancy
 ## Exploratory 1.3 mm follow-up
 
 A separate finer-mesh solve reaches 47,921 nodes and 26,442 elements within the existing solve budget. Compared with the saved 1.5 mm case, displacement changes 0.462%, global stress 7.129% and regional stress 7.517%. Stress convergence remains unresolved. A 1.2 mm candidate exceeds the node limit and is not solved. See [source-traced exploration](finer-mesh-exploration.md). This experiment does not modify the three-mesh saved study or its status.
+
+## Local root refinement
+
+Separate 0.9 and 0.75 mm local-root targets raise the global peak to 328.251 and 334.430 MPa while displacement remains within 0.21% of the saved study. The source load-strip area remains unchanged. This reinforces the need to resolve root stress sensitivity and justify the mounting model before using peak stress. See [source-traced root investigation](root-refinement-exploration.md). These values are exploratory, not accepted allowables.

@@ -5,17 +5,22 @@ import gmsh
 from kcee.fea import SolverError,table
 from kcee.surface_load import strip_weights,stl_strip_area
 
-def mesh(stl,directory,size,classification_angle=20):
+def mesh(stl,directory,size,classification_angle=20,root_target=None):
+    if root_target is not None and (root_target not in (.9,.75) or classification_angle!=25 or size!=1.5):raise SolverError("Unsupported local-root refinement")
     gmsh.initialize();gmsh.option.setNumber('General.Terminal',0);gmsh.logger.start()
     try:
         gmsh.merge(str(stl));gmsh.model.mesh.classifySurfaces(math.radians(classification_angle),True,True,math.pi);gmsh.model.mesh.createGeometry()
         surfaces=[tag for dim,tag in gmsh.model.getEntities(2)]
         shell=gmsh.model.geo.addSurfaceLoop(surfaces);gmsh.model.geo.addVolume([shell]);gmsh.model.geo.synchronize()
-        gmsh.option.setNumber('Mesh.MeshSizeMin',min(size,1.0) if classification_angle==30 else size);gmsh.option.setNumber('Mesh.MeshSizeMax',size)
+        gmsh.option.setNumber('Mesh.MeshSizeMin',root_target if root_target is not None else min(size,1.0) if classification_angle==30 else size);gmsh.option.setNumber('Mesh.MeshSizeMax',size)
         gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',0);gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0);gmsh.option.setNumber('Mesh.MeshSizeExtendFromBoundary',0)
         if classification_angle==30:
             field=gmsh.model.mesh.field.add('Box')
             for option,value in {'VIn':1.0,'VOut':size,'XMin':53,'XMax':61,'YMin':-1,'YMax':31,'ZMin':2.5,'ZMax':4.5}.items():gmsh.model.mesh.field.setNumber(field,option,value)
+            gmsh.model.mesh.field.setAsBackgroundMesh(field)
+        if root_target is not None:
+            field=gmsh.model.mesh.field.add('Box')
+            for option,value in {'VIn':root_target,'VOut':size,'XMin':-1,'XMax':3,'YMin':-1,'YMax':31,'ZMin':2.5,'ZMax':5}.items():gmsh.model.mesh.field.setNumber(field,option,value)
             gmsh.model.mesh.field.setAsBackgroundMesh(field)
         gmsh.option.setNumber('Mesh.Algorithm3D',1);gmsh.option.setNumber('Mesh.SecondOrderLinear',1)
         gmsh.model.mesh.generate(3);gmsh.model.mesh.setOrder(2)
@@ -57,10 +62,11 @@ def mesh(stl,directory,size,classification_angle=20):
         (directory/'gmsh.log').write_text('\n'.join(gmsh.logger.get()))
         gmsh.logger.stop();gmsh.finalize()
 
-def solve_mesh(stl,directory,size,classification_angle=20):
+def solve_mesh(stl,directory,size,classification_angle=20,root_target=None):
     if size not in (2.5,1.8,1.5,1.3) or classification_angle not in (20,25,30):raise SolverError('Unsupported exploratory mesh settings')
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=False)
-    nodes,elements,fixed,loads,summary=mesh(stl,directory,size,classification_angle)
+    nodes,elements,fixed,loads,summary=mesh(stl,directory,size,classification_angle,root_target)
+    if root_target is not None:summary["root_local_target_mm"]=root_target
     if len(nodes)>50000:raise SolverError('Mesh exceeds demo node budget')
     def set_lines(name,ids):return ['*NSET,NSET='+name]+[','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16)]
     lines=['*NODE']+[str(n)+','+','.join(f'{value:.9E}' for value in p) for n,p in nodes.items()]+['*ELEMENT,TYPE=C3D10,ELSET=SOLID']+[str(i)+','+','.join(map(str,e)) for i,e in enumerate(elements,1)]
