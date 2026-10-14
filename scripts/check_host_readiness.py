@@ -7,7 +7,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kcee.provenance import verify_directory
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--base-url',default='http://localhost:8000');parser.add_argument('--reference-run');parser.add_argument('--manifest-sha256');parser.add_argument('--output',required=True);parser.add_argument('--voice',action='store_true',help='Also check native Kokoro worker, dependencies and model hashes');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--base-url',default='http://localhost:8000');parser.add_argument('--reference-run');parser.add_argument('--manifest-sha256');parser.add_argument('--output',required=True);parser.add_argument('--voice',action='store_true',help='Also check native Kokoro worker, dependencies and model hashes');parser.add_argument('--ai',action='store_true',help='Also check the native model/runtime hashes and AI gateway');args=parser.parse_args()
     if bool(args.reference_run)!=bool(args.manifest_sha256):parser.error('Reference run and trusted manifest hash must be supplied together')
     root=Path(__file__).resolve().parents[1];checks={};details={}
     def check(name,operation):
@@ -36,6 +36,14 @@ def main():
         if not data['geometry']['picogk'] or not data['structural']['calculix']:raise ValueError('Native geometry or structural worker unavailable')
         return data
     check('geometry_structural_services',capabilities)
+    if args.ai:
+        from kcee.ai_runtime import verify_ai_runtime
+        check('native_ai_integrity',lambda:verify_ai_runtime(root))
+        def ai_worker():
+            data=api('/assistant/status');manifest=json.loads((root/'.local/ai/runtime-manifest.json').read_text())
+            if not data.get('available') or data.get('model_sha256')!=manifest['model_sha256']:raise ValueError('Local AI gateway/model identity unavailable')
+            return data
+        check('native_ai_worker',ai_worker)
     if args.voice:
         from kcee.voice_runtime import verify_voice_models
         check('kokoro_model_integrity',lambda:verify_voice_models(root/'models/kokoro'))
@@ -61,7 +69,7 @@ def main():
             if api('/runs/'+run_id+'/verify')['integrity']!='verified':raise ValueError('Reference verification failed')
             return {'run_id':run_id,'manifest_sha256':digest,'validation_status':record['validation_status']}
         check('saved_reference_run',reference)
-    report={'schema_version':1,'checked_at':datetime.now(timezone.utc).isoformat(),'checks':checks,'details':details,'status':('current_geometry_fea_voice_stack_ready' if args.voice else 'current_geometry_fea_stack_ready') if all(checks.values()) else 'needs_attention','limitations':['This checks the current geometry/FEA'+('/voice' if args.voice else '')+' stack, not full KCEE readiness','AI, thermal, CFD, chemistry and speech input are not validated here','Destination performance, new native generation, solver reproduction and audible voice quality still require acceptance runs',*(['Voice checks are read-only preflight; no synthesis or playback is performed'] if args.voice else ['Voice is not included; add --voice to check its preflight'])]}
+    report={'schema_version':1,'checked_at':datetime.now(timezone.utc).isoformat(),'checks':checks,'details':details,'status':('current_geometry_fea'+('_ai' if args.ai else '')+('_voice' if args.voice else '')+'_stack_ready') if all(checks.values()) else 'needs_attention','limitations':['This checks the current geometry/FEA'+('/AI' if args.ai else '')+('/voice' if args.voice else '')+' stack, not full KCEE readiness','Thermal, CFD, chemistry and speech input are not validated here','Destination performance, new native generation, solver reproduction and audible voice quality still require acceptance runs',*(['AI checks are preflight only; explanation quality is not certified'] if args.ai else ['AI is not checked; add --ai to include its preflight']),*(['Voice checks are read-only preflight; no synthesis or playback is performed'] if args.voice else ['Voice is not included; add --voice to check its preflight'])]}
     with Path(args.output).open('x') as stream:json.dump(report,stream,indent=2)
     print(json.dumps(report,indent=2));return 0 if all(checks.values()) else 1
 

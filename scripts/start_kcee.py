@@ -8,6 +8,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',action='store_true',help='Rebuild container images before startup')
     parser.add_argument('--voice',action='store_true',help='Start the already provisioned local Kokoro worker')
+    parser.add_argument('--ai',action='store_true',help='Start already provisioned native local study AI')
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]
     for path,message in ((root/'.env','Configure .env first; see docs/operations/install-macos.md'),(root/'.local/picogk/Kcee.Geometry','Provision native PicoGK first; see host/macos/picogk/README.md')):
@@ -16,6 +17,8 @@ def main():
         subprocess.run(['docker','info','--format','{{.Architecture}}'],cwd=root,check=True,stdout=subprocess.DEVNULL,timeout=20)
         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,check=True,timeout=30)
         subprocess.run([sys.executable,str(root/'scripts/start_service_supervisor.py')],cwd=root,check=True,timeout=30)
+        (root/'.local/assistant').mkdir(parents=True,exist_ok=True)
+        if args.ai:subprocess.run([sys.executable,str(root/'scripts/start_ai_worker.py')],cwd=root,check=True,timeout=150)
         (root/'.local/voice').mkdir(parents=True,exist_ok=True)
         if args.voice:subprocess.run([sys.executable,str(root/'scripts/start_voice_worker.py')],cwd=root,check=True,timeout=30)
         (root/'.local/studies').mkdir(parents=True,exist_ok=True)
@@ -26,10 +29,11 @@ def main():
         report=reports/('startup-'+str(uuid4())+'.json')
         readiness=[sys.executable,str(root/'scripts/check_host_readiness.py'),'--output',str(report)]
         if args.voice:readiness.append('--voice')
+        if args.ai:readiness.append('--ai')
         result=subprocess.run(readiness,cwd=root)
         print('Readiness report: '+str(report),flush=True)
         if result.returncode:return result.returncode
-        print('KCEE geometry/FEA'+('/voice' if args.voice else '')+' stack ready. Open http://localhost:5173/',flush=True)
+        print('KCEE geometry/FEA'+('/AI' if args.ai else '')+('/voice' if args.voice else '')+' stack ready. Open http://localhost:5173/',flush=True)
         return 0
     except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:
         print('Startup did not complete: '+str(error),file=sys.stderr)

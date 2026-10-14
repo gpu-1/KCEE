@@ -4,7 +4,7 @@
 | API / bracket pipeline | Docker or Python | Implemented screening demo |
 | PostgreSQL/pgvector | Docker | Run registry and integrity API implemented; knowledge ingestion pending |
 | Three.js | Docker/browser | Saved-run history, verified geometry/results, solver fields, comparisons, exploratory evidence and local STL viewer |
-| llama.cpp Metal | macOS | Launcher/layout; adapter pending |
+| llama.cpp Metal | macOS | Pinned native Metal study explanations and signed gateway implemented; design proposals/knowledge ingestion pending |
 | PicoGK | macOS .NET | Native CLI and signed queue worker connected to API/viewer |
 | CalculiX / FEniCSx | Worker containers | CalculiX cantilever and native-STL bracket studies implemented; stress acceptance, FEniCSx and thermal pending |
 | SU2 / OpenFOAM | Worker containers | CFD adapter pending |

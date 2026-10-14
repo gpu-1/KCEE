@@ -169,7 +169,7 @@ def retained_failures(limit: int=Query(50,ge=1,le=100)):
 
 
 class ServiceControlRequest(BaseModel):
-    action: Literal['start','stop','voice_start','voice_stop']
+    action: Literal['start','stop','voice_start','voice_stop','ai_start','ai_stop']
     confirm_stop: bool=False
 
 @app.get('/services/control')
@@ -183,7 +183,7 @@ def service_control(body: ServiceControlRequest,request: Request):
     from kcee.service_control import submit
     from kcee.geometry_queue import QueueError
     if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173','http://localhost:8000','http://127.0.0.1:8000') or request.headers.get('x-kcee-control')!='1':raise HTTPException(403,'Service controls require the local KCEE website')
-    if body.action in ('stop','voice_stop') and not body.confirm_stop:raise HTTPException(422,'Confirm stopping services')
+    if body.action in ('stop','voice_stop','ai_stop') and not body.confirm_stop:raise HTTPException(422,'Confirm stopping services')
     try:return {'job_id':submit(body.action,os.environ.get('KCEE_CONTROL_QUEUE','/data/control/queue'),os.environ.get('KCEE_CONTROL_KEY','/data/control/key')),'status':'pending'}
     except QueueError as error:raise HTTPException(503,str(error))
 
@@ -270,3 +270,53 @@ def voice_audio(job_id: UUID):
     payload,raw=checked_voice_job(job_id)
     if payload['status']!='completed':raise HTTPException(409,'Voice audio is not ready')
     return Response(raw,media_type='audio/wav',headers={'X-Audio-SHA256':payload['audio_sha256'],'Cache-Control':'no-store'})
+
+
+def assistant_paths():return os.environ.get('KCEE_ASSISTANT_QUEUE','/data/assistant/queue'),os.environ.get('KCEE_ASSISTANT_KEY','/data/assistant/key')
+
+@app.get('/assistant/status')
+def assistant_status():
+    from kcee.geometry_queue import read_signed,key_bytes
+    ready=available(*assistant_paths());model=None
+    if ready:
+        try:model=read_signed(Path(assistant_paths()[0])/'heartbeat.json',key_bytes(assistant_paths()[1]),4096).get('model_sha256')
+        except Exception:ready=False
+    return {'available':ready,'model_sha256':model,'scope':'read_only_verified_bracket_study','backend':'native_llama_cpp_metal'}
+
+class StudyQuestion(BaseModel):
+    question: str
+
+@app.post('/runs/{run_id}/assistant',status_code=202)
+def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
+    import json
+    from kcee.study_assistant import study_evidence,submit_assistant
+    from kcee.geometry_queue import QueueError
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-assistant')!='1':raise HTTPException(403,'Study AI requires the local KCEE website')
+    if not 1<=len(body.question.strip())<=800:raise HTTPException(422,'Use a question of 1 to 800 characters')
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Study AI currently supports bracket structural studies')
+        result=json.loads((ARTIFACTS/str(run_id)/'result.json').read_text())
+        evidence,digest=study_evidence(record,result,stress_diagnostics(run_id),refinement_explorations(run_id))
+        return {'job_id':submit_assistant(body.question,evidence,digest,*assistant_paths()),'evidence_sha256':digest,'status':'pending'}
+    except KeyError:raise HTTPException(404,'Unknown or incomplete study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except QueueError as error:raise HTTPException(503,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/assistant/jobs/{job_id}')
+def get_study_answer(job_id: UUID):
+    from kcee.study_assistant import assistant_result
+    from kcee.geometry_queue import QueueError
+    try:
+        payload=assistant_result(str(job_id),*assistant_paths())
+        if payload['status']=='completed':
+            source=payload['evidence']['source'];run_id=UUID(source['run_id']);registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+            if source['manifest_sha256']!=record['manifest_sha256'] or source['result_sha256']!=record['manifest']['artifacts']['result.json']:raise IntegrityError('Assistant saved source mismatch')
+        return payload
+    except FileNotFoundError:raise HTTPException(404,'Assistant job missing or expired')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except (QueueError,KeyError,ValueError):raise HTTPException(409,'Assistant response integrity failed')
+    except OSError:raise HTTPException(503,'Assistant queue unavailable')
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')

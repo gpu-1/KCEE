@@ -1,7 +1,7 @@
 # Implementation roadmap
 1. API dependencies and API/database image digests locked; ARM64 registry integration tested. Viewer dependencies/image digest now locked; saved-run viewer builds and client checks included.
 2. Run persistence, append-only history and integrity checks implemented. Next: local knowledge ingestion/embedding model.
-3. Restricted native gateway; Metal AI structured proposal API and runtime manifests.
+3. Restricted signed native gateway and Metal study explanations implemented with pinned official model/runtime manifests, evidence snapshots and website lifecycle controls. Structured design proposals, knowledge ingestion/embeddings and multi-turn conversation remain pending.
 4. Native PicoGK bracket, mounting holes, fillet-like voxel transition and closed-mesh/volume checks implemented. Signed native queue now connects viewer/API generation. Native bracket structural FEA implemented. Three-resolution geometry volume/topology study recorded. Native bore radial-envelope profiles and geometry-resolution/FEA sensitivity investigations are recorded. Manufacturing acceptance remains pending.
 5. CalculiX cantilever verification benchmark implemented. Native-STL Gmsh/C3D10 bracket study now implemented with ideal clamp/load conditions. Clipped traction, source-area agreement and regional stress refinement diagnostics implemented; global and local-root exploratory refinement archives are source-linked, verified and downloadable; stress remains mesh-sensitive. Next: local stress/formulation convergence, realistic mounting/contact and thermal worker; then FEniCSx, SU2/OpenFOAM and Cantera profiles with validated examples.
 6. Materials/process rule database and solver-backed optimization.

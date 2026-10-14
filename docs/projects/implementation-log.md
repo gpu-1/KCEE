@@ -357,3 +357,9 @@ Set the local synthesis default to Heart (`af_heart`), US English female, at 1.2
 ## 2026-10-14 — Roadmap checkpoint
 
 Updated the implementation roadmap to reflect measured bore profiles, global/local-root refinement evidence and archive downloads, native manual Kokoro voice feedback, website lifecycle controls, audio/provenance exports and optional voice readiness. Local AI, speech input, thermal physics, complete database backup/restore and engineering acceptance remain explicit outstanding milestones.
+
+## 2026-10-14 — Grounded local Metal study assistant
+
+Provisioned pinned upstream llama.cpp b11417 and official Qwen3 4B GGUF assets with upstream SHA-256 checks. Added authenticated loopback inference, signed native jobs, bounded verified evidence snapshots, schema-constrained citations and a read-only website question panel with confirmed AI lifecycle controls. All 37 model layers are offloaded to Metal. Initial unsupported citation output was rejected rather than served; schema/category prompting was corrected. Actual tests refused a validation-override/manufacture claim and an unsupported thermal query. Answers remain drafts; no model tools or engineering acceptance are granted. Voice defaults remain Heart, US English, 1.2×.
+
+Verification: 70 standard-library tests, 13 viewer tests and 14 isolated integration tests passed. Optional AI/voice/reference readiness passed. Browser checks confirmed a real study answer, cancellation of stop confirmation, independent AI stop/start with engineering and voice remaining On, and preservation of the completed draft during status polling. Unauthenticated private model access returned HTTP 401. AI is left On. These checks do not certify general answer accuracy or engineering acceptance.

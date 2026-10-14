@@ -6,6 +6,7 @@ from kcee.geometry_queue import atomic_write,envelope,key_bytes,read_signed
 from kcee.service_control import validate_request
 from scripts.stop_kcee import stop_native
 from scripts.stop_voice_worker import stop_voice
+from scripts.stop_ai_worker import stop_ai
 root=Path(__file__).resolve().parents[1];local=root/'.local/control';queue=local/'queue';key=key_bytes(local/'key')
 lock=(local/'worker.lock').open('a')
 fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -28,7 +29,10 @@ try:
                 path.unlink(missing_ok=True);continue
             try:
                 with (local/'operations.log').open('ab') as log:
-                    if action=='voice_start':
+                    if action=='ai_start':
+                        subprocess.run([sys.executable,str(root/'scripts/start_ai_worker.py')],cwd=root,stdout=log,stderr=log,check=True,timeout=150)
+                    elif action=='ai_stop':stop_ai(root,170)
+                    elif action=='voice_start':
                         subprocess.run([sys.executable,str(root/'scripts/start_voice_worker.py')],cwd=root,stdout=log,stderr=log,check=True,timeout=30)
                     elif action=='voice_stop':stop_voice(root,150)
                     elif action=='start':

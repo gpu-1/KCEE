@@ -15,3 +15,7 @@ POST /runs/{uuid}/structural verifies the native source run and analyzes the def
 ## Local voice summary
 
 `GET /voice/status` reports the native worker heartbeat. `POST /runs/{run_id}/voice` verifies the saved run and reads its voice-summary artifact; local website Origin and `X-KCEE-Voice: 1` are required. It returns a job UUID. `GET /voice/jobs/{job_id}` reports pending/completed/failed and source/audio/model-manifest hashes. `GET /voice/jobs/{job_id}/audio` returns checked WAV bytes only after completion and revalidation of the saved source. Missing/expired jobs return 404; source/audio integrity failures return 409 and unavailable workers/queues 503. No automatic playback is requested.
+
+## Local study AI
+
+`GET /assistant/status` reports signed native gateway availability. `POST /runs/{run_id}/assistant` accepts a question up to 800 characters, requiring local website Origin and `X-KCEE-Assistant: 1`. It verifies the saved bracket structural run and its evidence before enqueueing a read-only explanation. Other kinds return 422, unknown runs 404 and integrity failures 409. `GET /assistant/jobs/{job_id}` returns pending/completed/failed; completed responses contain the evidence snapshot/digest, cited categories, model/runtime hashes and an AI-draft label. Source integrity is rechecked on retrieval. No design or solver action is available to this model.

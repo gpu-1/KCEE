@@ -16,3 +16,7 @@ A passing report covers the current geometry/FEA stack only. Run fresh native ge
 ## Optional Kokoro readiness
 
 Add `--voice` to the readiness command after reprovisioning and starting local Kokoro. This checks the worker heartbeat, all model hashes and sizes against its local runtime manifest, and the installed package versions against the pinned lock. `start_kcee.py --voice` includes these checks automatically. The report does not synthesize/play audio and does not certify audible quality; prepare and listen to a reference summary separately on the destination. Model hashes are local recorded trust anchors, not upstream signed checksums.
+
+## Optional local AI readiness
+
+Add `--ai` after provisioning and starting the native study assistant. The preflight checks the model and every recorded runtime file hash, then matches the signed gateway's active model hash with the runtime manifest. `start_kcee.py --ai` includes these checks automatically. This does not certify explanation quality; ask and review reference questions separately on the destination.

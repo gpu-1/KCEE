@@ -13,6 +13,7 @@ with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
     checkout=Path(tmp)/'project'
     shutil.copytree(root,checkout,ignore=shutil.ignore_patterns('.git','.env','.local','.venv','__pycache__','node_modules','runs','models'))
     (checkout/'runs').mkdir()
+    (checkout/'.local/assistant').mkdir(parents=True,exist_ok=True)
     (checkout/'.local/voice').mkdir(parents=True,exist_ok=True)
     (checkout/'.local/studies').mkdir(parents=True,exist_ok=True)
     (checkout/'.local/control').mkdir(parents=True,exist_ok=True)

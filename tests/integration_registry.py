@@ -16,11 +16,30 @@ def request(path,method='GET'):
 class RegistryIntegration(unittest.TestCase):
     def test_service_control_requires_local_origin_confirmation_and_supervisor(self):
         self.assertFalse(request('/services/control')[1]['available'])
-        cases=[({}, {'action':'start'},403),({'Origin':'https://example.com','X-KCEE-Control':'1'},{'action':'start'},403),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_start'},503)]
+        cases=[({}, {'action':'start'},403),({'Origin':'https://example.com','X-KCEE-Control':'1'},{'action':'start'},403),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'ai_start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'ai_stop'},422)]
         for headers,body,status in cases:
             req=Request(BASE+'/services/control',data=json.dumps(body).encode(),method='POST',headers={'Content-Type':'application/json',**headers})
             with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
             self.assertEqual(error.exception.code,status)
+
+    def test_local_assistant_scope_and_source_integrity(self):
+        self.assertFalse(request('/assistant/status')[1]['available'])
+        run_id=request('/runs/bracket','POST')[1]['run_id'];headers={'Origin':'http://localhost:5173','X-KCEE-Assistant':'1','Content-Type':'application/json'}
+        def ask(identifier,question='Explain',request_headers=headers):
+            return urlopen(Request(BASE+'/runs/'+identifier+'/assistant',data=json.dumps({'question':question}).encode(),method='POST',headers={'Content-Type':'application/json',**request_headers}),timeout=15)
+        for question,request_headers,status in [('Explain',{},403),('Explain',{**headers,'Origin':'https://example.com'},403),('',headers,422),('x'*801,headers,422),('Explain',headers,422)]:
+            with self.assertRaises(HTTPError) as error:ask(run_id,question,request_headers)
+            self.assertEqual(error.exception.code,status)
+        with self.assertRaises(HTTPError) as error:ask('00000000-0000-0000-0000-000000000000')
+        self.assertEqual(error.exception.code,404)
+        path=Path('/data/runs')/run_id/'report.md';original=path.read_bytes()
+        try:
+            path.write_text('changed')
+            with self.assertRaises(HTTPError) as error:ask(run_id)
+            self.assertEqual(error.exception.code,409)
+        finally:path.write_bytes(original)
+        with self.assertRaises(HTTPError) as error:request('/assistant/jobs/00000000-0000-0000-0000-000000000000')
+        self.assertEqual(error.exception.code,404)
 
     def test_voice_worker_unavailable_and_source_integrity(self):
         self.assertFalse(request('/voice/status')[1]['available'])

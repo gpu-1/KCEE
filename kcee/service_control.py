@@ -5,14 +5,14 @@ from kcee.geometry_queue import available,atomic_write,envelope,key_bytes,read_s
 
 
 def validate_request(payload,job_id):
-    if set(payload)!={'job_id','action','created_at'} or payload['job_id']!=job_id or payload['action'] not in ('start','stop','voice_start','voice_stop'):
+    if set(payload)!={'job_id','action','created_at'} or payload['job_id']!=job_id or payload['action'] not in ('start','stop','voice_start','voice_stop','ai_start','ai_stop'):
         raise ValueError('Unsupported service control request')
     if not -2<=time.time()-payload['created_at']<30:raise ValueError('Expired service control request')
     return payload['action']
 
 
 def submit(action,queue,key):
-    if action not in ('start','stop','voice_start','voice_stop'):raise ValueError('Unsupported service action')
+    if action not in ('start','stop','voice_start','voice_stop','ai_start','ai_stop'):raise ValueError('Unsupported service action')
     queue=Path(queue)
     if not available(queue,key):raise QueueError('Local service supervisor unavailable. Run scripts/start_kcee.py on this Mac.')
     if any(queue.glob('*.request.json')) or any(queue.glob('*.processing.json')):raise QueueError('Service control already in progress')
@@ -42,7 +42,7 @@ def active_operation(queue,key):
                 result(job_id,queue,key)
                 continue
             payload=read_signed(path,key_bytes(key),4096)
-            if set(payload)!={'job_id','action','created_at'} or payload['job_id']!=job_id or payload['action'] not in ('start','stop','voice_start','voice_stop'):raise ValueError('Invalid pending operation')
+            if set(payload)!={'job_id','action','created_at'} or payload['job_id']!=job_id or payload['action'] not in ('start','stop','voice_start','voice_stop','ai_start','ai_stop'):raise ValueError('Invalid pending operation')
             age=time.time()-payload['created_at']
             if not -2<=age:raise ValueError('Invalid operation time')
             return {'job_id':job_id,'action':payload['action'],'status':'stalled' if age>510 else 'pending'}

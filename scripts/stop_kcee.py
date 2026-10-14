@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kcee.geometry_queue import available,key_bytes,read_signed
 from scripts.stop_voice_worker import stop_voice
+from scripts.stop_ai_worker import stop_ai
 
 
 def worker_command_matches(command,root):
@@ -42,6 +43,7 @@ def main():
         subprocess.run(['docker','compose','--profile','viewer','--profile','fea','stop','--timeout',str(args.timeout)],cwd=root,check=True)
         stop_native(root,args.timeout)
         stop_voice(root,args.timeout)
+        stop_ai(root,args.timeout)
         print('KCEE stopped. Database volumes, models and run artifacts retained.')
         return 0
     except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as error:
