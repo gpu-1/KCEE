@@ -23,3 +23,7 @@ POST /runs/{uuid}/structural verifies the native source run and analyzes the def
 ## Thermal verification
 
 `POST /runs/thermal-benchmark` creates a registered fixed steady 1D manufactured-solution example via the internal thermal worker. No bracket ID or input parameters are accepted. `GET /capabilities` reports `thermal.steady_1d`. Saved artifacts include `thermal.json`, `temperature.csv`, `result.json`, report, illustrative bar STL and manifest. `/runs/{id}/verify` detects thermal artifact tampering. The result status is `thermal_benchmark_verified_only`; see [thermal benchmark](../engineering/thermal-benchmark.md) for mathematical reference and limits.
+
+## Native bracket temperature
+
+`POST /runs/{id}/thermal` verifies a default native source and registers a separate steady 3D conduction study through the existing CalculiX worker. Non-native sources return 422; source integrity failure returns 409; solver failure returns 503 with a retained diagnostic run ID. `GET /runs/{id}/temperature-surface` returns the archived fine boundary nodal field with source archive hash after full saved-run verification; unsupported kinds return 422. Full solver archive and nodal CSV are manifest-linked artifacts. See [native bracket thermal study](../engineering/bracket-thermal.md).

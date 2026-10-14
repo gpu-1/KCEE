@@ -330,3 +330,36 @@ def thermal_benchmark():
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Thermal artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'validation_status':'thermal_benchmark_verified_only'}
+
+@app.post('/runs/{run_id}/thermal',status_code=201)
+def bracket_thermal(run_id: UUID):
+    from kcee.bracket_thermal_run import analyze_thermal
+    ready()
+    try:
+        record=registry.get(run_id)
+        if record is None:raise HTTPException(404,'Run not found')
+        registry.verify(ARTIFACTS,run_id)
+        if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
+        dest=analyze_thermal(ARTIFACTS,run_id,record)
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketAnalysisError as error:raise HTTPException(503,{'message':str(error),'run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Thermal artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'parent_design_id':str(run_id)}
+
+@app.get('/runs/{run_id}/temperature-surface')
+def thermal_surface(run_id: UUID):
+    from kcee.bracket_thermal_run import temperature_surface
+    import hashlib,json
+    try:
+        record=registry.get(run_id)
+        if record is None:raise HTTPException(404,'Run not found')
+        registry.verify(ARTIFACTS,run_id)
+        if record['manifest'].get('kind')!='bracket_thermal':raise HTTPException(422,'Select a bracket thermal study')
+        archive=ARTIFACTS/str(run_id)/'thermal-artifacts.zip';data=temperature_surface(archive)
+        data.update({'run_id':str(run_id),'source_archive_sha256':record['manifest']['artifacts']['thermal-artifacts.zip']});return data
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(409,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')

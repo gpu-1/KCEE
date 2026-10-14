@@ -8,7 +8,7 @@ class Handler(BaseHTTPRequestHandler):
         raw=json.dumps(body).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
     def do_GET(self):self.send(200,{'status':'ready'}) if self.path=='/health' else self.send(404,{'error':'Not found'})
     def do_POST(self):
-        if self.path not in ('/benchmark','/bracket'):self.send(404,{'error':'Not found'});return
+        if self.path not in ('/benchmark','/bracket','/thermal-bracket'):self.send(404,{'error':'Not found'});return
         if not job_lock.acquire(blocking=False):self.send(503,{'error':'Structural worker busy; retry when the current job completes'});return
         try:
             self.execute_job()
@@ -25,10 +25,11 @@ class Handler(BaseHTTPRequestHandler):
                     path=Path(tmp)/'source.stl';path.write_bytes(stl);output=Path(tmp)/'study'
                     angle=data.get('classification_angle',20)
                     if angle not in (20,25,30):raise ValueError('Unsupported classification angle')
-                    process=subprocess.run([sys.executable,'-m','kcee.bracket_fea','--stl',str(path),'--output',str(output),'--expected-volume',str(float(data['expected_volume_mm3'])),'--classification-angle',str(angle)],capture_output=True,text=True,timeout=300)
+                    module='kcee.bracket_thermal' if self.path=='/thermal-bracket' else 'kcee.bracket_fea'
+                    process=subprocess.run([sys.executable,'-m',module,'--stl',str(path),'--output',str(output),'--expected-volume',str(float(data['expected_volume_mm3'])),'--angle' if self.path=='/thermal-bracket' else '--classification-angle',str(angle)],capture_output=True,text=True,timeout=300)
                     (Path(tmp)/'job.log').write_text(process.stdout+'\n'+process.stderr)
                     if process.returncode!=0:raise RuntimeError('Bracket meshing/solve failed; see retained job.log')
-                    result=json.loads((output/'fea.json').read_text());archive=(output/'fea-artifacts.zip').read_bytes()
+                    result=json.loads((output/('thermal.json' if self.path=='/thermal-bracket' else 'fea.json')).read_text());archive=(output/('thermal-artifacts.zip' if self.path=='/thermal-bracket' else 'fea-artifacts.zip')).read_bytes()
                 self.send(200,{'result':result,'artifacts_base64':base64.b64encode(archive).decode()})
             except Exception as exc:
                 archive=io.BytesIO()

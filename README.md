@@ -54,3 +54,5 @@ Kokoro can prepare verified bracket-study summaries for playback in the website.
 Provision the native model once, then start with `python3 scripts/start_kcee.py --ai --voice`. Select a bracket FEA study and ask a question in Ask about this study. The local model receives a verified evidence snapshot; replies cite evidence categories and remain drafts. Website Local AI controls start/stop the provisioned model without downloads. See [local AI setup, grounding and limits](host/macos/ai/README.md).
 
 Thermal verification: the engineering workers now include a fixed steady 1D conduction example. Use **Run thermal benchmark** in the website; see [thermal benchmark](docs/engineering/thermal-benchmark.md) for equations, numerical gates and scope. This verifies an implementation, not bracket thermal performance.
+
+For a verified native bracket, **Analyze bracket temperature** creates a separate three-mesh steady conduction study. **Solver colors** displays its archived nodal temperatures; see [native bracket thermal study](docs/engineering/bracket-thermal.md) for reservoir conditions, verification gates and limits.

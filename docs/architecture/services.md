@@ -7,7 +7,7 @@
 | llama.cpp Metal | macOS | Pinned native Metal study explanations and signed gateway implemented; design proposals/knowledge ingestion pending |
 | PicoGK | macOS .NET | Native CLI and signed queue worker connected to API/viewer |
 | CalculiX / FEniCSx | Worker containers | CalculiX cantilever and native-STL bracket studies implemented; stress acceptance and FEniCSx pending |
-| Steady thermal conduction | Worker container | Manufactured 1D benchmark implemented; bracket thermal analysis pending |
+| Steady thermal conduction | Worker container | Manufactured 1D benchmark implemented; native bracket steady thermal study now implemented in the existing CalculiX worker; realistic thermal conditions/coupling pending |
 | SU2 / OpenFOAM | Worker containers | CFD adapter pending |
 | Cantera | Worker container | Thermochemistry adapter pending |
 | Materials/manufacturing | Engine | Illustrative data/minimum thickness only |

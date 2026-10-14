@@ -14,6 +14,12 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_native_thermal_rejects_wrong_study_kind(self):
+        run_id=request('/runs/bracket','POST')[1]['run_id']
+        for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:
+            with self.assertRaises(HTTPError) as error:request(path,method)
+            self.assertEqual(error.exception.code,422)
+
     @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Engineering workers required')
     def test_thermal_benchmark_registry_and_tamper(self):
         self.assertTrue(request('/capabilities')[1]['thermal']['steady_1d'])
