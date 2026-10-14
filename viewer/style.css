@@ -35,3 +35,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #voice-evidence-text{width:100%;min-height:180px;box-sizing:border-box;background:#12202a;color:#dfe9f1;border:1px solid #526b7b;font:11px ui-monospace,monospace;padding:10px}
 
 #assistant-question{width:100%;min-height:80px;box-sizing:border-box;background:#12202a;color:#dfe9f1;border:1px solid #526b7b;padding:10px;font:13px system-ui}#assistant-answer{white-space:pre-wrap;font-size:14px;line-height:1.6}
+
+#assistant-evidence-text{display:block;width:100%;min-height:180px;box-sizing:border-box;background:#12202a;color:#dfe9f1;border:1px solid #526b7b;font:11px ui-monospace,monospace;padding:10px;margin-top:10px}

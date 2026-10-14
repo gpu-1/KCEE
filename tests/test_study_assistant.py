@@ -5,11 +5,12 @@ from kcee.study_assistant import study_evidence,validate_assistant_request,valid
 class StudyAssistantTests(unittest.TestCase):
     def fixture(self):
         run_id=str(uuid.uuid4());record={'id':run_id,'validation_status':'pending','manifest_sha256':'m','manifest':{'run_id':run_id,'artifacts':{'result.json':'r','fea-artifacts.zip':'a'}}}
-        result={'kind':'bracket_structural','validation_status':'pending','fea':{'checks':{'force_balance':True},'boundary':'Ideal clamp','load':'100 N','material':{'source':'Illustrative'},'stress_note':'Unconverged','mesh_study':[{'maximum_von_mises_MPa':217.24}]}}
+        result={'kind':'bracket_structural','validation_status':'pending','fea':{'checks':{'force_balance':True},'boundary':'Ideal clamp','load':'100 N','material':{'source':'Illustrative'},'stress_note':'Unconverged','mesh_study':[{'target_size_mm':1.5,'tip_deflection_mm':0.79068,'maximum_von_mises_MPa':217.24}]}}
         return record,result
     def test_evidence_identity_and_validation_limits(self):
         record,result=self.fixture();evidence,digest=study_evidence(record,result,{}, {'items':[]})
         self.assertEqual(digest,hashlib.sha256(encoded(evidence)).hexdigest());self.assertEqual(evidence['validation']['engineering_acceptance'],'pending');self.assertEqual(evidence['validation']['stress_convergence'],'not_established')
+        self.assertEqual(evidence['selected_study_result']['loaded_patch_displacement_mm'],0.79068)
         result['validation_status']='accepted'
         with self.assertRaises(ValueError):study_evidence(record,result,{}, {'items':[]})
     def test_bounded_signed_jobs_and_response_snapshot(self):
