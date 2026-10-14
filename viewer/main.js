@@ -120,7 +120,8 @@ function refreshServiceStatus(){
       const [capabilities,control]=await Promise.all([request('/capabilities',{signal:controller.signal}),request('/services/control',{signal:controller.signal}).catch(()=>({available:false}))]);
       controlAvailable=control.available;
       nativeAvailable=Boolean(capabilities.geometry?.picogk);structuralAvailable=Boolean(capabilities.structural?.calculix);
-      badge('service-health',nativeAvailable && structuralAvailable?'Running':nativeAvailable || structuralAvailable?'Partly running':'Stopped',nativeAvailable && structuralAvailable?'good':'');
+      badge('service-health',nativeAvailable || structuralAvailable?'On':'Off',nativeAvailable && structuralAvailable?'good':'');
+      $('service-health').title=nativeAvailable && structuralAvailable?'Both engineering services are on':nativeAvailable || structuralAvailable?'One engineering service is on; see individual status below':'Both engineering services are off';
       $('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native PicoGK stopped or unavailable.';
       $('fea-status').textContent=structuralAvailable?'CalculiX ready':'Structural worker stopped or unavailable.';
       if(control.operation?.status==='pending' && !serviceBusy)watchServiceOperation(control.operation);
@@ -129,7 +130,7 @@ function refreshServiceStatus(){
       }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
     }catch{
       nativeAvailable=false;structuralAvailable=false;controlAvailable=false;
-      badge('service-health','Status unavailable','error');
+      badge('service-health','Unknown','error');$('service-health').title='Service status is unavailable';
       $('native-status').textContent='Native status unavailable.';$('fea-status').textContent='Structural status unavailable.';
       if(!serviceBusy)$('service-status').textContent='Unable to check services. Status will retry automatically.';
     }finally{clearTimeout(timer);updateCreation();}
