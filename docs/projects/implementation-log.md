@@ -387,3 +387,7 @@ Verification: 72 Python tests, 13 viewer tests and 15 isolated registry/integrat
 ## 2026-10-14 — Thermal profile and error charts
 
 Added numerical/analytical temperature comparison and a separate absolute-error plot at saved nodes. A mesh selector shows each of the four verified profiles without re-solving. Axes label position in mm and temperature/error in °C; the fine mesh is the default. Selecting another run clears chart state.
+
+## 2026-10-14 — Visible thermal checks and recorded tolerances
+
+Thermal benchmark results now record their numerical tolerances. The website displays all five check verdicts, measured errors or refinement orders, and saved thresholds. Older immutable runs keep their recorded checks but show absent thresholds as not recorded; no historical values are invented.
