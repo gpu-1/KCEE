@@ -1,4 +1,4 @@
-import base64,io,json,subprocess,sys,tempfile,zipfile,threading
+import base64,io,json,subprocess,sys,tempfile,zipfile,threading,signal
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from kcee.fea import benchmark
@@ -36,4 +36,16 @@ class Handler(BaseHTTPRequestHandler):
                     for p in Path(tmp).rglob('*'):
                         if p.is_file():zipped.write(p,p.relative_to(tmp))
                 self.send(503,{'error':str(exc),'artifacts_base64':base64.b64encode(archive.getvalue()).decode()})
-ThreadingHTTPServer(('0.0.0.0',8005),Handler).serve_forever()
+class StructuralServer(ThreadingHTTPServer):
+    daemon_threads=False
+
+server=StructuralServer(('0.0.0.0',8005),Handler)
+stopping=threading.Event()
+def stop_server(*_):
+    if not stopping.is_set():
+        stopping.set()
+        threading.Thread(target=server.shutdown,daemon=True).start()
+signal.signal(signal.SIGTERM,stop_server)
+signal.signal(signal.SIGINT,stop_server)
+try:server.serve_forever()
+finally:server.server_close()

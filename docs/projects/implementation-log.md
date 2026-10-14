@@ -281,3 +281,9 @@ Added a compact question-mark help link beside stress and energy diagnostics. It
 ## 2026-10-14 — One-command local startup
 
 Added `scripts/start_kcee.py` for the already provisioned geometry/FEA workspace. It checks local setup and Docker availability, starts the signed native queue worker before container bind mounts, starts the viewer/FEA profiles with health waiting, and retains a uniquely named readiness report. Rebuilds are optional; existing services/data remain intact on failures. No login agent or audio process is installed.
+
+## 2026-10-14 — Data-preserving shutdown
+
+Added `scripts/stop_kcee.py` to stop the container services without removing containers or volumes, then request graceful native worker termination. The worker's signed fresh heartbeat, stored PID and project-specific command must agree before a signal is sent. Shutdown waits for the signed stopped heartbeat; it does not force-kill the native worker. The default grace period is 150 seconds.
+
+The stop/start check exposed PID 1 signal handling in the structural container. Its HTTP server now explicitly handles SIGTERM/SIGINT, stops accepting requests, and waits for active request threads during close. Docker's configured grace period still bounds container shutdown; longer jobs can exceed it.

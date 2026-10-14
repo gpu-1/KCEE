@@ -16,6 +16,12 @@ python3 scripts/start_kcee.py --build
 ```
 This starts the native PicoGK queue worker and the database, API, viewer and structural containers, waits for container health, and saves a unique readiness report under `.local/readiness/`. Configure `.env` and provision PicoGK first. Re-running is safe; startup failures retain existing services and data. This checks the geometry/FEA demonstrator. AI, voice and other physics integrations remain pending.
 
+To stop the workspace while retaining its data:
+```sh
+python3 scripts/stop_kcee.py
+```
+This stops containers and requests graceful shutdown of the verified project geometry worker. Restart with the startup command above.
+
 ## Local services
 ```sh
 cp .env.example .env
