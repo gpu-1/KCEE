@@ -499,3 +499,8 @@ async def document_visibility(document_id: UUID,request: Request):
     except KeyError:raise HTTPException(404,'Document not found')
     except (ValueError,TypeError) as error:raise HTTPException(422,str(error)[:200])
     except psycopg.Error:raise HTTPException(503,'Document visibility migration unavailable')
+
+@app.get('/knowledge/import-state')
+def document_import_state():
+    from kcee.document_imports import imports
+    with imports.lock:return {'active':[{'id':j['id'],'state':j['state']} for j in imports.jobs.values() if j['state'] in ('queued','extracting','saving')]}
