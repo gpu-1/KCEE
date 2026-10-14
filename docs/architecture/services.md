@@ -2,9 +2,9 @@
 | Component | Placement | Status |
 |---|---|---|
 | API / bracket pipeline | Docker or Python | Implemented screening demo |
-| PostgreSQL/pgvector | Docker | Run registry and integrity API implemented; knowledge ingestion pending |
+| PostgreSQL/pgvector | Docker | Run registry and integrity API implemented; immutable text/Markdown knowledge and English full-text retrieval implemented; semantic embeddings pending |
 | Three.js | Docker/browser | Saved-run history, verified geometry/results, solver fields, comparisons, exploratory evidence and local STL viewer |
-| llama.cpp Metal | macOS | Pinned native Metal study explanations and signed gateway implemented; design proposals/knowledge ingestion pending |
+| llama.cpp Metal | macOS | Pinned native Metal study explanations and signed gateway implemented; design proposals/immutable text/Markdown knowledge and English full-text retrieval implemented; semantic embeddings pending |
 | PicoGK | macOS .NET | Native CLI and signed queue worker connected to API/viewer |
 | CalculiX / FEniCSx | Worker containers | CalculiX cantilever and native-STL bracket studies implemented; stress acceptance and FEniCSx pending |
 | Steady thermal conduction | Worker container | Manufactured 1D benchmark implemented; native bracket steady thermal study now implemented in the existing CalculiX worker; realistic thermal conditions/coupling pending |

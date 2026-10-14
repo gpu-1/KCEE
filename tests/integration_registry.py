@@ -14,6 +14,27 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_local_document_ingestion_integrity_and_retrieval(self):
+        import base64
+        from kcee.knowledge import Knowledge
+        raw=b'KCEE test reference\nThermal conductivity is an illustrative 7.25 W per metre kelvin.\nThis is not an engineering allowable.\n'
+        def upload(headers):
+            return urlopen(Request(BASE+'/knowledge/documents',data=json.dumps({'name':'integration-reference.md','bytes_base64':base64.b64encode(raw).decode()}).encode(),headers={'Content-Type':'application/json',**headers},method='POST'),timeout=15)
+        with self.assertRaises(HTTPError) as error:upload({})
+        self.assertEqual(error.exception.code,403)
+        headers={'Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        with upload(headers) as response:document=json.load(response)
+        with upload(headers) as response:self.assertTrue(json.load(response)['deduplicated'])
+        with urlopen(BASE+'/knowledge/documents/'+document['id']+'/source') as response:
+            self.assertEqual(response.read(),raw);self.assertEqual(response.headers['X-Source-SHA256'],hashlib.sha256(raw).hexdigest())
+        chunks=Knowledge().retrieve('What thermal conductivity does the reference use?')
+        self.assertTrue(any(chunk['document_id']==document['id'] for chunk in chunks));Knowledge().verify_citations(chunks)
+        for table in ('local_documents','local_document_chunks'):
+            with Registry().connect() as conn:
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):conn.execute('DELETE FROM '+table)
+            with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
+                with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM '+table)
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:

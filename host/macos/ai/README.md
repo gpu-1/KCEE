@@ -22,3 +22,5 @@ Select a bracket FEA, bracket thermal or 1D thermal benchmark study and use Ask 
 Website Local AI Start/Stop uses the same restricted supervisor as the other services and asks for confirmation on stop. The model and gateway stop separately from geometry/structural/voice. Full CLI shutdown includes them. Changing studies aborts the browser's pending request and clears its answer; cancelling active native inference is not yet implemented.
 
 Stop manually: `python3 scripts/stop_ai_worker.py`. Runtime inference makes no external API calls. Database knowledge ingestion, embeddings, multi-turn conversation, design proposals and AI answer speech remain pending. Heart US English at 1.2× remains the voice-summary default.
+
+Local document references can be included explicitly for verified study questions. See [source ingestion, citation checks and limits](../../../docs/operations/local-knowledge.md). This uses local English full-text retrieval, not embeddings; source citation validity does not certify factual entailment or engineering acceptance.

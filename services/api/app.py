@@ -286,6 +286,7 @@ def assistant_status():
 
 class StudyQuestion(BaseModel):
     question: str
+    include_documents: bool=False
 
 @app.post('/runs/{run_id}/assistant',status_code=202)
 def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
@@ -300,6 +301,9 @@ def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
         if kind not in ('bracket_structural','bracket_thermal','thermal_benchmark'):raise HTTPException(422,'Study AI supports verified structural and thermal studies')
         result=json.loads((ARTIFACTS/str(run_id)/'result.json').read_text())
         evidence,digest=study_evidence(record,result,stress_diagnostics(run_id) if kind=='bracket_structural' else {},refinement_explorations(run_id) if kind=='bracket_structural' else {'items':[]})
+        if body.include_documents:
+            from kcee.knowledge import attach_documents
+            evidence,digest=attach_documents(evidence,body.question)
         return {'job_id':submit_assistant(body.question,evidence,digest,*assistant_paths()),'evidence_sha256':digest,'status':'pending'}
     except KeyError:raise HTTPException(404,'Unknown or incomplete study')
     except IntegrityError as error:raise HTTPException(409,str(error))
@@ -314,6 +318,8 @@ def get_study_answer(job_id: UUID):
     try:
         payload=assistant_result(str(job_id),*assistant_paths())
         if payload['status']=='completed':
+            from kcee.knowledge import Knowledge
+            Knowledge().verify_citations(payload['evidence'].get('documents',[]))
             source=payload['evidence']['source'];run_id=UUID(source['run_id']);registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
             if source['manifest_sha256']!=record['manifest_sha256'] or source['result_sha256']!=record['manifest']['artifacts']['result.json']:raise IntegrityError('Assistant saved source mismatch')
         return payload
@@ -364,3 +370,35 @@ def thermal_surface(run_id: UUID):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/knowledge/documents')
+def knowledge_documents():
+    from kcee.knowledge import Knowledge
+    try:return {'items':Knowledge().list(),'retrieval':'local English full-text search','semantic_embeddings':False}
+    except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
+
+@app.post('/knowledge/documents',status_code=201)
+async def upload_knowledge(request: Request):
+    import base64,json
+    from kcee.knowledge import Knowledge
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Document ingestion requires the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>360000:raise HTTPException(413,'Document request exceeds 256 KB source limit')
+    try:
+        data=json.loads(raw)
+        if set(data)!={'name','bytes_base64'}:raise ValueError('Unexpected document fields')
+        return Knowledge().ingest(data['name'],base64.b64decode(data['bytes_base64'],validate=True))
+    except (ValueError,TypeError,KeyError):raise HTTPException(422,'Use a nonempty UTF-8 .txt or .md document up to 256 KB; lines must be shorter than 1800 characters')
+    except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
+
+@app.get('/knowledge/documents/{document_id}/source')
+def knowledge_source(document_id: UUID):
+    from kcee.knowledge import Knowledge
+    try:
+        row,raw=Knowledge().source(document_id)
+        return Response(raw,media_type='text/plain; charset=utf-8',headers={'X-Source-SHA256':row['source_sha256'],'X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="kcee-document.txt"'})
+    except KeyError:raise HTTPException(404,'Document not found')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
