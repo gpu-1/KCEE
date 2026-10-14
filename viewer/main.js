@@ -75,6 +75,8 @@ async function selectRun(id){
         if(diagnostic.run_id!==id || diagnostic.source_archive_sha256!==record.manifest.artifacts['fea-artifacts.zip'])throw new Error('Stress archive identity mismatch');
         verifiedDiagnostic=diagnostic;const energy=diagnostic.energy_consistency;
         if(energy){addMetric('hotspot-values','Energy vs half load work',`${energy.passes_demo_tolerance?'Pass':'Needs attention'} · ${(energy.relative_error*100).toExponential(2)}% error`);addMetric('hotspot-values','Strain energy',energy.strain_energy_N_mm.toFixed(4)+' N·mm');}
+        const energyChange=diagnostic.regional_refinement?.last_energy_change;
+        if(Number.isFinite(energyChange))addMetric('hotspot-values','Last strain-energy change',(energyChange*100).toFixed(3)+'% · informational');
         const peak=diagnostic.top_integration_point_stresses[0];sourceLoadWarning=!diagnostic.source_load_patch_agreement;
         addMetric('hotspot-values','Load strip vs original STL',`${diagnostic.source_load_patch_agreement?'Pass':'Needs attention'} · ${(diagnostic.relative_source_load_patch_area_error*100).toFixed(3)}% area error`);
         addMetric('hotspot-values','Original STL load-strip area',diagnostic.source_load_patch_area_mm2.toFixed(3)+' mm²');

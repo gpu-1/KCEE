@@ -51,7 +51,9 @@ test('missing historical numerical checks never display as passed',()=>{
 test('study energy report retains precision and rejects missing or inconsistent evidence',()=>{
  const study={record:{id,validation_status:'pending',manifest_sha256:hash('m'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('s'),'fea-artifacts.zip':hash('a')}}},result:{kind:'bracket_structural',validation_status:'pending',fea:{mesh_study:[],checks:{}}}};
  const diagnostic={source_load_patch_agreement:true,relative_source_load_patch_area_error:0,energy_consistency:{strain_energy_N_mm:39.5340784053091,half_load_work_N_mm:39.53407814206325,relative_error:6.6587071412271825e-9,relative_tolerance:.001,passes_demo_tolerance:true,method:'Linear elasticity'}};
+ diagnostic.regional_refinement={mesh_study:[{target_size_mm:2.5,energy_consistency:diagnostic.energy_consistency}],last_energy_change:.025};
  const text=studyMarkdown(study,diagnostic);
+ assert.ok(text.includes('Mesh target: 2.5 mm'));assert.ok(text.includes('Last strain-energy change: 2.5% (informational)'));
  assert.ok(text.includes('Energy consistency: Pass'));assert.ok(text.includes('39.5340784053091 N·mm'));assert.ok(text.includes('39.53407814206325 N·mm'));assert.ok(text.includes('not an engineering acceptance'));
  assert.ok(studyMarkdown(study).includes('Energy consistency: Not recorded'));
  diagnostic.energy_consistency.relative_error=.01;assert.ok(studyMarkdown(study,diagnostic).includes('inconsistent diagnostic verdict'));

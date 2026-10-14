@@ -79,9 +79,11 @@ def regional_refinement(archive,fine=None):
     studies=[]
     for size in (2.5,1.8,1.5):
         result=fine if size==1.5 and fine is not None else diagnose(archive,'mesh-'+str(size))
-        studies.append({'target_size_mm':size,'elements':result['elements'],'global_peak_MPa':result['top_integration_point_stresses'][0]['von_mises_MPa'],'regional_peaks':result['regional_peaks']})
+        studies.append({'target_size_mm':size,'elements':result['elements'],'global_peak_MPa':result['top_integration_point_stresses'][0]['von_mises_MPa'],'regional_peaks':result['regional_peaks'],'energy_consistency':result['energy_consistency']})
     changes=[]
     for previous,current in zip(studies[-2]['regional_peaks'],studies[-1]['regional_peaks']):
         a,b=previous['maximum_von_mises_MPa'],current['maximum_von_mises_MPa']
         changes.append({'centroid_exclusion_distance_mm':current['centroid_exclusion_distance_mm'],'relative_last_peak_change':abs(b/a-1) if a and b is not None else None})
-    return {'mesh_study':studies,'last_changes':changes,'status':'measured_not_stress_convergence_acceptance'}
+    a,b=(study['energy_consistency']['strain_energy_N_mm'] for study in studies[-2:])
+    energy_change=abs(b/a-1) if a>0 else None
+    return {'last_energy_change':energy_change,'mesh_study':studies,'last_changes':changes,'status':'measured_not_stress_convergence_acceptance'}

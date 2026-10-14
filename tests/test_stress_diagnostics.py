@@ -1,5 +1,6 @@
 import math,unittest
-from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks,diagnose,displacement_records
+from unittest.mock import patch
+from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks,diagnose,displacement_records,regional_refinement
 
 class StressDiagnosticsTests(unittest.TestCase):
     def test_regular_tetrahedron_quality_and_scale(self):
@@ -43,3 +44,16 @@ class StressDiagnosticsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):displacement_records([row],{1,2})
         with self.assertRaisesRegex(ValueError,'duplicate'):
             displacement_records([valid,valid],{1,2})
+
+    def test_energy_refinement_uses_last_two_meshes_and_preserves_evidence(self):
+        def result(energy):
+            return {'elements':1,'top_integration_point_stresses':[{'von_mises_MPa':10}], 'regional_peaks':[], 'energy_consistency':{'strain_energy_N_mm':energy}}
+        fine=result(11)
+        with patch('kcee.stress_diagnostics.diagnose',side_effect=[result(8),result(10)]) as read:
+            report=regional_refinement('archive',fine)
+        self.assertEqual(read.call_count,2)
+        self.assertAlmostEqual(report['last_energy_change'],.1)
+        self.assertEqual([m['energy_consistency']['strain_energy_N_mm'] for m in report['mesh_study']],[8,10,11])
+        self.assertEqual(report['status'],'measured_not_stress_convergence_acceptance')
+        with patch('kcee.stress_diagnostics.diagnose',side_effect=[result(0),result(0),result(0)]):
+            self.assertIsNone(regional_refinement('archive')['last_energy_change'])

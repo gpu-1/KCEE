@@ -269,3 +269,7 @@ Derived downloadable and copyable study reports now include strain energy, half 
 ## 2026-10-14 — Archived displacement validation
 
 Energy diagnostics now reject truncated or oversized displacement rows, non-finite components, fractional or unknown node identifiers, and duplicate nodal records before computing external work. Signed components remain intact. Missing loaded nodes continue to fail explicitly. This prevents malformed archive data from silently replacing a node or causing an indexing error.
+
+## 2026-10-14 — Energy mesh refinement
+
+Archive diagnostics retain energy/work consistency for each of the three mesh sizes and compute the absolute relative strain-energy change between the last two meshes. The viewer shows this change as informational, and readable study reports preserve each mesh's energy evidence. No convergence threshold or engineering acceptance is inferred.
