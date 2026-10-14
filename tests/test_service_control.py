@@ -7,6 +7,8 @@ class ServiceControlTests(unittest.TestCase):
     def test_request_is_bounded_and_expires(self):
         job=str(uuid.uuid4());payload={'job_id':job,'action':'start','created_at':time.time()}
         self.assertEqual(validate_request(payload,job),'start')
+        self.assertEqual(validate_request(dict(payload,action='voice_start'),job),'voice_start')
+        self.assertEqual(validate_request(dict(payload,action='voice_stop'),job),'voice_stop')
         for change in ({'action':'shell'},{'job_id':'wrong'},{'created_at':time.time()-40},{'command':'anything'}):
             with self.assertRaises(ValueError):validate_request(dict(payload,**change),job)
     def test_queue_requires_live_supervisor_and_signed_response(self):

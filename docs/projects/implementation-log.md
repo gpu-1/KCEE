@@ -333,3 +333,7 @@ Added per-case ZIP downloads for available source-linked exploratory archives. T
 Provisioned local quantized Kokoro ONNX weights and an isolated pinned Python runtime. Added signed, bounded native summary jobs, source-linked audio metadata, API integrity checks and independent browser WAV hashing. Bracket study playback is explicitly opt-in through an audio control; selecting another run clears playback. No original artifacts are modified. Voice transport is mounted separately from weights/runtime. Automatic alerts, priority scheduling and whisper input remain pending.
 
 The exploratory archive link text is now ZIP to fit the compact table column; descriptive accessibility labels are retained. Native Kokoro produced the saved bracket summary successfully and the browser verified its bytes. The audio control reports 5.099 seconds, loaded and paused with autoplay disabled.
+
+## 2026-10-14 — Website voice lifecycle controls
+
+Added local voice On/Off status and Start/Stop next to engineering controls. Voice stop asks for confirmation and pauses current audio; the website/database remain running. The signed supervisor accepts only fixed voice_start/voice_stop actions. Its starter now safely reloads stale supervisor code only when no operation is active, checking signed heartbeat and process identity before graceful termination. No provisioning or model download is triggered from the website.

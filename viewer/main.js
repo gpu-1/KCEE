@@ -14,8 +14,8 @@ let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
 let serviceBusy=false,controlAvailable=false,voiceAvailable=false,voiceBusy=false,voiceRequest=null,voiceUrl=null;
 let nativeAvailable=false,creating=false,structuralAvailable=false,selectedIsNative=false;
-function updateServiceButtons(){$("start-services").disabled=!controlAvailable || serviceBusy || creating || (nativeAvailable && structuralAvailable);$("stop-services").disabled=!controlAvailable || serviceBusy || creating || (!nativeAvailable && !structuralAvailable);}
-function updateCreation(){ updateServiceButtons();$("prepare-voice").disabled=!voiceAvailable || voiceBusy || !currentStudy; $("remove-run").disabled=(creating || serviceBusy) || removing || !selectedVerified; $("fea").disabled=(creating || serviceBusy) || !structuralAvailable; $("analyze").disabled=(creating || serviceBusy) || !structuralAvailable || !selectedIsNative; $("create").disabled=(creating || serviceBusy) || ($("backend").value==="picogk" && !nativeAvailable); }
+function updateServiceButtons(){$("toggle-voice").disabled=!controlAvailable || serviceBusy || voiceBusy || creating;$("toggle-voice").textContent=voiceAvailable?"Stop":"Start";$("toggle-voice").setAttribute("aria-label",voiceAvailable?"Stop local voice":"Start local voice");$("start-services").disabled=!controlAvailable || serviceBusy || creating || (nativeAvailable && structuralAvailable);$("stop-services").disabled=!controlAvailable || serviceBusy || creating || (!nativeAvailable && !structuralAvailable);}
+function updateCreation(){ updateServiceButtons();$("prepare-voice").disabled=!voiceAvailable || voiceBusy || serviceBusy || !currentStudy; $("remove-run").disabled=(creating || serviceBusy) || removing || !selectedVerified; $("fea").disabled=(creating || serviceBusy) || !structuralAvailable; $("analyze").disabled=(creating || serviceBusy) || !structuralAvailable || !selectedIsNative; $("create").disabled=(creating || serviceBusy) || ($("backend").value==="picogk" && !nativeAvailable); }
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
@@ -138,7 +138,7 @@ function refreshServiceStatus(){
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
     try{
       const [capabilities,control,voice]=await Promise.all([request('/capabilities',{signal:controller.signal}),request('/services/control',{signal:controller.signal}).catch(()=>({available:false})),request('/voice/status',{signal:controller.signal}).catch(()=>({available:false}))]);
-      voiceAvailable=voice.available;if(!voiceBusy)$('voice-status').textContent=voiceAvailable?'Local Kokoro ready. Prepare audio, then press Play.':'Local Kokoro unavailable. Start the provisioned voice worker on this Mac.';
+      voiceAvailable=voice.available;badge('voice-health',voiceAvailable?'On':'Off',voiceAvailable?'good':'');if(!voiceBusy)$('voice-status').textContent=voiceAvailable?'Local Kokoro ready. Prepare audio, then press Play.':'Local voice is off or unavailable. Use Start above.';
       controlAvailable=control.available;
       nativeAvailable=Boolean(capabilities.geometry?.picogk);structuralAvailable=Boolean(capabilities.structural?.calculix);
       badge('service-health',nativeAvailable || structuralAvailable?'On':'Off',nativeAvailable && structuralAvailable?'good':'');
@@ -151,7 +151,7 @@ function refreshServiceStatus(){
       }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
     }catch{
       nativeAvailable=false;structuralAvailable=false;controlAvailable=false;voiceAvailable=false;
-      badge('service-health','Unknown','error');$('service-health').title='Service status is unavailable';
+      badge('voice-health','Unknown','error');badge('service-health','Unknown','error');$('service-health').title='Service status is unavailable';
       $('native-status').textContent='Native status unavailable.';$('fea-status').textContent='Structural status unavailable.';
       if(!serviceBusy)$('service-status').textContent='Unable to check services. Status will retry automatically.';
     }finally{clearTimeout(timer);updateCreation();}
@@ -307,7 +307,7 @@ $('select-comparison-markdown').onclick=()=>{$('comparison-markdown').focus();$(
 $('select-study-report').onclick=()=>{$('study-report-text').focus();$('study-report-text').select();};
 
 async function watchServiceOperation(job){
-  serviceBusy=true;updateCreation();$('service-status').textContent=job.action==='start'?'Starting engineering services…':'Stopping engineering services…';
+  serviceBusy=true;updateCreation();$('service-status').textContent=({start:'Starting engineering services…',stop:'Stopping engineering services…',voice_start:'Starting local voice…',voice_stop:'Stopping local voice…'})[job.action];
   try{
     const deadline=Date.now()+510000;
     let result;
@@ -317,7 +317,7 @@ async function watchServiceOperation(job){
       if(result.status==='failed')throw new Error(result.message);
       if(Date.now()>deadline)throw new Error('Operation is still pending. Refresh service status before trying again.');
     }while(result.status==='pending');
-    await refresh();$('service-status').textContent=job.action==='start'?'Engineering services started.':'Engineering services stopped. Saved runs remain available.';
+    await refresh();$('service-status').textContent=({start:'Engineering services started.',stop:'Engineering services stopped. Saved runs remain available.',voice_start:'Local voice started.',voice_stop:'Local voice stopped.'})[job.action];
   }catch(error){controlAvailable=false;$('service-status').textContent=error.message+' Refresh to reconnect.';}
   finally{serviceBusy=false;updateCreation();}
 }
@@ -325,7 +325,7 @@ async function changeServices(action){
   if(serviceBusy || creating)return;
   serviceBusy=true;updateCreation();
   try{
-    const job=await request('/services/control',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Control':'1'},body:JSON.stringify({action,confirm_stop:action==='stop'})});
+    const job=await request('/services/control',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Control':'1'},body:JSON.stringify({action,confirm_stop:action==='stop' || action==='voice_stop'})});
     await watchServiceOperation({...job,action});
   }catch(error){serviceBusy=false;controlAvailable=false;$('service-status').textContent=error.message+' Refresh service status.';updateCreation();}
 }
@@ -339,7 +339,7 @@ setInterval(()=>{if(!document.hidden)refreshServiceStatus();},10000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshServiceStatus();});
 
 $('prepare-voice').onclick=async()=>{
-  if(!currentStudy || voiceBusy)return;
+  if(!currentStudy || voiceBusy || serviceBusy || !voiceAvailable)return;
   const study=currentStudy,ticket=selection;voiceRequest?.abort();const controller=new AbortController();voiceRequest=controller;voiceBusy=true;updateCreation();$('voice-status').textContent='Preparing local voice summary…';
   try{
     const job=await request(`/runs/${study.id}/voice`,{method:'POST',headers:{'X-KCEE-Voice':'1'},signal:controller.signal});
@@ -359,3 +359,8 @@ $('prepare-voice').onclick=async()=>{
   }catch(error){if(ticket===selection && error.name!=='AbortError')$('voice-status').textContent=error.message;}
   finally{if(voiceRequest===controller){voiceBusy=false;updateCreation();}}
 };
+
+$('toggle-voice').onclick=()=>{if(voiceAvailable)$('stop-voice-dialog').showModal();else changeServices('voice_start');};
+$('cancel-stop-voice').onclick=()=>$('stop-voice-dialog').close();
+$('confirm-stop-voice').onclick=()=>{$('stop-voice-dialog').close();$('voice-audio').pause();changeServices('voice_stop');};
+$('stop-voice-dialog').addEventListener('close',()=>$('toggle-voice').focus());

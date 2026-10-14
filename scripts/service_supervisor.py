@@ -1,18 +1,20 @@
 """Project-local service supervisor. No network listener or arbitrary commands."""
-import fcntl,os,signal,subprocess,sys,threading,time,uuid
+import fcntl,os,signal,hashlib,subprocess,sys,threading,time,uuid
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kcee.geometry_queue import atomic_write,envelope,key_bytes,read_signed
 from kcee.service_control import validate_request
 from scripts.stop_kcee import stop_native
+from scripts.stop_voice_worker import stop_voice
 root=Path(__file__).resolve().parents[1];local=root/'.local/control';queue=local/'queue';key=key_bytes(local/'key')
 lock=(local/'worker.lock').open('a')
 fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+source_hash=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 stop=threading.Event()
 signal.signal(signal.SIGTERM,lambda *_:stop.set());signal.signal(signal.SIGINT,lambda *_:stop.set())
 def heartbeat():
     while not stop.is_set():
-        atomic_write(queue/'heartbeat.json',envelope({'state':'ready','pid':os.getpid(),'created_at':time.time()},key));stop.wait(2)
+        atomic_write(queue/'heartbeat.json',envelope({'state':'ready','pid':os.getpid(),'created_at':time.time(),'source_sha256':source_hash},key));stop.wait(2)
 thread=threading.Thread(target=heartbeat,daemon=True);thread.start()
 try:
     while not stop.is_set():
@@ -26,11 +28,14 @@ try:
                 path.unlink(missing_ok=True);continue
             try:
                 with (local/'operations.log').open('ab') as log:
-                    if action=='start':
+                    if action=='voice_start':
+                        subprocess.run([sys.executable,str(root/'scripts/start_voice_worker.py')],cwd=root,stdout=log,stderr=log,check=True,timeout=30)
+                    elif action=='voice_stop':stop_voice(root,150)
+                    elif action=='start':
                         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,stdout=log,stderr=log,check=True,timeout=30)
                         command=['docker','compose','--profile','fea','up','-d','--no-deps','--wait','--wait-timeout','60','structural']
-                    else:command=['docker','compose','--profile','fea','stop','--timeout','300','structural']
-                    subprocess.run(command,cwd=root,stdout=log,stderr=log,check=True,timeout=320)
+                    elif action=='stop':command=['docker','compose','--profile','fea','stop','--timeout','300','structural']
+                    if action in ('start','stop'):subprocess.run(command,cwd=root,stdout=log,stderr=log,check=True,timeout=320)
                     if action=='stop':stop_native(root,150)
                 response={'job_id':job_id,'action':action,'status':'completed'}
             except Exception:

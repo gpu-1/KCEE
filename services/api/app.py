@@ -169,7 +169,7 @@ def retained_failures(limit: int=Query(50,ge=1,le=100)):
 
 
 class ServiceControlRequest(BaseModel):
-    action: Literal['start','stop']
+    action: Literal['start','stop','voice_start','voice_stop']
     confirm_stop: bool=False
 
 @app.get('/services/control')
@@ -183,7 +183,7 @@ def service_control(body: ServiceControlRequest,request: Request):
     from kcee.service_control import submit
     from kcee.geometry_queue import QueueError
     if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173','http://localhost:8000','http://127.0.0.1:8000') or request.headers.get('x-kcee-control')!='1':raise HTTPException(403,'Service controls require the local KCEE website')
-    if body.action=='stop' and not body.confirm_stop:raise HTTPException(422,'Confirm stopping the engineering services')
+    if body.action in ('stop','voice_stop') and not body.confirm_stop:raise HTTPException(422,'Confirm stopping services')
     try:return {'job_id':submit(body.action,os.environ.get('KCEE_CONTROL_QUEUE','/data/control/queue'),os.environ.get('KCEE_CONTROL_KEY','/data/control/key')),'status':'pending'}
     except QueueError as error:raise HTTPException(503,str(error))
 

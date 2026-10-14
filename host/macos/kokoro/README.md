@@ -22,3 +22,5 @@ This first phase is manual result-summary preparation. Automatic warning speech,
 Upstream: [Kokoro ONNX](https://github.com/thewh1teagle/kokoro-onnx), [model release](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0). Runtime license MIT; model license Apache-2.0.
 
 Stop voice alone with `python3 scripts/stop_voice_worker.py`. Full CLI shutdown also stops voice; the website Engineering services controls still affect geometry/structural workers only.
+
+The website Local voice row shows On/Off and Start/Stop. Stop asks for confirmation and pauses prepared audio. Starting invokes only the already provisioned worker; it does not install packages or download weights. Voice generation and engineering workers are controlled separately.
