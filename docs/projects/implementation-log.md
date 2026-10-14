@@ -345,3 +345,7 @@ Prepared voice summaries now expose Download audio (WAV) using the same hash-che
 ## 2026-10-14 — Voice provenance export
 
 Prepared audio now has downloadable/copyable JSON linking its checked bytes to the saved study manifest, source summary, job identity and Kokoro model manifest. The export validates those identities and keeps saved validation status unchanged. Selecting another study clears audio and evidence together. This derived export does not register a new engineering result.
+
+## 2026-10-14 — Voice readiness and migration preflight
+
+Read-only host readiness now optionally checks Kokoro worker availability, model-file hash/size integrity and pinned native dependencies. Voice-enabled startup includes these checks and reports its narrower geometry/FEA/voice scope explicitly. No synthesis, playback, installation or model downloads occur during readiness checking. Destination audio quality and unimplemented subsystems remain separate acceptance work.

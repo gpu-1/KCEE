@@ -7,7 +7,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kcee.provenance import verify_directory
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--base-url',default='http://localhost:8000');parser.add_argument('--reference-run');parser.add_argument('--manifest-sha256');parser.add_argument('--output',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--base-url',default='http://localhost:8000');parser.add_argument('--reference-run');parser.add_argument('--manifest-sha256');parser.add_argument('--output',required=True);parser.add_argument('--voice',action='store_true',help='Also check native Kokoro worker, dependencies and model hashes');args=parser.parse_args()
     if bool(args.reference_run)!=bool(args.manifest_sha256):parser.error('Reference run and trusted manifest hash must be supplied together')
     root=Path(__file__).resolve().parents[1];checks={};details={}
     def check(name,operation):
@@ -36,6 +36,21 @@ def main():
         if not data['geometry']['picogk'] or not data['structural']['calculix']:raise ValueError('Native geometry or structural worker unavailable')
         return data
     check('geometry_structural_services',capabilities)
+    if args.voice:
+        from kcee.voice_runtime import verify_voice_models
+        check('kokoro_model_integrity',lambda:verify_voice_models(root/'models/kokoro'))
+        def voice_runtime():
+            expected=dict(line.split('==',1) for line in (root/'host/macos/kokoro/requirements.lock').read_text().splitlines() if line)
+            script='import importlib.metadata,json,sys;expected=json.loads(sys.argv[1]);print(json.dumps({name:importlib.metadata.version(name) for name in expected}))'
+            actual=json.loads(command([str(root/'.local/kokoro/venv/bin/python'),'-c',script,json.dumps(expected)]))
+            if actual!=expected:raise ValueError('Native Kokoro dependency versions differ from pinned lock')
+            return {'python':command([str(root/'.local/kokoro/venv/bin/python'),'--version']),'dependencies':actual}
+        check('kokoro_runtime_dependencies',voice_runtime)
+        def voice_worker():
+            data=api('/voice/status')
+            if not data.get('available') or data.get('backend')!='native_kokoro':raise ValueError('Native Kokoro worker unavailable')
+            return data
+        check('kokoro_worker',voice_worker)
     if args.reference_run:
         from uuid import UUID
         run_id=str(UUID(args.reference_run))
@@ -46,7 +61,7 @@ def main():
             if api('/runs/'+run_id+'/verify')['integrity']!='verified':raise ValueError('Reference verification failed')
             return {'run_id':run_id,'manifest_sha256':digest,'validation_status':record['validation_status']}
         check('saved_reference_run',reference)
-    report={'schema_version':1,'checked_at':datetime.now(timezone.utc).isoformat(),'checks':checks,'details':details,'status':'current_geometry_fea_stack_ready' if all(checks.values()) else 'needs_attention','limitations':['This checks the current geometry/FEA stack, not full KCEE readiness','AI, voice, thermal, CFD and chemistry are not validated here','Destination performance, new native generation and new solver reproduction still require acceptance runs']}
+    report={'schema_version':1,'checked_at':datetime.now(timezone.utc).isoformat(),'checks':checks,'details':details,'status':('current_geometry_fea_voice_stack_ready' if args.voice else 'current_geometry_fea_stack_ready') if all(checks.values()) else 'needs_attention','limitations':['This checks the current geometry/FEA'+('/voice' if args.voice else '')+' stack, not full KCEE readiness','AI, thermal, CFD, chemistry and speech input are not validated here','Destination performance, new native generation, solver reproduction and audible voice quality still require acceptance runs',*(['Voice checks are read-only preflight; no synthesis or playback is performed'] if args.voice else ['Voice is not included; add --voice to check its preflight'])]}
     with Path(args.output).open('x') as stream:json.dump(report,stream,indent=2)
     print(json.dumps(report,indent=2));return 0 if all(checks.values()) else 1
 

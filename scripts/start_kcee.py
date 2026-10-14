@@ -24,10 +24,12 @@ def main():
         subprocess.run(command,cwd=root,check=True)
         reports=root/'.local/readiness';reports.mkdir(parents=True,exist_ok=True)
         report=reports/('startup-'+str(uuid4())+'.json')
-        result=subprocess.run([sys.executable,str(root/'scripts/check_host_readiness.py'),'--output',str(report)],cwd=root)
+        readiness=[sys.executable,str(root/'scripts/check_host_readiness.py'),'--output',str(report)]
+        if args.voice:readiness.append('--voice')
+        result=subprocess.run(readiness,cwd=root)
         print('Readiness report: '+str(report),flush=True)
         if result.returncode:return result.returncode
-        print('KCEE geometry/FEA stack ready. Open http://localhost:5173/',flush=True)
+        print('KCEE geometry/FEA'+('/voice' if args.voice else '')+' stack ready. Open http://localhost:5173/',flush=True)
         return 0
     except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:
         print('Startup did not complete: '+str(error),file=sys.stderr)
