@@ -117,6 +117,34 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(result['passages'][0]['document_id'],source['id']);Knowledge().verify_citations(result['passages'])
         with search({'question':'qzxvunmatched'},headers) as response:self.assertEqual(json.load(response)['passages'],[])
 
+    def test_document_archive_restore_preserves_sources_and_citations(self):
+        from kcee.knowledge import Knowledge
+        from kcee.semantic_knowledge import coverage
+        k=Knowledge();raw=b'ArchiveUniqueReference thermal document.\n';doc=k.ingest('archive-reference.md',raw)
+        citations=k.retrieve('ArchiveUniqueReference');before=coverage(k)['total_passages']
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        path=BASE+'/knowledge/documents/'+doc['id']+'/visibility'
+        def change(data,headers):
+            with urlopen(Request(path,data=json.dumps(data).encode(),headers=headers,method='POST')) as response:return json.load(response)
+        payload={'archived':True,'source_sha256':doc['source_sha256'],'confirmed':True}
+        with self.assertRaises(HTTPError) as error:change(payload,{})
+        self.assertEqual(error.exception.code,403)
+        with self.assertRaises(HTTPError) as error:change(dict(payload,confirmed=False),headers)
+        self.assertEqual(error.exception.code,422)
+        with self.assertRaises(HTTPError) as error:change(dict(payload,source_sha256='wrong'),headers)
+        self.assertEqual(error.exception.code,409)
+        self.assertTrue(change(payload,headers)['archived'])
+        self.assertFalse(any(str(d['id'])==doc['id'] for d in k.list()));self.assertTrue(any(str(d['id'])==doc['id'] and d['archived'] for d in k.list(True)))
+        self.assertEqual(k.retrieve('ArchiveUniqueReference'),[]);self.assertEqual(coverage(k)['total_passages'],before-1)
+        k.verify_citations(citations);self.assertEqual(k.source(doc['id'])[1],raw)
+        self.assertFalse(change(dict(payload,archived=False),headers)['archived']);self.assertEqual(k.retrieve('ArchiveUniqueReference')[0]['document_id'],doc['id'])
+        self.assertEqual(coverage(k)['total_passages'],before)
+        with Registry().connect() as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM document_visibility_events WHERE document_id=%s',(doc['id'],)).fetchone()['count'],2)
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):conn.execute('DELETE FROM document_visibility_events')
+        with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
+            with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM document_visibility_events')
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:

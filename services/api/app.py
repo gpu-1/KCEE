@@ -372,9 +372,9 @@ def thermal_surface(run_id: UUID):
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
 
 @app.get('/knowledge/documents')
-def knowledge_documents():
+def knowledge_documents(include_archived: bool=False):
     from kcee.knowledge import Knowledge
-    try:return {'items':Knowledge().list(),'retrieval':'local hybrid semantic and English keyword search when indexed'}
+    try:return {'items':Knowledge().list(include_archived),'retrieval':'local hybrid semantic and English keyword search when indexed'}
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
 
 @app.post('/knowledge/documents',status_code=201)
@@ -480,3 +480,22 @@ async def search_local_documents(request: Request):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:200])
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
+
+@app.post('/knowledge/documents/{document_id}/visibility')
+async def document_visibility(document_id: UUID,request: Request):
+    from kcee.knowledge import Knowledge
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Document changes require the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>4096:raise HTTPException(413,'Visibility request is too large')
+    try:
+        import json
+        data=json.loads(raw)
+        if set(data)!={'archived','source_sha256','confirmed'}:raise ValueError('Unexpected visibility fields')
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(Knowledge().visibility,document_id,data['archived'],data['source_sha256'],data['confirmed'])
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except KeyError:raise HTTPException(404,'Document not found')
+    except (ValueError,TypeError) as error:raise HTTPException(422,str(error)[:200])
+    except psycopg.Error:raise HTTPException(503,'Document visibility migration unavailable')

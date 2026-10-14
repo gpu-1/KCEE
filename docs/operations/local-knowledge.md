@@ -2,7 +2,7 @@
 
 Open **Local documents**, choose a UTF-8 `.txt` or `.md` file, and press **Add document**. Sources are limited to 256 KB, 5000 lines and 1800 characters per line. Binary, non-UTF-8, empty and unsafe filenames are rejected. Sources stay in PostgreSQL on this host; there is no remote extraction, embedding API or model upload. Text PDF import is supported locally; Local English/Spanish OCR is available for scanned pages. Semantic embeddings run locally on Metal.
 
-Documents are immutable original bytes with SHA-256 identity. Identical bytes deduplicate to the first stored name. New content is a separate source version, even if the filename is the same. Line-preserving passages carry original source and passage hashes. Document/chunk tables permit application SELECT and INSERT only; triggers also reject UPDATE, DELETE and TRUNCATE. This first library has no removal control.
+Documents are immutable original bytes with SHA-256 identity. Identical bytes deduplicate to the first stored name. New content is a separate source version, even if the filename is the same. Line-preserving passages carry original source and passage hashes. Document/chunk tables permit application SELECT and INSERT only; triggers also reject UPDATE, DELETE and TRUNCATE. Archive and restore controls preserve originals and citation history.
 
 **View verified source** checks original bytes against the stored hash in both the local API and browser before showing plain text. Markdown is shown as text, never executed or rendered as active HTML. Original-source download is plain text with `nosniff` and attachment disposition.
 
@@ -57,3 +57,9 @@ Only one background import runs at a time. Up to 20 recent status records are he
 ## Search preview
 
 Open Local documents and enter a Search question to inspect up to four matching passages without selecting a study. Search uses the same bounded retrieval and source verification as the study assistant. Results show physical PDF pages or text line ranges, OCR labels, literal passages, original download links and SHA-256 fingerprints. The status identifies hybrid semantic/keyword search or the keyword fallback reason. Search does not generate an AI answer or change the study. Citation IDs are scoped to that search and may change with a different question. Relevance and OCR values still require review.
+
+## Archive and restore
+
+Use Archive beside a document and confirm its name. It leaves the default list, new keyword and semantic searches, indexing batches and active index coverage. Show archived documents reveals retained sources and their Restore controls. Restoring immediately reuses existing embeddings. Originals, extracted pages and passages stay immutable; previous AI citations and original downloads remain verifiable. Reimporting identical bytes deduplicates to the retained source and does not silently restore it.
+
+Existing databases require additive migration `infra/postgres/009-document-visibility.sql` after 008. Fresh databases initialize it automatically. Archive/restore adds ordered append-only visibility events; the application cannot update/delete those events, and database triggers also reject changes by the administrator. Concurrent changes are serialized per document. The local website sends the document UUID and original SHA-256; a changed identity or missing archive confirmation is rejected. Search results already displayed are cleared after a visibility change in this window; search again to refresh other windows. Historical answers remain attached to their original evidence.

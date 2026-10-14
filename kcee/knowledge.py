@@ -46,8 +46,20 @@ class Knowledge:
                 for chunk in chunks:conn.execute('INSERT INTO local_document_chunks(document_id,line_start,line_end,content,chunk_sha256,page_number) VALUES(%s,%s,%s,%s,%s,%s)',(identifier,chunk['line_start'],chunk['line_end'],chunk['content'],chunk['chunk_sha256'],chunk.get('page_number')))
             stored=conn.execute('SELECT id,name,source_sha256 FROM local_documents WHERE source_sha256=%s',(digest,)).fetchone()
         return {**stored,'id':str(stored['id']),'deduplicated':not bool(inserted),'chunks':len(chunks),**({'page_count':extraction['page_count'],'empty_pages':extraction['empty_pages'],'ocr_pages':extraction.get('ocr_pages',[])} if extraction else {})}
-    def list(self):
-        with self.connect() as conn:return conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,count(c.id) AS chunks FROM local_documents d JOIN local_document_chunks c ON c.document_id=d.id GROUP BY d.id ORDER BY d.created_at DESC LIMIT 100').fetchall()
+    def list(self,include_archived=False):
+        table='local_documents' if include_archived else 'active_local_documents'
+        with self.connect() as conn:return conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,(SELECT count(*) FROM local_document_chunks c WHERE c.document_id=d.id) AS chunks,COALESCE((SELECT e.archived FROM document_visibility_events e WHERE e.document_id=d.id ORDER BY e.id DESC LIMIT 1),false) AS archived FROM '+table+' d ORDER BY d.created_at DESC LIMIT 100').fetchall()
+
+    def visibility(self,identifier,archived,source_sha256,confirmed=False):
+        if type(archived) is not bool or (archived and confirmed is not True):raise ValueError('Archiving requires confirmation')
+        row,raw=self.source(identifier)
+        if row['source_sha256']!=source_sha256:raise IntegrityError('Document identity changed; refresh the library')
+        with self.connect() as conn:
+            conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(str(row['id']),))
+            previous=conn.execute('SELECT archived FROM document_visibility_events WHERE document_id=%s ORDER BY id DESC LIMIT 1',(row['id'],)).fetchone()
+            if bool(previous and previous['archived'])!=archived:conn.execute('INSERT INTO document_visibility_events(document_id,archived) VALUES(%s,%s)',(row['id'],archived))
+        return {'id':str(row['id']),'name':row['name'],'source_sha256':row['source_sha256'],'archived':archived}
+
     def source(self,identifier):
         with self.connect() as conn:row=conn.execute('SELECT id,name,source_sha256,original_bytes FROM local_documents WHERE id=%s',(str(uuid.UUID(str(identifier))),)).fetchone()
         if row is None:raise KeyError('Document not found')
@@ -56,7 +68,7 @@ class Knowledge:
         return row,raw
     def retrieve(self,question,with_metadata=False):
         if not isinstance(question,str) or not 1<=len(question.strip())<=800:raise ValueError('Use a question of 1 to 800 characters')
-        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
+        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
         from kcee.semantic_knowledge import retrieve
         rows,metadata=retrieve(self,question,rows)
         result=[]

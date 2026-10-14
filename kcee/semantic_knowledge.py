@@ -9,14 +9,14 @@ RRF_K=60
 def coverage(knowledge,state=None):
     state=state or status()
     with knowledge.connect() as conn:
-        total=conn.execute('SELECT count(*) AS n FROM local_document_chunks').fetchone()['n']
-        indexed=conn.execute('SELECT count(*) AS n FROM local_chunk_embeddings WHERE model_manifest_sha256=%s',(state.get('model_manifest_sha256',''),)).fetchone()['n']
+        total=conn.execute('SELECT count(*) AS n FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id').fetchone()['n']
+        indexed=conn.execute('SELECT count(*) AS n FROM local_chunk_embeddings e JOIN local_document_chunks c ON c.id=e.chunk_id JOIN active_local_documents d ON d.id=c.document_id WHERE model_manifest_sha256=%s',(state.get('model_manifest_sha256',''),)).fetchone()['n']
     return {**state,'total_passages':total,'indexed_passages':indexed,'remaining_passages':max(0,total-indexed)}
 
 def index(knowledge):
     state=status()
     if not state['available']:raise QueueError('Start local semantic search before indexing')
-    with knowledge.connect() as conn:rows=conn.execute('SELECT c.id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE NOT EXISTS(SELECT 1 FROM local_chunk_embeddings e WHERE e.chunk_id=c.id AND e.model_manifest_sha256=%s) ORDER BY c.id LIMIT 16',(state['model_manifest_sha256'],)).fetchall()
+    with knowledge.connect() as conn:rows=conn.execute('SELECT c.id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE NOT EXISTS(SELECT 1 FROM local_chunk_embeddings e WHERE e.chunk_id=c.id AND e.model_manifest_sha256=%s) ORDER BY c.id LIMIT 16',(state['model_manifest_sha256'],)).fetchall()
     count=0;started=time.monotonic()
     for row in rows:
         if time.monotonic()-started>30:break
@@ -44,7 +44,7 @@ def retrieve(knowledge,question,lexical):
         if not state['indexed_passages']:metadata['semantic_fallback']='No passages indexed for this model';return lexical[:4],metadata
         result=embed('query',question);vector=json.dumps(result['vector'])
         if result['model_manifest_sha256']!=state['model_manifest_sha256']:raise QueueError('Embedding model changed during retrieval')
-        with knowledge.connect() as conn:rows=conn.execute('SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256,e.source_sha256 AS indexed_source_sha256,e.chunk_sha256 AS indexed_chunk_sha256,e.input_sha256,e.vector_sha256,e.embedding::text AS embedding_text,1-(e.embedding <=> %s::vector) AS cosine_similarity FROM local_chunk_embeddings e JOIN local_document_chunks c ON c.id=e.chunk_id JOIN local_documents d ON d.id=c.document_id WHERE e.model_manifest_sha256=%s ORDER BY e.embedding <=> %s::vector,c.id LIMIT 12',(vector,state['model_manifest_sha256'],vector)).fetchall()
+        with knowledge.connect() as conn:rows=conn.execute('SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256,e.source_sha256 AS indexed_source_sha256,e.chunk_sha256 AS indexed_chunk_sha256,e.input_sha256,e.vector_sha256,e.embedding::text AS embedding_text,1-(e.embedding <=> %s::vector) AS cosine_similarity FROM local_chunk_embeddings e JOIN local_document_chunks c ON c.id=e.chunk_id JOIN active_local_documents d ON d.id=c.document_id WHERE e.model_manifest_sha256=%s ORDER BY e.embedding <=> %s::vector,c.id LIMIT 12',(vector,state['model_manifest_sha256'],vector)).fetchall()
         candidates=[]
         for row in rows:
             try:_,digest=float32_vector(json.loads(row['embedding_text']))
