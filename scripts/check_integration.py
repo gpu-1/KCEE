@@ -13,6 +13,7 @@ with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
     checkout=Path(tmp)/'project'
     shutil.copytree(root,checkout,ignore=shutil.ignore_patterns('.git','.env','.local','.venv','__pycache__','node_modules','runs','models'))
     (checkout/'runs').mkdir()
+    (checkout/'.local/studies').mkdir(parents=True,exist_ok=True)
     (checkout/'.local/control').mkdir(parents=True,exist_ok=True)
     (checkout/'.local/geometry').mkdir(parents=True)
     environment={**os.environ,'KCEE_TEST_UID':str(os.getuid()),'KCEE_TEST_GID':str(os.getgid()),'POSTGRES_PASSWORD':secrets.token_hex(24),'KCEE_APP_DB_PASSWORD':secrets.token_hex(24)}

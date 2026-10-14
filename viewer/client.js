@@ -77,9 +77,9 @@ function explorationReportLines(evidence,source){
   lines.push('','Exploration report and recorded archive hashes:','');
   for(const item of evidence.items){
     lines.push(`Report SHA-256: ${item.report_sha256}`);
-    for(const row of item.rows)lines.push(`Recorded exploratory archive SHA-256: ${row.recorded_archive_sha256}`);
+    for(const row of item.rows)lines.push(`Exploratory archive SHA-256: ${row.recorded_archive_sha256} (${row.archive_integrity==='verified'?'Verified by local API':'Not available; recorded hash only'})`);
   }
-  lines.push('','Source manifest/STL hashes match this saved study. Exploratory archives are retained on the host; their hashes are recorded evidence and are not reverified during report export.');
+  lines.push('','Source manifest/STL hashes match this saved study. Archives marked Verified were checked by the local API at report generation. Other archive hashes are recorded evidence only; verification does not establish engineering acceptance.');
   return lines;
 }
 

@@ -15,6 +15,7 @@ def main():
         subprocess.run(['docker','info','--format','{{.Architecture}}'],cwd=root,check=True,stdout=subprocess.DEVNULL,timeout=20)
         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,check=True,timeout=30)
         subprocess.run([sys.executable,str(root/'scripts/start_service_supervisor.py')],cwd=root,check=True,timeout=30)
+        (root/'.local/studies').mkdir(parents=True,exist_ok=True)
         command=['docker','compose','--profile','viewer','--profile','fea','up','-d','--wait','--wait-timeout','120']
         if args.build:command.append('--build')
         subprocess.run(command,cwd=root,check=True)

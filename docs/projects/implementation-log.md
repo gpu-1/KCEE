@@ -319,3 +319,7 @@ Added source-linked recorded exploration evidence to a separate panel for the ma
 ## 2026-10-14 — Explorations in readable report export
 
 Study report exports now include a separate exploratory refinement table when source-linked investigations exist. Full-precision measurements, report hashes and recorded archive hashes accompany explicit source matching and archive-verification limits. Source mismatch and malformed measurements cannot be exported as evidence. Empty or unavailable investigations do not add a results table.
+
+## 2026-10-14 — Live exploratory archive verification
+
+The API now streams SHA-256 checks of fixed exploratory archives through a read-only host mount. Available matching files are marked verified; missing files remain recorded evidence only. Changed, oversized or unsafe linked archives are rejected. Website and report wording reflects the current verification state. Startup and isolated integration checkouts precreate the bind directory; a new host can still show recorded evidence without local archives.

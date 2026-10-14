@@ -104,7 +104,8 @@ async function selectRun(id){
             $('exploration-rows').appendChild(tr);
           }
           $('exploration-evidence').value=JSON.stringify(evidence,null,2);
-          $('exploration-note').textContent='Recorded source hashes match this verified study. Experiment archive hashes are recorded in the evidence; archives remain on this Mac and are not reverified by this view.';
+          const rows=evidence.items.flatMap(item=>item.rows),verified=rows.filter(row=>row.archive_integrity==='verified').length;
+          $('exploration-note').textContent=`Source hashes match this verified study. ${verified} of ${rows.length} exploratory archives checked by the local API. Unavailable archives remain recorded evidence only; verification does not establish engineering acceptance.`;
         }
       }catch(error){if(ticket!==selection || error.name==='AbortError')return;$('refinement-explorations').hidden=false;$('exploration-note').textContent='Exploration evidence unavailable: '+error.message;}
     }

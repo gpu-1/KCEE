@@ -201,8 +201,9 @@ def refinement_explorations(run_id: UUID):
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Explorations require a bracket structural study')
-        return {'run_id':str(run_id),'manifest_sha256':record['manifest_sha256'],'source_stl_sha256':record['manifest']['artifacts']['bracket.stl'],'items':recorded_explorations('/app/evidence',record),'scope':'recorded_exploratory_evidence_not_registered_studies','archive_verification':'Archive hashes are recorded evidence; exploratory archives are retained on the host and are not reverified by this endpoint'}
+        return {'run_id':str(run_id),'manifest_sha256':record['manifest_sha256'],'source_stl_sha256':record['manifest']['artifacts']['bracket.stl'],'items':recorded_explorations('/app/evidence',record,os.environ.get('KCEE_EXPLORATIONS_DIR','/data/explorations')),'scope':'recorded_exploratory_evidence_not_registered_studies','archive_verification':'Archives marked verified were hashed by the local API against recorded evidence; unavailable archives remain recorded evidence only'}
     except KeyError:raise HTTPException(404,'Unknown or incomplete study')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(422,str(error))
+    except OSError:raise HTTPException(503,'Exploratory archives cannot be read')
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
