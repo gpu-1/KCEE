@@ -12,8 +12,10 @@ let modelCenter=new THREE.Vector3(),isBracketStudy=false;
 let pendingRemoval=null,removing=false,selectedVerified=false;
 let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
+let serviceBusy=false,controlAvailable=false;
 let nativeAvailable=false,creating=false,structuralAvailable=false,selectedIsNative=false;
-function updateCreation(){ $("remove-run").disabled=creating || removing || !selectedVerified; $("fea").disabled=creating || !structuralAvailable; $("analyze").disabled=creating || !structuralAvailable || !selectedIsNative; $("create").disabled=creating || ($("backend").value==="picogk" && !nativeAvailable); }
+function updateServiceButtons(){$("start-services").disabled=!controlAvailable || serviceBusy || creating || (nativeAvailable && structuralAvailable);$("stop-services").disabled=!controlAvailable || serviceBusy || creating || (!nativeAvailable && !structuralAvailable);}
+function updateCreation(){ updateServiceButtons(); $("remove-run").disabled=(creating || serviceBusy) || removing || !selectedVerified; $("fea").disabled=(creating || serviceBusy) || !structuralAvailable; $("analyze").disabled=(creating || serviceBusy) || !structuralAvailable || !selectedIsNative; $("create").disabled=(creating || serviceBusy) || ($("backend").value==="picogk" && !nativeAvailable); }
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
@@ -54,7 +56,7 @@ async function selectRun(id){
   try {
     const {record,result,stl}=await loadRun(id,signal);if(ticket!==selection)return;
     $('model-title').textContent=(result.kind==='structural_benchmark'?'Cantilever benchmark ':result.kind==='bracket_structural'?'Bracket FEA ':'Bracket ')+id.slice(0,8);
-    selectedVerified=true;$('remove-run').disabled=creating || removing;$('remove-run').textContent=$('show-removed').checked?'Restore to list':'Remove from list';
+    selectedVerified=true;$('remove-run').disabled=(creating || serviceBusy) || removing;$('remove-run').textContent=$('show-removed').checked?'Restore to list':'Remove from list';
     if(result.geometry_backend.startsWith('PicoGK')){
       $('geometry-measurements').hidden=false;
       try{
@@ -113,8 +115,10 @@ async function refresh(){
   listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
   try {
     const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}&hidden=${$('show-removed').checked}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
+    try{controlAvailable=(await request('/services/control',{signal:controller.signal})).available;}catch{controlAvailable=false;}
+    if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
     if(listRequest!==controller)return;
-    structuralAvailable=Boolean(capabilities.structural?.calculix);$('fea').disabled=creating || !structuralAvailable;$('fea-status').textContent=capabilities.structural?.calculix?'CalculiX benchmark ready':'Structural worker unavailable. Start the fea profile.';
+    structuralAvailable=Boolean(capabilities.structural?.calculix);$('fea').disabled=(creating || serviceBusy) || !structuralAvailable;$('fea-status').textContent=capabilities.structural?.calculix?'CalculiX benchmark ready':'Structural worker unavailable. Start the fea profile.';
     nativeAvailable=capabilities.geometry.picogk;$('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native worker unavailable. Start it on this Mac or choose the baseline mesh.';updateCreation();if(listRequest!==controller)return;
     $('runs').replaceChildren();const items=data.items.slice(0,PAGE_SIZE);
     for(const item of items){const button=document.createElement('button');button.className='run';button.dataset.id=item.id;button.textContent=(item.kind==='structural_benchmark'?'Cantilever ':item.kind==='bracket_structural'?'Bracket FEA ':'Bracket ')+item.id.slice(0,8);const small=document.createElement('small');small.textContent=new Date(item.created_at).toLocaleString();button.appendChild(small);button.onclick=()=>selectRun(item.id);$('runs').appendChild(button);}
@@ -189,7 +193,7 @@ $('geometry-help').addEventListener('close',()=> $('geometry-help-link').focus()
 
 $('show-removed').onchange=()=>{offset=0;selectedId=null;beginSelection();refresh();};
 $('remove-run').onclick=()=>{
-  if(!selectedId || creating || removing || !selectedVerified)return;
+  if(!selectedId || (creating || serviceBusy) || removing || !selectedVerified)return;
   pendingRemoval={id:selectedId,hidden:!$('show-removed').checked};
   $('remove-title').textContent=pendingRemoval.hidden?'Remove model from list?':'Restore model to list?';
   $('remove-description').textContent=pendingRemoval.hidden?'This model will move to Removed models. Results, files and provenance are retained. You can restore it later.':'This model will return to the saved models list.';
@@ -258,3 +262,26 @@ $('show-failures').onclick=async()=>{
 $('select-comparison-markdown').onclick=()=>{$('comparison-markdown').focus();$('comparison-markdown').select();};
 
 $('select-study-report').onclick=()=>{$('study-report-text').focus();$('study-report-text').select();};
+
+async function changeServices(action){
+  if(serviceBusy || creating)return;
+  serviceBusy=true;updateCreation();$('service-status').textContent=action==='start'?'Starting engineering services…':'Stopping engineering services…';
+  try{
+    const job=await request('/services/control',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Control':'1'},body:JSON.stringify({action,confirm_stop:action==='stop'})});
+    const deadline=Date.now()+510000;
+    let result;
+    do{
+      await new Promise(resolve=>setTimeout(resolve,1000));
+      result=await request('/services/control/'+job.job_id);
+      if(result.status==='failed')throw new Error(result.message);
+      if(Date.now()>deadline)throw new Error('Operation is still pending. Refresh service status before trying again.');
+    }while(result.status==='pending');
+    await refresh();$('service-status').textContent=action==='start'?'Engineering services started.':'Engineering services stopped. Saved runs remain available.';
+  }catch(error){$('service-status').textContent=error.message;}
+  finally{serviceBusy=false;updateCreation();}
+}
+$('start-services').onclick=()=>changeServices('start');
+$('stop-services').onclick=()=>$('stop-services-dialog').showModal();
+$('cancel-stop-services').onclick=()=>$('stop-services-dialog').close();
+$('confirm-stop-services').onclick=()=>{$('stop-services-dialog').close();changeServices('stop');};
+$('stop-services-dialog').addEventListener('close',()=>$('stop-services').focus());

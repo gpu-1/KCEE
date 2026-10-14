@@ -287,3 +287,7 @@ Added `scripts/start_kcee.py` for the already provisioned geometry/FEA workspace
 Added `scripts/stop_kcee.py` to stop the container services without removing containers or volumes, then request graceful native worker termination. The worker's signed fresh heartbeat, stored PID and project-specific command must agree before a signal is sent. Shutdown waits for the signed stopped heartbeat; it does not force-kill the native worker. The default grace period is 150 seconds.
 
 The stop/start check exposed PID 1 signal handling in the structural container. Its HTTP server now explicitly handles SIGTERM/SIGINT, stops accepting requests, and waits for active request threads during close. Docker's configured grace period still bounds container shutdown; longer jobs can exceed it.
+
+## 2026-10-14 — Website engineering-service controls
+
+Added Start/Stop engineering services with a stop confirmation and progress state. The viewer/API/database remain available; native PicoGK and structural analysis are controlled by a separate local supervisor with no network listener. The API sends bounded signed commands and checks response identity; external origins, missing custom headers and unconfirmed stops are rejected. Browser code never receives the signing key or Docker socket. The native stop routine is shared with the CLI command. Startup provisions the supervisor before the API bind mount. Integration checkouts precreate the new bind directory to preserve host ownership during cleanup.

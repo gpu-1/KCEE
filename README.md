@@ -40,3 +40,7 @@ Run the structural verification worker with `docker compose --profile viewer --p
 For the actual native bracket, select its saved run and use Analyze selected bracket. This creates a traced structural child run using the original STL. See [assumptions and numerical limits](docs/engineering/bracket-structural-study.md). Engineering validation remains pending.
 
 The viewer includes separate displacement/stress colors, explicit deformation scales, nominal load/support markers, numerical checks and native bore measurements. The ? icon beside Geometry explains the two generation options. Remove from list asks for confirmation and retains artifacts; Show removed models allows restoration. See [backup/restore](docs/operations/backups.md), [geometry refinement](docs/engineering/geometry-refinement.md) and [Mac Studio readiness](docs/operations/migration.md).
+
+## Website service controls
+
+After `python3 scripts/start_kcee.py`, the website's Engineering services panel can start native PicoGK and the structural worker or stop them with confirmation. The website, API and database stay running, so saved studies remain readable and services can be restarted. Controls use a separate local signed-queue supervisor; no Docker socket or signing key is exposed to browser code. Restart the supervisor with the startup command if controls show unavailable.

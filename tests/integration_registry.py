@@ -14,6 +14,14 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_service_control_requires_local_origin_confirmation_and_supervisor(self):
+        self.assertFalse(request('/services/control')[1]['available'])
+        cases=[({}, {'action':'start'},403),({'Origin':'https://example.com','X-KCEE-Control':'1'},{'action':'start'},403),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'start'},503)]
+        for headers,body,status in cases:
+            req=Request(BASE+'/services/control',data=json.dumps(body).encode(),method='POST',headers={'Content-Type':'application/json',**headers})
+            with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
+            self.assertEqual(error.exception.code,status)
+
     def test_diagnostic_scope_and_integrity(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface'):

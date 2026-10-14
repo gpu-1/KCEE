@@ -13,3 +13,9 @@ Inspect logs in .local/geometry/worker.log. The PID is stored in .local/geometry
 ## Start the whole provisioned workspace
 
 Run `python3 scripts/start_kcee.py` from any directory using the script's absolute path if needed. It starts this worker before the Docker containers, then checks geometry/structural availability. Use `--build` after code changes. Readiness reports are retained separately under `.local/readiness/`. This is a manual startup command, not a login agent; it does not start audio or microphone services.
+
+## Website start and stop
+
+The Engineering services panel controls this worker and the structural container together, while retaining the viewer, API and database. Stop asks for confirmation and allows worker requests time to finish. Structural shutdown has a 300-second Docker grace period; longer requests may be terminated at that bound. Native shutdown waits up to 150 seconds without force-killing. Cancel leaves services running.
+
+`start_kcee.py` now also starts an independent supervisor in `scripts/service_supervisor.py`. It receives only signed `start` or `stop` commands, with UUID identity and a 30-second delivery deadline, through `.local/control/queue`. Only fixed project commands are executed. API control writes require a loopback website Origin and a custom header; no cross-origin access is enabled. The API and local account are trusted signing-key holders. The supervisor retains operation logs locally and signed responses for one day. A crash during an operation can leave a processing marker; inspect it before retrying.
