@@ -277,3 +277,7 @@ Archive diagnostics retain energy/work consistency for each of the three mesh si
 ## 2026-10-14 — Diagnostic interpretation help
 
 Added a compact question-mark help link beside stress and energy diagnostics. Its accessible dialog explains the half-work identity and demo tolerance, energy refinement, integration-point peaks versus averaged nodal colors, regional exclusions and corner quality. It explicitly distinguishes these numerical observations from stress convergence and engineering acceptance. Closing returns focus to the help link.
+
+## 2026-10-14 — One-command local startup
+
+Added `scripts/start_kcee.py` for the already provisioned geometry/FEA workspace. It checks local setup and Docker availability, starts the signed native queue worker before container bind mounts, starts the viewer/FEA profiles with health waiting, and retains a uniquely named readiness report. Rebuilds are optional; existing services/data remain intact on failures. No login agent or audio process is installed.

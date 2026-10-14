@@ -8,6 +8,14 @@ python3 -m unittest discover -s tests -v
 ```
 Each run creates a watertight L-bracket STL, analytical cantilever screening, thickness search, report, speech summary, and SHA-256 provenance manifest. Geometry defaults to a deterministic mesh fallback. Native PicoGK generation with mounting holes is available using `--geometry-backend picogk`; see [native setup](host/macos/picogk/README.md). The first native-bracket FEA uses idealized clamp/load conditions; engineering validation remains pending. No AI or solver result is fabricated.
 
+## Start the provisioned local workspace
+```sh
+python3 scripts/start_kcee.py
+# After source changes, rebuild as well:
+python3 scripts/start_kcee.py --build
+```
+This starts the native PicoGK queue worker and the database, API, viewer and structural containers, waits for container health, and saves a unique readiness report under `.local/readiness/`. Configure `.env` and provision PicoGK first. Re-running is safe; startup failures retain existing services and data. This checks the geometry/FEA demonstrator. AI, voice and other physics integrations remain pending.
+
 ## Local services
 ```sh
 cp .env.example .env

@@ -9,3 +9,7 @@ A signed heartbeat drives GET /capabilities. The viewer defaults to native PicoG
 Limits: eight pending/processing jobs, one worker, 120 seconds per kernel subprocess, 135 seconds for queue delivery, 8 MB STL response limit. Queue markers/responses expire after five minutes. Failed or interrupted requests retain failure.json without a completed manifest. A worker crash can leave a processing record; after restarting, affected callers must retry and old processing files can be inspected/removed when no job is active. Signing keys must not be committed, displayed or passed to browser code.
 
 Inspect logs in .local/geometry/worker.log. The PID is stored in .local/geometry/worker.pid. To stop, confirm that PID belongs to this project's `kcee.geometry_worker` process, then send SIGTERM; shutdown finishes the current bounded native job. After restart, Refresh updates viewer availability. On Mac Studio, reprovision the native runtime and generate a new local signing key.
+
+## Start the whole provisioned workspace
+
+Run `python3 scripts/start_kcee.py` from any directory using the script's absolute path if needed. It starts this worker before the Docker containers, then checks geometry/structural availability. Use `--build` after code changes. Readiness reports are retained separately under `.local/readiness/`. This is a manual startup command, not a login agent; it does not start audio or microphone services.
