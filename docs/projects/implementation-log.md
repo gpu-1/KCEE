@@ -311,3 +311,7 @@ Added a verified-source mesh probe and shared single-mesh solver procedure. The 
 ## 2026-10-14 — Local root sensitivity
 
 Added bounded optional root-box refinement for exploratory single-mesh solves; production defaults remain unchanged. Both 0.9/0.75 mm local targets fit the solve budget and complete with force balance and energy consistency. Stress rises substantially relative to the saved unrefined-root study despite stable displacement and unchanged load-strip area. Source and archive hashes are verified and separate evidence is documented. Stress acceptance remains pending.
+
+## 2026-10-14 — Website exploration evidence
+
+Added source-linked recorded exploration evidence to a separate panel for the matching verified bracket study. The table presents the 1.3 mm global mesh and 0.9/0.75 mm local-root targets; full evidence is available to copy. The API verifies saved run integrity and matches manifest/STL hashes before returning bundled investigation records. Archive hashes are recorded evidence, not a claim of live archive verification. No exploratory result replaces the original study or its validation status.

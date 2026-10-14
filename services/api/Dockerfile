@@ -4,5 +4,6 @@ COPY services/api/requirements.lock requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY kcee kcee
 COPY examples examples
+COPY docs/engineering/finer-mesh-exploration.json docs/engineering/root-refinement-exploration.json /app/evidence/
 COPY services/api/app.py app.py
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -193,3 +193,16 @@ def service_control_result(job_id: UUID):
     try:return result(str(job_id),os.environ.get('KCEE_CONTROL_QUEUE','/data/control/queue'),os.environ.get('KCEE_CONTROL_KEY','/data/control/key'))
     except FileNotFoundError:raise HTTPException(404,'Unknown service control operation')
     except (QueueError,ValueError,OSError):raise HTTPException(503,'Service control response unavailable')
+
+
+@app.get('/runs/{run_id}/refinement-explorations')
+def refinement_explorations(run_id: UUID):
+    from kcee.explorations import recorded_explorations
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Explorations require a bracket structural study')
+        return {'run_id':str(run_id),'manifest_sha256':record['manifest_sha256'],'source_stl_sha256':record['manifest']['artifacts']['bracket.stl'],'items':recorded_explorations('/app/evidence',record),'scope':'recorded_exploratory_evidence_not_registered_studies','archive_verification':'Archive hashes are recorded evidence; exploratory archives are retained on the host and are not reverified by this endpoint'}
+    except KeyError:raise HTTPException(404,'Unknown or incomplete study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')

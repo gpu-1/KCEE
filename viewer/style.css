@@ -25,3 +25,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 .service-controls{padding-bottom:18px;margin-bottom:20px;border-bottom:1px solid #314653}.service-controls button{margin-top:6px}
 
 .service-heading{display:flex;align-items:center;gap:8px}.service-heading h2{margin:0}.service-heading .badge{white-space:nowrap}.service-actions{display:flex;gap:8px}.service-actions button{flex:1;width:auto}
+
+#exploration-evidence{width:100%;min-height:220px;box-sizing:border-box;background:#12202a;color:#dfe9f1;border:1px solid #526b7b;font:11px ui-monospace,monospace;padding:10px}
