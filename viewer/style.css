@@ -39,3 +39,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #assistant-evidence-text{display:block;width:100%;min-height:180px;box-sizing:border-box;background:#12202a;color:#dfe9f1;border:1px solid #526b7b;font:11px ui-monospace,monospace;padding:10px;margin-top:10px}
 
 .assistant-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.assistant-suggestions button{width:auto;margin:0;padding:6px 10px;font-size:12px}
+
+#thermal-charts svg{display:block;width:100%;height:auto;margin:14px 0}#thermal-mesh{margin:8px;padding:6px;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}

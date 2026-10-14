@@ -383,3 +383,7 @@ Added a plain-text companion to the full JSON answer record. It preserves the ex
 Added isolated 1D conduction, four-grid manufactured-solution verification, API-side reproduction, registered thermal runs with source fingerprints, temperature CSV, original profiles and report. Website thermal results distinguish numerical verification from bracket validation. Engineering service controls now include the thermal worker. Fine-grid error is 0.0025704 °C; observed final order is 2.00033 and relative heat balance error is 3.00e-14. No bracket thermal solve or coupling is claimed.
 
 Verification: 72 Python tests, 13 viewer tests and 15 isolated registry/integration tests passed. Website checks created and verified thermal run f8a1f44a-9b6e-45c8-958d-e2ca77d3a3ce. Its fine-grid profile, heat flows and convergence table rendered correctly. Engineering Stop turned thermal off while preserving saved results and leaving AI and voice On; Start restored the workers. The disposable integration test independently checked CSV bytes against the registered hash and rejected a tampered profile.
+
+## 2026-10-14 — Thermal profile and error charts
+
+Added numerical/analytical temperature comparison and a separate absolute-error plot at saved nodes. A mesh selector shows each of the four verified profiles without re-solving. Axes label position in mm and temperature/error in °C; the fine mesh is the default. Selecting another run clears chart state.
