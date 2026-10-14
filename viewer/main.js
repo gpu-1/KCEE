@@ -111,22 +111,36 @@ async function selectRun(id){
     $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Recorded numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(sourceLoadWarning?' Retrospective check: load-strip area differs from the original STL by more than 5%; study needs attention.':'')+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
   } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
 }
+let servicePoll=null;
+function refreshServiceStatus(){
+  if(servicePoll)return servicePoll;
+  servicePoll=(async()=>{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+    try{
+      const [capabilities,control]=await Promise.all([request('/capabilities',{signal:controller.signal}),request('/services/control',{signal:controller.signal}).catch(()=>({available:false}))]);
+      controlAvailable=control.available;
+      nativeAvailable=Boolean(capabilities.geometry?.picogk);structuralAvailable=Boolean(capabilities.structural?.calculix);
+      badge('service-health',nativeAvailable && structuralAvailable?'Running':nativeAvailable || structuralAvailable?'Partly running':'Stopped',nativeAvailable && structuralAvailable?'good':'');
+      $('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native PicoGK stopped or unavailable.';
+      $('fea-status').textContent=structuralAvailable?'CalculiX ready':'Structural worker stopped or unavailable.';
+      if(control.operation?.status==='pending' && !serviceBusy)watchServiceOperation(control.operation);
+      else if(control.operation && control.operation.status!=='pending'){
+        controlAvailable=false;$('service-status').textContent='Service operation needs inspection on this Mac. Refresh after resolving it.';
+      }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
+    }catch{
+      nativeAvailable=false;structuralAvailable=false;controlAvailable=false;
+      badge('service-health','Status unavailable','error');
+      $('native-status').textContent='Native status unavailable.';$('fea-status').textContent='Structural status unavailable.';
+      if(!serviceBusy)$('service-status').textContent='Unable to check services. Status will retry automatically.';
+    }finally{clearTimeout(timer);updateCreation();}
+  })().finally(()=>{servicePoll=null;});
+  return servicePoll;
+}
 async function refresh(){
   listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
   try {
-    const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}&hidden=${$('show-removed').checked}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
-    let control;
-    try{control=await request('/services/control',{signal:controller.signal});}catch{control={available:false};}
+    const [data]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}&hidden=${$('show-removed').checked}`,{signal:controller.signal}),refreshServiceStatus()]);
     if(listRequest!==controller)return;
-    controlAvailable=control.available;
-    if(control.operation?.status==='pending' && !serviceBusy)watchServiceOperation(control.operation);
-    else if(control.operation && control.operation.status!=='pending'){
-      controlAvailable=false;
-      $('service-status').textContent='Service operation needs inspection on this Mac. Refresh after resolving it.';
-    }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
-    if(listRequest!==controller)return;
-    structuralAvailable=Boolean(capabilities.structural?.calculix);$('fea').disabled=(creating || serviceBusy) || !structuralAvailable;$('fea-status').textContent=capabilities.structural?.calculix?'CalculiX benchmark ready':'Structural worker unavailable. Start the fea profile.';
-    nativeAvailable=capabilities.geometry.picogk;$('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native worker unavailable. Start it on this Mac or choose the baseline mesh.';updateCreation();if(listRequest!==controller)return;
     $('runs').replaceChildren();const items=data.items.slice(0,PAGE_SIZE);
     for(const item of items){const button=document.createElement('button');button.className='run';button.dataset.id=item.id;button.textContent=(item.kind==='structural_benchmark'?'Cantilever ':item.kind==='bracket_structural'?'Bracket FEA ':'Bracket ')+item.id.slice(0,8);const small=document.createElement('small');small.textContent=new Date(item.created_at).toLocaleString();button.appendChild(small);button.onclick=()=>selectRun(item.id);$('runs').appendChild(button);}
     if(!items.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No saved runs on this page.';$('runs').appendChild(empty);}
@@ -298,3 +312,6 @@ $('stop-services').onclick=()=>$('stop-services-dialog').showModal();
 $('cancel-stop-services').onclick=()=>$('stop-services-dialog').close();
 $('confirm-stop-services').onclick=()=>{$('stop-services-dialog').close();changeServices('stop');};
 $('stop-services-dialog').addEventListener('close',()=>$('stop-services').focus());
+
+setInterval(()=>{if(!document.hidden)refreshServiceStatus();},10000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshServiceStatus();});

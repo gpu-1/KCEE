@@ -295,3 +295,7 @@ Added Start/Stop engineering services with a stop confirmation and progress stat
 ## 2026-10-14 — Reconnect to pending service operations
 
 Control status now exposes authenticated pending operation identity and action. On refresh/reload the viewer reconnects to its existing operation rather than enabling another start/stop. Stale and unverifiable queue records disable controls with an inspection message. Poll failures keep controls disabled until an explicit refresh reconnects. Completed signed responses are not resumed.
+
+## 2026-10-14 — Live engineering-service status
+
+The website now shows Running, Partly running, Stopped or Status unavailable from current capabilities. A bounded status poll runs every ten seconds while the page is visible and immediately when returning to the tab. It updates worker availability and control buttons without reloading the saved-run list or current model. Overlapping polls share one request, and unknown status is not displayed as stopped.
