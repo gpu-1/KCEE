@@ -461,3 +461,22 @@ def cancel_document_import(import_id: UUID,request: Request):
     if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Cancellation requires the local website')
     try:return imports.cancel(str(import_id))
     except KeyError:raise HTTPException(404,'Import not found')
+
+@app.post('/knowledge/search')
+async def search_local_documents(request: Request):
+    from kcee.knowledge import Knowledge
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Search requires the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>8192:raise HTTPException(413,'Search request is too large')
+    try:
+        import json
+        data=json.loads(raw)
+        if set(data)!={'question'}:raise ValueError('Use a question of 1 to 800 characters')
+        from starlette.concurrency import run_in_threadpool
+        passages,metadata=await run_in_threadpool(Knowledge().retrieve,data['question'],True)
+        return {'passages':passages,'retrieval':metadata,'integrity':'verified'}
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:200])
+    except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')

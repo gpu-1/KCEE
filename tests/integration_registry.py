@@ -101,6 +101,22 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(job['state'],'completed');self.assertEqual(job['total_pages'],1)
         self.assertEqual(request('/knowledge/documents/'+job['result']['id']+'/text')[1]['pages'][0]['page_number'],1)
 
+    def test_document_search_preview_validates_sources_and_input(self):
+        from kcee.knowledge import Knowledge
+        source=Knowledge().ingest('search-preview.md',b'UniquePreviewReference conductivity is illustrative.\n')
+        def search(data,headers):
+            return urlopen(Request(BASE+'/knowledge/search',data=json.dumps(data).encode(),headers={'Content-Type':'application/json',**headers},method='POST'),timeout=30)
+        headers={'Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        with self.assertRaises(HTTPError) as error:search({'question':'conductivity'},{})
+        self.assertEqual(error.exception.code,403)
+        for question in ('','x'*801):
+            with self.assertRaises(HTTPError) as error:search({'question':question},headers)
+            self.assertEqual(error.exception.code,422)
+        with search({'question':'UniquePreviewReference'},headers) as response:result=json.load(response)
+        self.assertEqual(result['integrity'],'verified');self.assertFalse(result['retrieval']['semantic_embeddings'])
+        self.assertEqual(result['passages'][0]['document_id'],source['id']);Knowledge().verify_citations(result['passages'])
+        with search({'question':'qzxvunmatched'},headers) as response:self.assertEqual(json.load(response)['passages'],[])
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:
