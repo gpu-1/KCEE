@@ -1,5 +1,5 @@
 import math,unittest
-from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks,diagnose
+from kcee.stress_diagnostics import tetra_quality,stress_records,regional_peaks,diagnose,displacement_records
 
 class StressDiagnosticsTests(unittest.TestCase):
     def test_regular_tetrahedron_quality_and_scale(self):
@@ -31,3 +31,15 @@ class StressDiagnosticsTests(unittest.TestCase):
 
     def test_mesh_selection_is_bounded(self):
         with self.assertRaisesRegex(ValueError,'Unsupported'):diagnose('unused.zip','../other')
+
+    def test_displacements_preserve_signed_components(self):
+        self.assertEqual(displacement_records([[1,0,-.25,.5],[2,1,2,3]],{1,2}),{1:[0,-.25,.5],2:[1,2,3]})
+
+    def test_malformed_displacement_rows_rejected(self):
+        valid=[1,0,0,.5]
+        damaged=[[1,0],[1,0,0,.5,99],[1,0,0,float('nan')],[1,float('inf'),0,.5],[1.5,0,0,.5],[3,0,0,.5]]
+        for row in damaged:
+            with self.subTest(row=row):
+                with self.assertRaises(ValueError):displacement_records([row],{1,2})
+        with self.assertRaisesRegex(ValueError,'duplicate'):
+            displacement_records([valid,valid],{1,2})

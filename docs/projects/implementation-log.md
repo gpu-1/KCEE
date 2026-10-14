@@ -265,3 +265,7 @@
 ## 2026-10-14 — Energy evidence in readable study reports
 
 Derived downloadable and copyable study reports now include strain energy, half applied-load work, full-precision relative error, demo tolerance, and method. Missing historical energy diagnostics remain explicitly unrecorded; malformed values and contradictory verdicts cannot appear as a pass. This diagnostic remains separate from recorded numerical gates and engineering acceptance. Saved run artifacts are unchanged.
+
+## 2026-10-14 — Archived displacement validation
+
+Energy diagnostics now reject truncated or oversized displacement rows, non-finite components, fractional or unknown node identifiers, and duplicate nodal records before computing external work. Signed components remain intact. Missing loaded nodes continue to fail explicitly. This prevents malformed archive data from silently replacing a node or causing an indexing error.

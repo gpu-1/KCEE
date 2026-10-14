@@ -24,6 +24,18 @@ def stress_records(rows,element_ids):
     if seen!={(eid,ip) for eid in element_ids for ip in (1,2,3,4)}:raise ValueError('Incomplete C3D10 integration-point stresses')
     return stresses
 
+def displacement_records(rows,node_ids):
+    """Require one finite three-component displacement per reported mesh node."""
+    displacements={}
+    for row in rows:
+        if len(row)!=4 or not all(math.isfinite(value) for value in row):
+            raise ValueError('Invalid nodal displacement values')
+        node=int(row[0])
+        if row[0]!=node or node not in node_ids or node in displacements:
+            raise ValueError('Invalid or duplicate displacement identity')
+        displacements[node]=row[1:4]
+    return displacements
+
 def regional_peaks(stresses,centers):
     def distance(point,bounds):
         return math.sqrt(sum((value-min(max(value,low),high))**2 for value,(low,high) in zip(point,bounds)))
@@ -50,7 +62,7 @@ def diagnose(archive,mesh_name="mesh-1.5"):
     stress_rows=table(data,'stresses');stresses=stress_records(stress_rows,set(elements))
     if material is None or not loads:raise ValueError('Missing elastic material or applied loads')
     energy=sum(strain_energy_density(row[2:8],*material)*quality[int(row[0])][0]/4 for row in stress_rows)
-    displacements={int(row[0]):row[1:4] for row in table(data,'displacements')}
+    displacements=displacement_records(table(data,'displacements'),set(nodes))
     if any(node not in displacements or dof not in (1,2,3) or not math.isfinite(force) for node,dof,force in loads):raise ValueError('Incomplete load displacement data')
     work=sum(force*displacements[node][dof-1] for node,dof,force in loads)
     if not math.isfinite(work) or work<=0:raise ValueError('Invalid external work')
