@@ -369,3 +369,7 @@ Verification: 70 standard-library tests, 13 viewer tests and 14 isolated integra
 Completed AI drafts now offer a JSON download and a selectable copy view containing the exact question, answer, supplied source snapshot, evidence hash, model/runtime/prompt fingerprints and generation settings returned by the verified local gateway. New questions and study selection clear the export so old answers cannot be attached to another study. This derived record does not change saved results or acceptance status.
 
 Retry verification caught an ambiguous displacement answer drawn from a separate exploratory run. The evidence snapshot now explicitly names the selected original study’s finest saved mesh displacement and unconverged peak, and the prompt specifies this default. A fresh real-model answer returned 0.7906815628368744 mm for the selected study. Browser checks verified the complete export fields, readable copy view and clearing on study selection. 70 Python tests and 13 viewer tests passed; viewer production build passed. This targeted correction does not guarantee all model answers are accurate.
+
+## 2026-10-14 — Suggested study questions
+
+Added compact displacement, stress convergence and refinement question buttons. Each fills the editable question box; inference only starts when the user presses Ask local AI. Suggestions explicitly distinguish the selected original study from exploratory follow-ups and are disabled while an answer is pending.
