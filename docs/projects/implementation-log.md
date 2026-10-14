@@ -261,3 +261,7 @@
 - Added stress-derived isotropic strain energy vs half nodal load-work diagnostic using archived material/input/output data.
 - Both reviewed real studies agree within printed-output rounding; viewer verifies finer energy 39.5341 N·mm.
 - Test uniaxial/hydrostatic/shear energy and invalid material/tensors; all 53 unit tests pass. Engineering stress convergence remains pending.
+
+## 2026-10-14 — Energy evidence in readable study reports
+
+Derived downloadable and copyable study reports now include strain energy, half applied-load work, full-precision relative error, demo tolerance, and method. Missing historical energy diagnostics remain explicitly unrecorded; malformed values and contradictory verdicts cannot appear as a pass. This diagnostic remains separate from recorded numerical gates and engineering acceptance. Saved run artifacts are unchanged.

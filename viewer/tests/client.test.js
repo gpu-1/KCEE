@@ -46,3 +46,15 @@ test('missing historical numerical checks never display as passed',()=>{
  fea.checks.load_patch_source_agreement=false;fea.relative_source_load_patch_area_error=.15;
  assert.equal(numericalCheckRows(fea).find(row=>row.key==='load_patch_source_agreement').verdict,'Needs attention');
 });
+
+
+test('study energy report retains precision and rejects missing or inconsistent evidence',()=>{
+ const study={record:{id,validation_status:'pending',manifest_sha256:hash('m'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('s'),'fea-artifacts.zip':hash('a')}}},result:{kind:'bracket_structural',validation_status:'pending',fea:{mesh_study:[],checks:{}}}};
+ const diagnostic={source_load_patch_agreement:true,relative_source_load_patch_area_error:0,energy_consistency:{strain_energy_N_mm:39.5340784053091,half_load_work_N_mm:39.53407814206325,relative_error:6.6587071412271825e-9,relative_tolerance:.001,passes_demo_tolerance:true,method:'Linear elasticity'}};
+ const text=studyMarkdown(study,diagnostic);
+ assert.ok(text.includes('Energy consistency: Pass'));assert.ok(text.includes('39.5340784053091 N·mm'));assert.ok(text.includes('39.53407814206325 N·mm'));assert.ok(text.includes('not an engineering acceptance'));
+ assert.ok(studyMarkdown(study).includes('Energy consistency: Not recorded'));
+ diagnostic.energy_consistency.relative_error=.01;assert.ok(studyMarkdown(study,diagnostic).includes('inconsistent diagnostic verdict'));
+ diagnostic.energy_consistency.passes_demo_tolerance=false;assert.ok(studyMarkdown(study,diagnostic).includes('Energy consistency: Needs attention'));
+ diagnostic.energy_consistency.strain_energy_N_mm=NaN;assert.ok(studyMarkdown(study,diagnostic).includes('invalid diagnostic values'));
+});
