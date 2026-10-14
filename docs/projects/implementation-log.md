@@ -349,3 +349,7 @@ Prepared audio now has downloadable/copyable JSON linking its checked bytes to t
 ## 2026-10-14 — Voice readiness and migration preflight
 
 Read-only host readiness now optionally checks Kokoro worker availability, model-file hash/size integrity and pinned native dependencies. Voice-enabled startup includes these checks and reports its narrower geometry/FEA/voice scope explicitly. No synthesis, playback, installation or model downloads occur during readiness checking. Destination audio quality and unimplemented subsystems remain separate acceptance work.
+
+## 2026-10-14 — Heart voice default
+
+Set the local synthesis default to Heart (`af_heart`), US English female, at 1.2× speed. Worker response and downloadable provenance now record the speed and language alongside the voice. Previously generated jobs are unchanged; missing historical speed/language are not inferred.

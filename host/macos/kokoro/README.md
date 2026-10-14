@@ -24,3 +24,5 @@ Upstream: [Kokoro ONNX](https://github.com/thewh1teagle/kokoro-onnx), [model rel
 Stop voice alone with `python3 scripts/stop_voice_worker.py`. Full CLI shutdown also stops voice; the website Engineering services controls still affect geometry/structural workers only.
 
 The website Local voice row shows On/Off and Start/Stop. Stop asks for confirmation and pauses prepared audio. Starting invokes only the already provisioned worker; it does not install packages or download weights. Voice generation and engineering workers are controlled separately.
+
+Default voice: Heart (`af_heart`), US English female (`en-us`), at 1.2× speed. New audio provenance records voice, language and speed; previously generated jobs retain their original settings.

@@ -3,6 +3,10 @@ import base64,hashlib,time,uuid
 from pathlib import Path
 from kcee.geometry_queue import available,atomic_write,envelope,key_bytes,read_signed,QueueError
 
+DEFAULT_VOICE='af_heart'
+DEFAULT_SPEED=1.2
+DEFAULT_LANGUAGE='en-us'
+
 def validate_voice_request(payload,job_id):
     if set(payload)!={'job_id','created_at','run_id','summary_sha256','text'} or payload['job_id']!=job_id:raise ValueError('Invalid voice job identity')
     if str(uuid.UUID(payload['run_id']))!=payload['run_id'] or not -2<=time.time()-payload['created_at']<30:raise ValueError('Invalid or expired voice source')
