@@ -9,3 +9,5 @@
 - projects/: future project-specific design notes
 
 Update documentation and ADRs with interface/model changes. Record units, assumptions, source/version hashes and validation evidence for each engineering model.
+
+- [Finer bracket mesh exploration](engineering/finer-mesh-exploration.md): separate 1.3 mm solve and current stress-convergence limits

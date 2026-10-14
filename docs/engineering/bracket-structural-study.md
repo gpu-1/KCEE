@@ -65,3 +65,7 @@ The diagnostics repeat centroid-exclusion peak measurements at 2.5, 1.8 and 1.5 
 For straight-sided C3D10 elements, the diagnostic integrates isotropic elastic energy density from the six printed stress components at four equal-weight tetrahedral integration points. Material E/Poisson ratio are read from the archived input. It compares this with one-half the sum of applied nodal forces times their signed solved displacements. This identity assumes small-strain linear elasticity and zero prescribed support displacement. Values are N·mm.
 
 The baseline clipped-load study gives 39.03177802 N·mm and relative discrepancy 3.78e-10; finer 25° study gives 39.53407841 N·mm and discrepancy 6.66e-9. Source hashes and method are recorded in energy-consistency.json. A 0.1% demonstration tolerance is displayed as a diagnostic only. Printed output rounding affects the last digits. Agreement does not establish constitutive validity, stress convergence or physical acceptance, and does not change saved validation statuses.
+
+## Exploratory 1.3 mm follow-up
+
+A separate finer-mesh solve reaches 47,921 nodes and 26,442 elements within the existing solve budget. Compared with the saved 1.5 mm case, displacement changes 0.462%, global stress 7.129% and regional stress 7.517%. Stress convergence remains unresolved. A 1.2 mm candidate exceeds the node limit and is not solved. See [source-traced exploration](finer-mesh-exploration.md). This experiment does not modify the three-mesh saved study or its status.

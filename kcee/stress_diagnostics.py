@@ -48,7 +48,7 @@ def regional_peaks(stresses,centers):
     return rows
 
 def diagnose(archive,mesh_name="mesh-1.5"):
-    if mesh_name not in ("mesh-2.5","mesh-1.8","mesh-1.5"):raise ValueError("Unsupported bracket mesh")
+    if mesh_name not in ("mesh-2.5","mesh-1.8","mesh-1.5","mesh-1.3"):raise ValueError("Unsupported bracket mesh")
     with zipfile.ZipFile(archive) as z:
         deck=z.read(mesh_name+'/bracket.inp').decode();data=z.read(mesh_name+'/bracket.dat').decode()
     nodes={};elements={};loads=[];material=None;section=None

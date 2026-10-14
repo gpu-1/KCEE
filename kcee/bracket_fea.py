@@ -57,28 +57,33 @@ def mesh(stl,directory,size,classification_angle=20):
         (directory/'gmsh.log').write_text('\n'.join(gmsh.logger.get()))
         gmsh.logger.stop();gmsh.finalize()
 
+def solve_mesh(stl,directory,size,classification_angle=20):
+    if size not in (2.5,1.8,1.5,1.3) or classification_angle not in (20,25,30):raise SolverError('Unsupported exploratory mesh settings')
+    directory=Path(directory);directory.mkdir(parents=True,exist_ok=False)
+    nodes,elements,fixed,loads,summary=mesh(stl,directory,size,classification_angle)
+    if len(nodes)>50000:raise SolverError('Mesh exceeds demo node budget')
+    def set_lines(name,ids):return ['*NSET,NSET='+name]+[','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16)]
+    lines=['*NODE']+[str(n)+','+','.join(f'{value:.9E}' for value in p) for n,p in nodes.items()]+['*ELEMENT,TYPE=C3D10,ELSET=SOLID']+[str(i)+','+','.join(map(str,e)) for i,e in enumerate(elements,1)]
+    lines+=set_lines('FIXED',fixed)+set_lines('LOADED',list(loads))+['*MATERIAL,NAME=ALUMINUM','*ELASTIC','69000,0.33','*SOLID SECTION,ELSET=SOLID,MATERIAL=ALUMINUM','*BOUNDARY','FIXED,1,3','*STEP','*STATIC','*CLOAD']
+    lines += [f'{n},3,{f:.9E}' for n,f in loads.items()]+['*NODE PRINT,NSET=LOADED','U','*NODE PRINT,NSET=FIXED','RF','*EL PRINT,ELSET=SOLID','S','*NODE FILE','U','*EL FILE','S','*END STEP']
+    (directory/'bracket.inp').write_text('\n'.join(lines)+'\n')
+    completed=subprocess.run(['ccx','-i','bracket'],cwd=directory,capture_output=True,text=True,timeout=120,env={**os.environ,'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1'})
+    (directory/'solver.log').write_text(completed.stdout+'\n'+completed.stderr)
+    if completed.returncode!=0 or '*ERROR' in completed.stdout or 'Job finished' not in completed.stdout:raise SolverError('Bracket solve failed')
+    data=(directory/'bracket.dat').read_text();displacements={int(row[0]):row[3] for row in table(data,'displacements')}
+    reaction=sum(row[3] for row in table(data,'forces'));stress=[]
+    for row in table(data,'stresses'):
+        sx,sy,sz,txy,txz,tyz=row[2:8];stress.append(math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(txy*txy+txz*txz+tyz*tyz)))
+    summary.update({'tip_deflection_mm':abs(sum(displacements[n]*f for n,f in loads.items())/100),'reaction_z_N':reaction,'maximum_von_mises_MPa':max(stress)})
+    (directory/'mesh-summary.json').write_text(json.dumps(summary,indent=2))
+    return summary
+
 def solve(stl,destination,expected_volume=None,classification_angle=20):
     if classification_angle not in (20,25,30):raise SolverError("Unsupported surface classification angle")
     destination=Path(destination);destination.mkdir(parents=True,exist_ok=True);study=[]
     for size in (2.5,1.8,1.5):
-        directory=destination/('mesh-'+str(size));directory.mkdir()
-        nodes,elements,fixed,loads,summary=mesh(stl,directory,size,classification_angle)
-        if len(nodes)>50000:raise SolverError('Mesh exceeds demo node budget')
-        def set_lines(name,ids):return ['*NSET,NSET='+name]+[','.join(map(str,ids[i:i+16])) for i in range(0,len(ids),16)]
-        lines=['*NODE']+[str(n)+','+','.join(f'{value:.9E}' for value in p) for n,p in nodes.items()]+['*ELEMENT,TYPE=C3D10,ELSET=SOLID']+[str(i)+','+','.join(map(str,e)) for i,e in enumerate(elements,1)]
-        lines+=set_lines('FIXED',fixed)+set_lines('LOADED',list(loads))+['*MATERIAL,NAME=ALUMINUM','*ELASTIC','69000,0.33','*SOLID SECTION,ELSET=SOLID,MATERIAL=ALUMINUM','*BOUNDARY','FIXED,1,3','*STEP','*STATIC','*CLOAD']
-        lines += [f'{n},3,{f:.9E}' for n,f in loads.items()]+['*NODE PRINT,NSET=LOADED','U','*NODE PRINT,NSET=FIXED','RF','*EL PRINT,ELSET=SOLID','S','*NODE FILE','U','*EL FILE','S','*END STEP']
-        (directory/'bracket.inp').write_text('\n'.join(lines)+'\n')
-        completed=subprocess.run(['ccx','-i','bracket'],cwd=directory,capture_output=True,text=True,timeout=120,env={**os.environ,'OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1'})
-        (directory/'solver.log').write_text(completed.stdout+'\n'+completed.stderr)
-        if completed.returncode!=0 or '*ERROR' in completed.stdout or 'Job finished' not in completed.stdout:raise SolverError('Bracket solve failed')
-        data=(directory/'bracket.dat').read_text();displacements={int(row[0]):row[3] for row in table(data,'displacements')}
-        reaction=sum(row[3] for row in table(data,'forces'));stress=[]
-        for row in table(data,'stresses'):
-            sx,sy,sz,txy,txz,tyz=row[2:8];stress.append(math.sqrt(((sx-sy)**2+(sy-sz)**2+(sz-sx)**2)/2+3*(txy*txy+txz*txz+tyz*tyz)))
-        summary.update({'tip_deflection_mm':abs(sum(displacements[n]*f for n,f in loads.items())/100),'reaction_z_N':reaction,'maximum_von_mises_MPa':max(stress)})
-        study.append(summary)
-        (directory/'mesh-summary.json').write_text(json.dumps(summary,indent=2))
+        directory=destination/('mesh-'+str(size))
+        study.append(solve_mesh(stl,directory,size,classification_angle))
     change=abs(study[-1]['tip_deflection_mm']/study[-2]['tip_deflection_mm']-1)
     patch_change=abs(study[-1]['load_patch_area_mm2']/study[-2]['load_patch_area_mm2']-1)
     volume_error=abs(study[-1]['volume_mm3']/expected_volume-1) if expected_volume else None

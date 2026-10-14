@@ -303,3 +303,7 @@ The website now shows Running, Partly running, Stopped or Status unavailable fro
 ## 2026-10-14 — Compact service controls
 
 Moved the On/Off indicator beside Engineering services and shortened the two buttons to Start and Stop in a shared row. On means at least one engineering worker is available; the tooltip and individual statuses distinguish partial availability. Unknown is retained when status cannot be checked.
+
+## 2026-10-14 — Bounded finer-mesh exploration
+
+Added a verified-source mesh probe and shared single-mesh solver procedure. The production study still uses 2.5/1.8/1.5 mm targets. The exploratory 1.3 mm case remains under 50,000 nodes, whereas 1.2 mm exceeds that limit and is not solved. Evidence and comparisons are documented separately; saved run artifacts/statuses remain unchanged and stress convergence remains pending.

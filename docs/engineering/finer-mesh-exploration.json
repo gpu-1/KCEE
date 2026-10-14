@@ -1,0 +1,258 @@
+{
+  "run_id": "c072e470-2fd9-452a-aee2-19d9cb2a2329",
+  "manifest_sha256": "53b1b6c04f54805454692672e926de154a33a56b6a85158125309b0982c9f7b2",
+  "source_stl_sha256": "83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385",
+  "classification_angle_degrees": 25,
+  "node_budget": 50000,
+  "candidates": [
+    {
+      "status": "within_demo_budget",
+      "summary": {
+        "maximum_midside_mapping_error_mm": 0.0,
+        "mesher_version": "4.8.4",
+        "target_size_mm": 1.3,
+        "nodes": 47921,
+        "elements": 26442,
+        "volume_mm3": 9801.53847121892,
+        "minimum_tetrahedron_volume_mm3": 6.780215381576767e-05,
+        "load_patch_area_mm2": 131.72270703936368,
+        "fixed_nodes": 3428
+      },
+      "relative_source_patch_error": 0.03018909323886554
+    },
+    {
+      "status": "exceeds_demo_budget",
+      "summary": {
+        "maximum_midside_mapping_error_mm": 0.0,
+        "mesher_version": "4.8.4",
+        "target_size_mm": 1.2,
+        "nodes": 59797,
+        "elements": 34213,
+        "volume_mm3": 9803.476661871155,
+        "minimum_tetrahedron_volume_mm3": 5.72814733716307e-05,
+        "load_patch_area_mm2": 133.14494217168203,
+        "fixed_nodes": 3895
+      },
+      "relative_source_patch_error": 0.019717860341343818
+    }
+  ],
+  "status": "exploratory_solved_not_engineering_acceptance",
+  "solve_1_3": {
+    "summary": {
+      "maximum_midside_mapping_error_mm": 0.0,
+      "mesher_version": "4.8.4",
+      "target_size_mm": 1.3,
+      "nodes": 47921,
+      "elements": 26442,
+      "volume_mm3": 9801.53847121892,
+      "minimum_tetrahedron_volume_mm3": 6.780215381576767e-05,
+      "load_patch_area_mm2": 131.72270703936368,
+      "fixed_nodes": 3428,
+      "tip_deflection_mm": 0.7943382331464686,
+      "reaction_z_N": 100.00000856725468,
+      "maximum_von_mises_MPa": 232.72934479617282
+    },
+    "diagnostic": {
+      "energy_consistency": {
+        "strain_energy_N_mm": 39.71691164460067,
+        "half_load_work_N_mm": 39.716911657303584,
+        "relative_error": 3.1983637960308897e-10,
+        "passes_demo_tolerance": true,
+        "relative_tolerance": 0.001,
+        "method": "Four equal-weight C3D10 integration points; isotropic linear elasticity; zero prescribed support displacement"
+      },
+      "regional_peaks": [
+        {
+          "centroid_exclusion_distance_mm": 1,
+          "included_elements": 22224,
+          "maximum_von_mises_MPa": 94.66798526845402,
+          "peak_element_id": 22319
+        },
+        {
+          "centroid_exclusion_distance_mm": 2,
+          "included_elements": 19918,
+          "maximum_von_mises_MPa": 94.66798526845402,
+          "peak_element_id": 22319
+        },
+        {
+          "centroid_exclusion_distance_mm": 3,
+          "included_elements": 16286,
+          "maximum_von_mises_MPa": 94.66798526845402,
+          "peak_element_id": 22319
+        }
+      ],
+      "regional_note": "Element centroid exclusion from nominal rear clamp and load rectangles; not exact integration-point distance, convergence or an allowable",
+      "elements": 26442,
+      "minimum_corner_quality": 0.06465743269040787,
+      "one_percentile_corner_quality": 0.23946705007229585,
+      "median_corner_quality": 0.7649960383771743,
+      "top_integration_point_stresses": [
+        {
+          "von_mises_MPa": 232.72934479617282,
+          "element_id": 23722,
+          "integration_point": 3,
+          "element_corner_centroid_mm": [
+            0.1261141002875,
+            29.78649955,
+            3.732422542
+          ],
+          "element_volume_mm3": 0.000650536024555101,
+          "corner_mean_ratio_quality": 0.40669514407814567
+        },
+        {
+          "von_mises_MPa": 213.10155939938426,
+          "element_id": 19966,
+          "integration_point": 3,
+          "element_corner_centroid_mm": [
+            0.256726335035,
+            0.2503316307428083,
+            3.7863264159999996
+          ],
+          "element_volume_mm3": 0.002793137352801185,
+          "corner_mean_ratio_quality": 0.16798185703588264
+        },
+        {
+          "von_mises_MPa": 177.06710411257717,
+          "element_id": 22722,
+          "integration_point": 4,
+          "element_corner_centroid_mm": [
+            0.256821061544273,
+            29.6159066375,
+            3.4181151425
+          ],
+          "element_volume_mm3": 0.012784331977508149,
+          "corner_mean_ratio_quality": 0.2567469291077682
+        },
+        {
+          "von_mises_MPa": 166.3734416505573,
+          "element_id": 23722,
+          "integration_point": 2,
+          "element_corner_centroid_mm": [
+            0.1261141002875,
+            29.78649955,
+            3.732422542
+          ],
+          "element_volume_mm3": 0.000650536024555101,
+          "corner_mean_ratio_quality": 0.40669514407814567
+        },
+        {
+          "von_mises_MPa": 160.63150686770422,
+          "element_id": 23723,
+          "integration_point": 1,
+          "element_corner_centroid_mm": [
+            0.09022978140349999,
+            29.762371114999997,
+            3.7613625639999997
+          ],
+          "element_volume_mm3": 0.0006505360244117303,
+          "corner_mean_ratio_quality": 0.3991402677009616
+        },
+        {
+          "von_mises_MPa": 158.49352092292858,
+          "element_id": 20954,
+          "integration_point": 3,
+          "element_corner_centroid_mm": [
+            0.283710168122831,
+            1.0525229425,
+            3.543758033
+          ],
+          "element_volume_mm3": 0.06111042702883935,
+          "corner_mean_ratio_quality": 0.6659800482050112
+        },
+        {
+          "von_mises_MPa": 158.105015480179,
+          "element_id": 23723,
+          "integration_point": 3,
+          "element_corner_centroid_mm": [
+            0.09022978140349999,
+            29.762371114999997,
+            3.7613625639999997
+          ],
+          "element_volume_mm3": 0.0006505360244117303,
+          "corner_mean_ratio_quality": 0.3991402677009616
+        },
+        {
+          "von_mises_MPa": 152.79163145141536,
+          "element_id": 23723,
+          "integration_point": 2,
+          "element_corner_centroid_mm": [
+            0.09022978140349999,
+            29.762371114999997,
+            3.7613625639999997
+          ],
+          "element_volume_mm3": 0.0006505360244117303,
+          "corner_mean_ratio_quality": 0.3991402677009616
+        },
+        {
+          "von_mises_MPa": 152.29045296628186,
+          "element_id": 22722,
+          "integration_point": 1,
+          "element_corner_centroid_mm": [
+            0.256821061544273,
+            29.6159066375,
+            3.4181151425
+          ],
+          "element_volume_mm3": 0.012784331977508149,
+          "corner_mean_ratio_quality": 0.2567469291077682
+        },
+        {
+          "von_mises_MPa": 149.8774298443369,
+          "element_id": 19966,
+          "integration_point": 1,
+          "element_corner_centroid_mm": [
+            0.256726335035,
+            0.2503316307428083,
+            3.7863264159999996
+          ],
+          "element_volume_mm3": 0.002793137352801185,
+          "corner_mean_ratio_quality": 0.16798185703588264
+        }
+      ],
+      "limitations": [
+        "Reported locations are element corner centroids, not exact integration-point coordinates",
+        "Quality describes straight corner tetrahedra, not a full quadratic Jacobian assessment",
+        "Peak location and quality do not establish stress convergence or physical validity"
+      ]
+    },
+    "archive_sha256": "9128437d20595f06d8c83362c5ba0c33d2eb35bb3190286c0190807663b10691",
+    "adapter_source_sha256": "21c6b77221992b0e0af63d01959ecb3d1cca25c38bcf1087f2500a7e2ce5b7b4",
+    "solver_binary_sha256": "55949b455cf6f2ce78da087b2e60199f65a64433a7bc36ac809ab09f073dde34"
+  },
+  "comparison_to_saved_1_5": {
+    "displacement_change_percent": 0.4624706685298685,
+    "global_stress_change_percent": 7.129095938476793,
+    "regional_stress_changes": [
+      {
+        "centroid_exclusion_distance_mm": 1,
+        "change_percent": 7.517331337000233
+      },
+      {
+        "centroid_exclusion_distance_mm": 2,
+        "change_percent": 7.517331337000233
+      },
+      {
+        "centroid_exclusion_distance_mm": 3,
+        "change_percent": 7.517331337000233
+      }
+    ]
+  },
+  "production_parity_check": {
+    "status": "saved_1_5_summary_reproduced",
+    "relative_tolerance": 1e-08,
+    "absolute_tolerance": 1e-08,
+    "summary": {
+      "maximum_midside_mapping_error_mm": 0.0,
+      "mesher_version": "4.8.4",
+      "target_size_mm": 1.5,
+      "nodes": 35684,
+      "elements": 19124,
+      "volume_mm3": 9795.767097692717,
+      "minimum_tetrahedron_volume_mm3": 6.780215381576764e-05,
+      "load_patch_area_mm2": 131.6965321279494,
+      "fixed_nodes": 2561,
+      "tip_deflection_mm": 0.7906815628368744,
+      "reaction_z_N": 99.99997847874705,
+      "maximum_von_mises_MPa": 217.2419572455153
+    }
+  }
+}
