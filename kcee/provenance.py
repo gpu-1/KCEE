@@ -26,7 +26,7 @@ def verify_directory(directory, expected_manifest=None, expected_digest=None):
         if str(UUID(manifest['run_id']))!=directory.name: raise IntegrityError('Run identity mismatch')
         if manifest['schema_version']!=1: raise IntegrityError('Unsupported manifest version')
         artifacts=manifest['artifacts']
-        if not isinstance(artifacts,dict) or set(artifacts) not in (REQUIRED,REQUIRED|{'geometry-request.json','geometry.json'},REQUIRED|{'fea.json','fea-artifacts.zip'},REQUIRED|{'geometry-request.json','geometry.json','fea.json','fea-artifacts.zip'}):
+        if not isinstance(artifacts,dict) or set(artifacts) not in (REQUIRED,REQUIRED|{'geometry-request.json','geometry.json'},REQUIRED|{'fea.json','fea-artifacts.zip'},REQUIRED|{'thermal.json','temperature.csv'},REQUIRED|{'geometry-request.json','geometry.json','fea.json','fea-artifacts.zip'}):
             raise IntegrityError('Unexpected artifact inventory')
         for name,expected in artifacts.items():
             if not isinstance(expected,str) or not re.fullmatch('[a-f0-9]{64}',expected):

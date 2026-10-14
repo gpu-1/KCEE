@@ -377,3 +377,9 @@ Added compact displacement, stress convergence and refinement question buttons. 
 ## 2026-10-14 — Readable AI answer download
 
 Added a plain-text companion to the full JSON answer record. It preserves the exact question and draft answer, evidence categories, study/source hashes, job identity, model/runtime/prompt fingerprints and generation settings. Both exports clear together on a new question or study selection.
+
+## 2026-10-14 — Steady thermal verification worker
+
+Added isolated 1D conduction, four-grid manufactured-solution verification, API-side reproduction, registered thermal runs with source fingerprints, temperature CSV, original profiles and report. Website thermal results distinguish numerical verification from bracket validation. Engineering service controls now include the thermal worker. Fine-grid error is 0.0025704 °C; observed final order is 2.00033 and relative heat balance error is 3.00e-14. No bracket thermal solve or coupling is claimed.
+
+Verification: 72 Python tests, 13 viewer tests and 15 isolated registry/integration tests passed. Website checks created and verified thermal run f8a1f44a-9b6e-45c8-958d-e2ca77d3a3ce. Its fine-grid profile, heat flows and convergence table rendered correctly. Engineering Stop turned thermal off while preserving saved results and leaving AI and voice On; Start restored the workers. The disposable integration test independently checked CSV bytes against the registered hash and rejected a tampered profile.

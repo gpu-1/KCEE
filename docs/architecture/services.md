@@ -6,7 +6,8 @@
 | Three.js | Docker/browser | Saved-run history, verified geometry/results, solver fields, comparisons, exploratory evidence and local STL viewer |
 | llama.cpp Metal | macOS | Pinned native Metal study explanations and signed gateway implemented; design proposals/knowledge ingestion pending |
 | PicoGK | macOS .NET | Native CLI and signed queue worker connected to API/viewer |
-| CalculiX / FEniCSx | Worker containers | CalculiX cantilever and native-STL bracket studies implemented; stress acceptance, FEniCSx and thermal pending |
+| CalculiX / FEniCSx | Worker containers | CalculiX cantilever and native-STL bracket studies implemented; stress acceptance and FEniCSx pending |
+| Steady thermal conduction | Worker container | Manufactured 1D benchmark implemented; bracket thermal analysis pending |
 | SU2 / OpenFOAM | Worker containers | CFD adapter pending |
 | Cantera | Worker container | Thermochemistry adapter pending |
 | Materials/manufacturing | Engine | Illustrative data/minimum thickness only |
@@ -15,3 +16,5 @@
 Adapters must return status, version, input hashes, units, output hashes and diagnostics. Missing adapters return unavailable, never synthetic success. Implemented workers have explicit resource/time bounds and graceful shutdown. Per-job inference/solver cancellation remains pending. Solver containers will be added after ARM64 capability/licensing verification, rather than placeholder images presented as working solvers.
 
 Structural benchmark: optional fea profile, CalculiX 2.20 worker on ARM64 Debian, internal-only. Viewer/API can request and register fixed cantilever verification runs. Native-STL volume meshing and actual bracket FEA are implemented. Global/local-root refinement investigations remain exploratory and do not establish stress convergence or engineering acceptance.
+
+The isolated `thermal` worker (internal port 8006, existing `fea` profile) implements fixed steady 1D conduction verification. API-side reproduction precedes registered thermal artifacts; engineering Start/Stop controls include it. See [thermal benchmark](../engineering/thermal-benchmark.md). No thermal host port is exposed.

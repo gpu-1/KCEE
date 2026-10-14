@@ -12,6 +12,7 @@ from typing import Literal
 from kcee.picogk import GeometryError
 from kcee.geometry_queue import available
 from kcee.fea_run import run_benchmark,solver_available
+from kcee.thermal_run import run_thermal,thermal_available
 from kcee.fea import SolverError
 from kcee.bracket_analysis import analyze,BracketAnalysisError
 from kcee.demo import run
@@ -42,7 +43,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -320,3 +321,12 @@ def get_study_answer(job_id: UUID):
     except (QueueError,KeyError,ValueError):raise HTTPException(409,'Assistant response integrity failed')
     except OSError:raise HTTPException(503,'Assistant queue unavailable')
     except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.post('/runs/thermal-benchmark',status_code=201)
+def thermal_benchmark():
+    ready()
+    try:dest=run_thermal(ARTIFACTS)
+    except Exception:raise HTTPException(503,'Thermal worker unavailable or benchmark reproduction failed')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Thermal artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'validation_status':'thermal_benchmark_verified_only'}

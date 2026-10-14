@@ -1,0 +1,11 @@
+# Steady one-dimensional thermal verification
+
+Run **Run thermal benchmark** with engineering services On. This registers a separate thermal bar in saved runs, with a hash-verified temperature CSV, complete mesh profiles, inputs, solver/source fingerprints, report and manifest. The bar is 100 × 10 × 10 mm; the temperature field is modeled in one dimension. The viewer shows geometry only, not a thermal color field.
+
+The implementation solves `-k d²T/dx² = q(x)` using conservative central differences and a Thomas tridiagonal solve. Length is 0.1 m, area 0.0001 m², illustrative constant conductivity 15 W/(m·K), end temperatures 20 and 80 °C, and insulated sides. A manufactured exact solution is `T(x) = 20 + 60 x/L + 20 sin(pi x/L)`; substituting into the equation gives `q(x) = k*20*(pi/L)²*sin(pi*x/L)` in W/m³. This is an implementation verification, not an empirical material or bracket model.
+
+Meshes have 10, 20, 40 and 80 cells. Gates require fine-grid maximum nodal temperature error below 0.01 °C, observed error order 1.95–2.05 for every halving, relative heat imbalance below 1e-9, integrated source error below 0.001 and maximum discrete equation residual below 0.001 W/m³. Boundary outward heat includes boundary half-cell generation; total generated heat uses the trapezoidal rule. Negative outward heat means heat enters that end. The exact integrated generation is `2*k*A*20*pi/L` W. Conservation alone does not establish solution accuracy; analytical and refinement checks are separate.
+
+The API reproduces the worker result before saving it. Both use the same implementation; the independent mathematical reference is the manufactured analytical temperature and integrated heat. Artifacts are then checked against the database-held manifest. Runtime worker scope is fixed: no user-supplied scripts or parameters. The isolated worker has no host ports, a read-only filesystem, 128 MB limit and one CPU.
+
+No transient physics, convection, radiation, contact, temperature-dependent properties, bracket thermal analysis or thermal/structural coupling is implemented. Results carry `thermal_benchmark_verified_only`; existing mechanical studies and engineering acceptance remain unchanged. Start/Stop engineering controls include the thermal worker. CLI startup with the existing `fea` profile starts it too.

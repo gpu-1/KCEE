@@ -19,3 +19,7 @@ POST /runs/{uuid}/structural verifies the native source run and analyzes the def
 ## Local study AI
 
 `GET /assistant/status` reports signed native gateway availability. `POST /runs/{run_id}/assistant` accepts a question up to 800 characters, requiring local website Origin and `X-KCEE-Assistant: 1`. It verifies the saved bracket structural run and its evidence before enqueueing a read-only explanation. Other kinds return 422, unknown runs 404 and integrity failures 409. `GET /assistant/jobs/{job_id}` returns pending/completed/failed; completed responses contain the evidence snapshot/digest, cited categories, model/runtime hashes and an AI-draft label. Source integrity is rechecked on retrieval. No design or solver action is available to this model.
+
+## Thermal verification
+
+`POST /runs/thermal-benchmark` creates a registered fixed steady 1D manufactured-solution example via the internal thermal worker. No bracket ID or input parameters are accepted. `GET /capabilities` reports `thermal.steady_1d`. Saved artifacts include `thermal.json`, `temperature.csv`, `result.json`, report, illustrative bar STL and manifest. `/runs/{id}/verify` detects thermal artifact tampering. The result status is `thermal_benchmark_verified_only`; see [thermal benchmark](../engineering/thermal-benchmark.md) for mathematical reference and limits.

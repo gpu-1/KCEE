@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='kcee-check-') as tmp:
         if args.viewer:
             subprocess.run(command+['up','--build','-d','--wait','viewer'],cwd=checkout,env=environment,check=True)
         if args.fea:
-            subprocess.run(command+['up','--build','-d','--wait','structural'],cwd=checkout,env=environment,check=True)
+            subprocess.run(command+['up','--build','-d','--wait','structural','thermal'],cwd=checkout,env=environment,check=True)
         subprocess.run(command+['run','--rm','--build','test'],cwd=checkout,env=environment,check=True)
     finally:
         subprocess.run(command+['down','-v','--remove-orphans'],cwd=checkout,env=environment,check=True)

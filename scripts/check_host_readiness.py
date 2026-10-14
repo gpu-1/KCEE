@@ -33,7 +33,7 @@ def main():
     check('api_database',ready)
     def capabilities():
         data=api('/capabilities')
-        if not data['geometry']['picogk'] or not data['structural']['calculix']:raise ValueError('Native geometry or structural worker unavailable')
+        if not data['geometry']['picogk'] or not data['structural']['calculix'] or not data.get('thermal',{}).get('steady_1d'):raise ValueError('Native geometry, structural or thermal worker unavailable')
         return data
     check('geometry_structural_services',capabilities)
     if args.ai:

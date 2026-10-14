@@ -14,6 +14,22 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Engineering workers required')
+    def test_thermal_benchmark_registry_and_tamper(self):
+        self.assertTrue(request('/capabilities')[1]['thermal']['steady_1d'])
+        status,data=request('/runs/thermal-benchmark','POST');self.assertEqual(status,201)
+        run_id=data['run_id'];record=request('/runs/'+run_id)[1]
+        self.assertEqual(record['manifest']['kind'],'thermal_benchmark')
+        self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+        result=json.loads((Path('/data/runs')/run_id/'result.json').read_text())
+        self.assertTrue(all(result['thermal']['checks'].values()))
+        self.assertLess(result['thermal']['mesh_study'][-1]['maximum_temperature_error_C'],.003)
+        with urlopen(BASE+'/artifacts/'+run_id+'/temperature.csv') as response:raw=response.read()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),record['manifest']['artifacts']['temperature.csv'])
+        path=Path('/data/runs')/run_id/'temperature.csv';path.write_bytes(raw+b'tamper')
+        with self.assertRaises(HTTPError) as error:request('/runs/'+run_id+'/verify')
+        self.assertEqual(error.exception.code,409)
+
     def test_service_control_requires_local_origin_confirmation_and_supervisor(self):
         self.assertFalse(request('/services/control')[1]['available'])
         cases=[({}, {'action':'start'},403),({'Origin':'https://example.com','X-KCEE-Control':'1'},{'action':'start'},403),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_stop'},422),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'voice_start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'ai_start'},503),({'Origin':'http://localhost:5173','X-KCEE-Control':'1'},{'action':'ai_stop'},422)]
