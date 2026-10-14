@@ -23,12 +23,11 @@ class Knowledge:
     def connect(self):
         from kcee.registry import Registry
         return Registry().connect()
-    def ingest(self,name,raw):
-        extraction=None
+    def ingest(self,name,raw,extraction=None,before_save=None):
         if isinstance(name,str) and name.lower().endswith('.pdf'):
             document_parts(name[:-4]+'.txt',b'validate filename')
             from kcee.pdf_text import extract_pdf
-            extraction=extract_pdf(raw);digest=hashlib.sha256(raw).hexdigest();chunks=[];offset=0
+            extraction=extraction if extraction is not None else extract_pdf(raw);digest=hashlib.sha256(raw).hexdigest();chunks=[];offset=0
             for page in extraction['pages']:
                 text=page['text']
                 if text.strip():
@@ -37,6 +36,7 @@ class Knowledge:
                 offset+=len(text.splitlines(keepends=True))
         else:digest,chunks=document_parts(name,raw)
         identifier=str(uuid.uuid4())
+        if before_save:before_save()
         with self.connect() as conn:
             inserted=conn.execute('INSERT INTO local_documents(id,name,source_sha256,original_bytes) VALUES(%s,%s,%s,%s) ON CONFLICT(source_sha256) DO NOTHING RETURNING id',(identifier,name,digest,raw)).fetchone()
             if inserted:

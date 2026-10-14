@@ -61,3 +61,20 @@ class OCRTests(unittest.TestCase):
   self.assertEqual(result['ocr_pages'],[1,2]);self.assertEqual(result['pages'][1]['method'],'ocr');self.assertIn('0.525',result['pages'][1]['text']);self.assertIn('thermal',result['pages'][0]['text'].lower())
   self.assertEqual(len(result['ocr_runtime_sha256']),4)
   selected=extract_pdf(raw,EXTRACTOR,[2]);self.assertEqual(selected['pages'],[result['pages'][1]]);self.assertEqual(selected['page_count'],2)
+
+@unittest.skipUnless(__import__('pathlib').Path('/usr/bin/tesseract').exists(),'Local OCR tested in API image')
+class CancellableOCRTests(unittest.TestCase):
+ def test_cancel_during_ocr_reports_progress_and_stops_process_group(self):
+  import threading
+  from pathlib import Path
+  from kcee.pdf_text import ImportCancelled
+  event=threading.Event();updates=[]
+  def progress(value):
+   updates.append(value)
+   if value['stage']=='ocr':event.set()
+  with self.assertRaises(ImportCancelled):extract_pdf((Path(__file__).parent/'fixtures/scanned-thermal-guide.pdf').read_bytes(),cancel_event=event,progress=progress)
+  self.assertTrue(any(u['total_pages']==2 and u['stage']=='ocr' for u in updates))
+ def test_completed_import_progress_matches_pages(self):
+  import threading
+  updates=[];result=extract_pdf(pdf_bytes(),cancel_event=threading.Event(),progress=updates.append)
+  self.assertEqual(result['page_count'],2);self.assertTrue(updates);self.assertEqual(updates[-1]['total_pages'],2)

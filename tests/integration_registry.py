@@ -72,6 +72,35 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(chunk['page_number'],2);self.assertEqual(chunk['extraction_method'],'ocr');k.verify_citations([chunk])
         with self.assertRaises(IntegrityError):k.verify_citations([dict(chunk,extraction_method='embedded_text')])
 
+    def test_background_import_progress_cancellation_and_completion(self):
+        import base64,time
+        from pdf_fixture import pdf_bytes
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        raw=Path('/tests/fixtures/scanned-thermal-guide.pdf').read_bytes()
+        def start(name,raw,headers):
+            with urlopen(Request(BASE+'/knowledge/imports',data=json.dumps({'name':name,'bytes_base64':base64.b64encode(raw).decode()}).encode(),headers=headers,method='POST'),timeout=20) as response:return json.load(response)
+        with self.assertRaises(HTTPError) as error:start('scan.pdf',raw,{})
+        self.assertEqual(error.exception.code,403)
+        job=start('cancelled-scan.pdf',raw,headers);id=job['id']
+        with self.assertRaises(HTTPError) as error:urlopen(Request(BASE+'/knowledge/imports/'+id+'/cancel',data=b'',method='POST'))
+        self.assertEqual(error.exception.code,403)
+        with urlopen(Request(BASE+'/knowledge/imports/'+id+'/cancel',data=b'',headers=headers,method='POST')) as response:self.assertTrue(json.load(response)['cancel_accepted'])
+        deadline=time.monotonic()+10
+        while time.monotonic()<deadline:
+            job=request('/knowledge/imports/'+id)[1]
+            if job['state']=='cancelled':break
+            time.sleep(.05)
+        self.assertEqual(job['state'],'cancelled')
+        with Registry().connect() as conn:self.assertEqual(conn.execute('SELECT count(*) FROM local_documents WHERE source_sha256=%s',(hashlib.sha256(raw).hexdigest(),)).fetchone()['count'],0)
+        job=start('completed-import.pdf',pdf_bytes(('Background import unique reference.',)),headers);id=job['id']
+        deadline=time.monotonic()+10
+        while time.monotonic()<deadline:
+            job=request('/knowledge/imports/'+id)[1]
+            if job['state'] in ('completed','failed'):break
+            time.sleep(.05)
+        self.assertEqual(job['state'],'completed');self.assertEqual(job['total_pages'],1)
+        self.assertEqual(request('/knowledge/documents/'+job['result']['id']+'/text')[1]['pages'][0]['page_number'],1)
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:

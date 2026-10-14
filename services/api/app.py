@@ -432,3 +432,32 @@ def knowledge_extracted_text(document_id: UUID):
     except KeyError:raise HTTPException(404,'Document not found')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'PDF extraction migration unavailable')
+
+@app.post('/knowledge/imports',status_code=202)
+async def start_document_import(request: Request):
+    import base64,json
+    from kcee.document_imports import imports
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Import requires the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>71000000:raise HTTPException(413,'Document request exceeds 50 MB source limit')
+    try:
+        data=json.loads(raw)
+        if set(data)!={'name','bytes_base64'}:raise ValueError('Unexpected document fields')
+        return imports.start(data['name'],base64.b64decode(data['bytes_base64'],validate=True))
+    except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:250])
+    except RuntimeError as error:raise HTTPException(409,str(error))
+
+@app.get('/knowledge/imports/{import_id}')
+def document_import_status(import_id: UUID):
+    from kcee.document_imports import imports
+    try:return imports.get(str(import_id))
+    except KeyError:raise HTTPException(404,'Import unavailable; API may have restarted. Check local documents before retrying.')
+
+@app.post('/knowledge/imports/{import_id}/cancel')
+def cancel_document_import(import_id: UUID,request: Request):
+    from kcee.document_imports import imports
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Cancellation requires the local website')
+    try:return imports.cancel(str(import_id))
+    except KeyError:raise HTTPException(404,'Import not found')
