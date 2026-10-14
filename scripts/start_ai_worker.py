@@ -9,6 +9,7 @@ if not (runtime/'runtime-manifest.json').is_file():raise SystemExit('Provision t
 queue.mkdir(parents=True,exist_ok=True);local.chmod(0o700);queue.chmod(0o700);runtime.chmod(0o700)
 lock=(local/'start.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX)
 verify_ai_runtime(root)
+if (root/'.local/embedding-runtime/model-manifest.json').is_file():subprocess.run([sys.executable,str(root/'scripts/start_embeddings.py')],cwd=root,check=True,timeout=75)
 if available(queue,key):print('Local study AI ready');raise SystemExit(0)
 manifest=json.loads((runtime/'runtime-manifest.json').read_text())
 server_key=runtime/'server.key'

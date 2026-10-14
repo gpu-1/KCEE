@@ -39,15 +39,17 @@ class Knowledge:
         raw=bytes(row['original_bytes'])
         if hashlib.sha256(raw).hexdigest()!=row['source_sha256']:raise IntegrityError('Document source hash mismatch')
         return row,raw
-    def retrieve(self,question):
+    def retrieve(self,question,with_metadata=False):
         if not isinstance(question,str) or not 1<=len(question.strip())<=800:raise ValueError('Use a question of 1 to 800 characters')
-        with self.connect() as conn:rows=conn.execute("SELECT c.document_id,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 4",(question,question)).fetchall()
+        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
+        from kcee.semantic_knowledge import retrieve
+        rows,metadata=retrieve(self,question,rows)
         result=[]
         for index,row in enumerate(rows,1):
             source,raw=self.source(row['document_id']);lines=raw.decode('utf-8').splitlines(keepends=True);excerpt=''.join(lines[row['line_start']-1:row['line_end']])
             if excerpt!=row['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=row['chunk_sha256']:raise IntegrityError('Document chunk differs from original source')
-            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256']})
-        return result
+            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256'],**{key:row[key] for key in ('chunk_id','cosine_similarity','embedding_vector_sha256','retrieval_ranks','hybrid_score') if key in row}})
+        return (result,dict(metadata,matches=len(result))) if with_metadata else result
     def verify_citations(self,chunks):
         for chunk in chunks:
             row,raw=self.source(chunk['document_id']);lines=raw.decode('utf-8').splitlines(keepends=True)
@@ -57,7 +59,7 @@ class Knowledge:
 
 def attach_documents(evidence,question):
     from kcee.geometry_queue import encoded
-    evidence=dict(evidence);evidence['documents']=Knowledge().retrieve(question);evidence['document_search']={'method':'local PostgreSQL English full-text search','query':question,'matches':len(evidence['documents']),'semantic_embeddings':False}
+    evidence=dict(evidence);evidence['documents'],evidence['document_search']=Knowledge().retrieve(question,with_metadata=True)
     raw=encoded(evidence)
     if len(raw)>20000:raise ValueError('Combined study and document context exceeds bounded limit')
     return evidence,hashlib.sha256(raw).hexdigest()

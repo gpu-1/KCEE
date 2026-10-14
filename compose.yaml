@@ -30,6 +30,8 @@ services:
       PGUSER: kcee_app
       PGPASSWORD: ${KCEE_APP_DB_PASSWORD:?Set KCEE_APP_DB_PASSWORD in .env}
       AI_URL: ${AI_URL:-http://host.docker.internal:8081}
+      KCEE_EMBEDDING_QUEUE: /data/embeddings/queue
+      KCEE_EMBEDDING_KEY: /data/embeddings/key
       KCEE_ASSISTANT_QUEUE: /data/assistant/queue
       KCEE_ASSISTANT_KEY: /data/assistant/key
       KCEE_VOICE_QUEUE: /data/voice/queue
@@ -45,7 +47,7 @@ services:
       interval: 5s
       timeout: 4s
       retries: 10
-    volumes: ["./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant"]
+    volumes: ["./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant", "./.local/embeddings:/data/embeddings"]
     depends_on:
       postgres: {condition: service_healthy}
     networks: [local]

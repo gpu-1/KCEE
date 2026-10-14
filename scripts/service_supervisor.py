@@ -7,6 +7,7 @@ from kcee.service_control import validate_request
 from scripts.stop_kcee import stop_native
 from scripts.stop_voice_worker import stop_voice
 from scripts.stop_ai_worker import stop_ai
+# The AI lifecycle now includes the provisioned semantic embedding service.
 root=Path(__file__).resolve().parents[1];local=root/'.local/control';queue=local/'queue';key=key_bytes(local/'key')
 lock=(local/'worker.lock').open('a')
 fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)

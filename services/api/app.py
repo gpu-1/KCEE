@@ -374,7 +374,7 @@ def thermal_surface(run_id: UUID):
 @app.get('/knowledge/documents')
 def knowledge_documents():
     from kcee.knowledge import Knowledge
-    try:return {'items':Knowledge().list(),'retrieval':'local English full-text search','semantic_embeddings':False}
+    try:return {'items':Knowledge().list(),'retrieval':'local hybrid semantic and English keyword search when indexed'}
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
 
 @app.post('/knowledge/documents',status_code=201)
@@ -402,3 +402,21 @@ def knowledge_source(document_id: UUID):
     except KeyError:raise HTTPException(404,'Document not found')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
+
+@app.get('/knowledge/semantic-status')
+def knowledge_semantic_status():
+    from kcee.knowledge import Knowledge
+    from kcee.semantic_knowledge import coverage
+    try:return coverage(Knowledge())
+    except psycopg.Error:raise HTTPException(503,'Embedding index migration unavailable')
+
+@app.post('/knowledge/index')
+def index_knowledge(request: Request):
+    from kcee.knowledge import Knowledge
+    from kcee.semantic_knowledge import index
+    from kcee.geometry_queue import QueueError
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Indexing requires the local website')
+    try:return index(Knowledge())
+    except QueueError as error:raise HTTPException(503,str(error))
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except psycopg.Error:raise HTTPException(503,'Embedding database unavailable')

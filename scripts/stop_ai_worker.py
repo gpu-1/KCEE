@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from kcee.geometry_queue import key_bytes,read_signed
 
-def stop_ai(root,timeout=170):
+def _stop_chat(root,timeout=140):
     local=root/'.local/assistant';runtime=root/'.local/ai'
     if (local/'key').is_file() and (local/'queue/heartbeat.json').is_file():
         state=read_signed(local/'queue/heartbeat.json',key_bytes(local/'key'),4096)
@@ -31,5 +31,9 @@ def stop_ai(root,timeout=170):
         if result.returncode or result.stdout.strip().startswith('Z'):return
         time.sleep(.1)
     raise ValueError('AI model server has not stopped; no force kill used')
+
+def stop_ai(root,timeout=170):
+    from scripts.stop_embeddings import stop_embeddings
+    stop_embeddings(root,min(30,timeout));_stop_chat(root,max(1,timeout-30))
 
 if __name__=='__main__':stop_ai(Path(__file__).resolve().parents[1]);print('Local study AI stopped or already unavailable')

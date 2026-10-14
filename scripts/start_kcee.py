@@ -17,6 +17,7 @@ def main():
         subprocess.run(['docker','info','--format','{{.Architecture}}'],cwd=root,check=True,stdout=subprocess.DEVNULL,timeout=20)
         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,check=True,timeout=30)
         subprocess.run([sys.executable,str(root/'scripts/start_service_supervisor.py')],cwd=root,check=True,timeout=30)
+        (root/'.local/embeddings').mkdir(parents=True,exist_ok=True)
         (root/'.local/assistant').mkdir(parents=True,exist_ok=True)
         if args.ai:subprocess.run([sys.executable,str(root/'scripts/start_ai_worker.py')],cwd=root,check=True,timeout=150)
         (root/'.local/voice').mkdir(parents=True,exist_ok=True)
