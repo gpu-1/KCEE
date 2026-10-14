@@ -173,7 +173,9 @@ class ServiceControlRequest(BaseModel):
 
 @app.get('/services/control')
 def service_control_status():
-    return {'available':available(os.environ.get('KCEE_CONTROL_QUEUE','/data/control/queue'),os.environ.get('KCEE_CONTROL_KEY','/data/control/key'))}
+    from kcee.service_control import active_operation
+    queue=os.environ.get('KCEE_CONTROL_QUEUE','/data/control/queue');key=os.environ.get('KCEE_CONTROL_KEY','/data/control/key')
+    return {'available':available(queue,key),'operation':active_operation(queue,key)}
 
 @app.post('/services/control',status_code=202)
 def service_control(body: ServiceControlRequest,request: Request):

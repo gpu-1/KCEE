@@ -1,7 +1,7 @@
 import tempfile,time,unittest,uuid
 from pathlib import Path
 from kcee.geometry_queue import atomic_write,envelope,QueueError
-from kcee.service_control import validate_request,submit,result
+from kcee.service_control import validate_request,submit,result,active_operation
 
 class ServiceControlTests(unittest.TestCase):
     def test_request_is_bounded_and_expires(self):
@@ -24,3 +24,18 @@ class ServiceControlTests(unittest.TestCase):
             atomic_write(queue/(job+'.response.json'),envelope({'job_id':job,'status':'completed'},key.read_bytes()))
             self.assertEqual(result(job,queue,key)['status'],'completed')
             with self.assertRaises(ValueError):submit('shell',queue,key)
+
+    def test_resume_only_authenticated_work_and_flag_stale_jobs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            queue=Path(directory);key=queue/'key';key.write_bytes(b'x'*32)
+            self.assertIsNone(active_operation(queue,key))
+            job=str(uuid.uuid4());path=queue/(job+'.processing.json')
+            payload={'job_id':job,'action':'stop','created_at':time.time()}
+            atomic_write(path,envelope(payload,key.read_bytes()))
+            self.assertEqual(active_operation(queue,key),{'job_id':job,'action':'stop','status':'pending'})
+            payload['created_at']-=600;atomic_write(path,envelope(payload,key.read_bytes()))
+            self.assertEqual(active_operation(queue,key)['status'],'stalled')
+            atomic_write(path,envelope(payload,b'y'*32))
+            self.assertEqual(active_operation(queue,key)['status'],'blocked')
+            atomic_write(queue/(job+'.response.json'),envelope({'job_id':job,'status':'completed'},key.read_bytes()))
+            self.assertIsNone(active_operation(queue,key))

@@ -115,8 +115,15 @@ async function refresh(){
   listRequest?.abort();const controller=new AbortController();listRequest=controller;$('refresh').disabled=true;
   try {
     const [data,capabilities]=await Promise.all([request(`/runs?limit=${PAGE_SIZE+1}&offset=${offset}&hidden=${$('show-removed').checked}`,{signal:controller.signal}),request('/capabilities',{signal:controller.signal})]);
-    try{controlAvailable=(await request('/services/control',{signal:controller.signal})).available;}catch{controlAvailable=false;}
-    if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
+    let control;
+    try{control=await request('/services/control',{signal:controller.signal});}catch{control={available:false};}
+    if(listRequest!==controller)return;
+    controlAvailable=control.available;
+    if(control.operation?.status==='pending' && !serviceBusy)watchServiceOperation(control.operation);
+    else if(control.operation && control.operation.status!=='pending'){
+      controlAvailable=false;
+      $('service-status').textContent='Service operation needs inspection on this Mac. Refresh after resolving it.';
+    }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
     if(listRequest!==controller)return;
     structuralAvailable=Boolean(capabilities.structural?.calculix);$('fea').disabled=(creating || serviceBusy) || !structuralAvailable;$('fea-status').textContent=capabilities.structural?.calculix?'CalculiX benchmark ready':'Structural worker unavailable. Start the fea profile.';
     nativeAvailable=capabilities.geometry.picogk;$('native-status').textContent=nativeAvailable?'Native PicoGK ready':'Native worker unavailable. Start it on this Mac or choose the baseline mesh.';updateCreation();if(listRequest!==controller)return;
@@ -263,11 +270,9 @@ $('select-comparison-markdown').onclick=()=>{$('comparison-markdown').focus();$(
 
 $('select-study-report').onclick=()=>{$('study-report-text').focus();$('study-report-text').select();};
 
-async function changeServices(action){
-  if(serviceBusy || creating)return;
-  serviceBusy=true;updateCreation();$('service-status').textContent=action==='start'?'Starting engineering services…':'Stopping engineering services…';
+async function watchServiceOperation(job){
+  serviceBusy=true;updateCreation();$('service-status').textContent=job.action==='start'?'Starting engineering services…':'Stopping engineering services…';
   try{
-    const job=await request('/services/control',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Control':'1'},body:JSON.stringify({action,confirm_stop:action==='stop'})});
     const deadline=Date.now()+510000;
     let result;
     do{
@@ -276,9 +281,17 @@ async function changeServices(action){
       if(result.status==='failed')throw new Error(result.message);
       if(Date.now()>deadline)throw new Error('Operation is still pending. Refresh service status before trying again.');
     }while(result.status==='pending');
-    await refresh();$('service-status').textContent=action==='start'?'Engineering services started.':'Engineering services stopped. Saved runs remain available.';
-  }catch(error){$('service-status').textContent=error.message;}
+    await refresh();$('service-status').textContent=job.action==='start'?'Engineering services started.':'Engineering services stopped. Saved runs remain available.';
+  }catch(error){controlAvailable=false;$('service-status').textContent=error.message+' Refresh to reconnect.';}
   finally{serviceBusy=false;updateCreation();}
+}
+async function changeServices(action){
+  if(serviceBusy || creating)return;
+  serviceBusy=true;updateCreation();
+  try{
+    const job=await request('/services/control',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Control':'1'},body:JSON.stringify({action,confirm_stop:action==='stop'})});
+    await watchServiceOperation({...job,action});
+  }catch(error){serviceBusy=false;controlAvailable=false;$('service-status').textContent=error.message+' Refresh service status.';updateCreation();}
 }
 $('start-services').onclick=()=>changeServices('start');
 $('stop-services').onclick=()=>$('stop-services-dialog').showModal();

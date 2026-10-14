@@ -291,3 +291,7 @@ The stop/start check exposed PID 1 signal handling in the structural container. 
 ## 2026-10-14 — Website engineering-service controls
 
 Added Start/Stop engineering services with a stop confirmation and progress state. The viewer/API/database remain available; native PicoGK and structural analysis are controlled by a separate local supervisor with no network listener. The API sends bounded signed commands and checks response identity; external origins, missing custom headers and unconfirmed stops are rejected. Browser code never receives the signing key or Docker socket. The native stop routine is shared with the CLI command. Startup provisions the supervisor before the API bind mount. Integration checkouts precreate the new bind directory to preserve host ownership during cleanup.
+
+## 2026-10-14 — Reconnect to pending service operations
+
+Control status now exposes authenticated pending operation identity and action. On refresh/reload the viewer reconnects to its existing operation rather than enabling another start/stop. Stale and unverifiable queue records disable controls with an inspection message. Poll failures keep controls disabled until an explicit refresh reconnects. Completed signed responses are not resumed.

@@ -26,7 +26,26 @@ def result(job_id,queue,key):
     path=queue/(job_id+'.response.json')
     if path.exists():
         payload=read_signed(path,key_bytes(key),8192)
-        if payload['job_id']!=job_id:raise QueueError('Service response identity mismatch')
+        if payload['job_id']!=job_id or payload.get('status') not in ('completed','failed'):raise QueueError('Service response identity or status mismatch')
         return payload
     if (queue/(job_id+'.request.json')).exists() or (queue/(job_id+'.processing.json')).exists():return {'job_id':job_id,'status':'pending'}
     raise FileNotFoundError('Unknown service control request')
+
+
+def active_operation(queue,key):
+    """Read authenticated pending work without trusting filenames as commands."""
+    queue=Path(queue)
+    for path in sorted([*queue.glob('*.processing.json'),*queue.glob('*.request.json')]):
+        try:
+            job_id=str(uuid.UUID(path.name.split('.')[0]))
+            if (queue/(job_id+'.response.json')).exists():
+                result(job_id,queue,key)
+                continue
+            payload=read_signed(path,key_bytes(key),4096)
+            if set(payload)!={'job_id','action','created_at'} or payload['job_id']!=job_id or payload['action'] not in ('start','stop'):raise ValueError('Invalid pending operation')
+            age=time.time()-payload['created_at']
+            if not -2<=age:raise ValueError('Invalid operation time')
+            return {'job_id':job_id,'action':payload['action'],'status':'stalled' if age>510 else 'pending'}
+        except (OSError,ValueError,KeyError,TypeError,QueueError):
+            return {'status':'blocked','message':'Control queue needs inspection on this Mac; no operation was resumed.'}
+    return None
