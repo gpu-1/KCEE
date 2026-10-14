@@ -31,7 +31,7 @@ cp .env.example .env
 ```
 API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
 
-The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. AI, voice, thermal, CFD and chemistry integrations remain scaffolds. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
+The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. Manual Kokoro summary playback is local; AI, automatic voice alerts, thermal, CFD and chemistry integrations remain scaffolds. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
 
 For native viewer generation, provision PicoGK and run `python3 scripts/start_geometry_worker.py`; then refresh the viewer. See [native worker](docs/operations/native-geometry-worker.md).
 
@@ -44,3 +44,7 @@ The viewer includes separate displacement/stress colors, explicit deformation sc
 ## Website service controls
 
 After `python3 scripts/start_kcee.py`, the website's Engineering services panel can start native PicoGK and the structural worker or stop them with confirmation. The website, API and database stay running, so saved studies remain readable and services can be restarted. Controls use a separate local signed-queue supervisor; no Docker socket or signing key is exposed to browser code. Restart the supervisor with the startup command if controls show unavailable.
+
+## Local voice summaries
+
+Kokoro can prepare verified bracket-study summaries for playback in the website. Provision explicitly, then start with `python3 scripts/start_voice_worker.py` or `python3 scripts/start_kcee.py --voice`. Select a bracket structural study, choose Prepare voice summary, then press Play. See [local voice setup and limits](host/macos/kokoro/README.md). Voice preparation stays local; AI, automatic voice alerts and speech input remain pending.

@@ -22,6 +22,28 @@ class RegistryIntegration(unittest.TestCase):
             with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
             self.assertEqual(error.exception.code,status)
 
+    def test_voice_worker_unavailable_and_source_integrity(self):
+        self.assertFalse(request('/voice/status')[1]['available'])
+        run_id=request('/runs/bracket','POST')[1]['run_id']
+        def prepare(identifier,headers):
+            req=Request(BASE+'/runs/'+identifier+'/voice',data=b'',method='POST',headers=headers)
+            return urlopen(req,timeout=15)
+        with self.assertRaises(HTTPError) as error:prepare(run_id,{})
+        self.assertEqual(error.exception.code,403)
+        headers={'Origin':'http://localhost:5173','X-KCEE-Voice':'1'}
+        with self.assertRaises(HTTPError) as error:prepare(run_id,headers)
+        self.assertEqual(error.exception.code,503)
+        with self.assertRaises(HTTPError) as error:prepare('00000000-0000-0000-0000-000000000000',headers)
+        self.assertEqual(error.exception.code,404)
+        path=Path('/data/runs')/run_id/'voice-summary.json';original=path.read_bytes()
+        try:
+            path.write_text('{}')
+            with self.assertRaises(HTTPError) as error:prepare(run_id,headers)
+            self.assertEqual(error.exception.code,409)
+        finally:path.write_bytes(original)
+        with self.assertRaises(HTTPError) as error:request('/voice/jobs/00000000-0000-0000-0000-000000000000')
+        self.assertEqual(error.exception.code,404)
+
     def test_diagnostic_scope_and_integrity(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for endpoint in ('geometry-measurements','stress-diagnostics','displacement-surface','refinement-explorations','refinement-explorations/global-1.3/archive'):

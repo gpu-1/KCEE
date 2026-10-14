@@ -7,6 +7,7 @@ from uuid import uuid4
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',action='store_true',help='Rebuild container images before startup')
+    parser.add_argument('--voice',action='store_true',help='Start the already provisioned local Kokoro worker')
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]
     for path,message in ((root/'.env','Configure .env first; see docs/operations/install-macos.md'),(root/'.local/picogk/Kcee.Geometry','Provision native PicoGK first; see host/macos/picogk/README.md')):
@@ -15,6 +16,8 @@ def main():
         subprocess.run(['docker','info','--format','{{.Architecture}}'],cwd=root,check=True,stdout=subprocess.DEVNULL,timeout=20)
         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,check=True,timeout=30)
         subprocess.run([sys.executable,str(root/'scripts/start_service_supervisor.py')],cwd=root,check=True,timeout=30)
+        (root/'.local/voice').mkdir(parents=True,exist_ok=True)
+        if args.voice:subprocess.run([sys.executable,str(root/'scripts/start_voice_worker.py')],cwd=root,check=True,timeout=30)
         (root/'.local/studies').mkdir(parents=True,exist_ok=True)
         command=['docker','compose','--profile','viewer','--profile','fea','up','-d','--wait','--wait-timeout','120']
         if args.build:command.append('--build')

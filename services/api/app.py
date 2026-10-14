@@ -222,3 +222,51 @@ def exploratory_archive(run_id: UUID,key: Literal['global-1.3','root-0.9','root-
     except FileNotFoundError:raise HTTPException(404,'Exploratory archive unavailable on this Mac')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except OSError:raise HTTPException(503,'Exploratory archive cannot be read')
+
+
+def voice_paths():return os.environ.get('KCEE_VOICE_QUEUE','/data/voice/queue'),os.environ.get('KCEE_VOICE_KEY','/data/voice/key')
+
+@app.get('/voice/status')
+def voice_status():
+    return {'available':available(*voice_paths()),'backend':'native_kokoro','playback':'opt_in_browser_audio'}
+
+@app.post('/runs/{run_id}/voice',status_code=202)
+def prepare_voice(run_id: UUID,request: Request):
+    import json
+    from kcee.voice import submit_voice
+    from kcee.geometry_queue import QueueError
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-voice')!='1':raise HTTPException(403,'Voice preparation requires the local KCEE website')
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        summary=json.loads((ARTIFACTS/str(run_id)/'voice-summary.json').read_text())
+        if summary.get('level') not in ('INFO','RESULT','WARNING','CRITICAL'):raise HTTPException(422,'This summary is not eligible for voice')
+        return {'job_id':submit_voice(str(run_id),record['manifest']['artifacts']['voice-summary.json'],summary['text'],*voice_paths()),'status':'pending'}
+    except KeyError:raise HTTPException(404,'Unknown run or missing voice summary')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except QueueError as error:raise HTTPException(503,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+def checked_voice_job(job_id):
+    from kcee.voice import voice_result
+    from kcee.geometry_queue import QueueError
+    try:
+        payload,raw=voice_result(str(job_id),*voice_paths())
+        if payload['status']=='completed':
+            run_id=UUID(payload['run_id']);registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+            if payload['summary_sha256']!=record['manifest']['artifacts']['voice-summary.json']:raise IntegrityError('Voice source summary mismatch')
+        return payload,raw
+    except FileNotFoundError:raise HTTPException(404,'Voice job missing or expired')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except (QueueError,ValueError,KeyError):raise HTTPException(409,'Voice response integrity failed')
+    except OSError:raise HTTPException(503,'Voice queue unavailable')
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+
+@app.get('/voice/jobs/{job_id}')
+def get_voice_job(job_id: UUID):return checked_voice_job(job_id)[0]
+
+@app.get('/voice/jobs/{job_id}/audio')
+def voice_audio(job_id: UUID):
+    payload,raw=checked_voice_job(job_id)
+    if payload['status']!='completed':raise HTTPException(409,'Voice audio is not ready')
+    return Response(raw,media_type='audio/wav',headers={'X-Audio-SHA256':payload['audio_sha256'],'Cache-Control':'no-store'})

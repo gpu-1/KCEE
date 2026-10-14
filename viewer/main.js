@@ -12,14 +12,14 @@ let modelCenter=new THREE.Vector3(),isBracketStudy=false;
 let pendingRemoval=null,removing=false,selectedVerified=false;
 let selection=0, activeRequest, listRequest, offset=0, selectedId=null;
 const PAGE_SIZE=10;
-let serviceBusy=false,controlAvailable=false;
+let serviceBusy=false,controlAvailable=false,voiceAvailable=false,voiceBusy=false,voiceRequest=null,voiceUrl=null;
 let nativeAvailable=false,creating=false,structuralAvailable=false,selectedIsNative=false;
 function updateServiceButtons(){$("start-services").disabled=!controlAvailable || serviceBusy || creating || (nativeAvailable && structuralAvailable);$("stop-services").disabled=!controlAvailable || serviceBusy || creating || (!nativeAvailable && !structuralAvailable);}
-function updateCreation(){ updateServiceButtons(); $("remove-run").disabled=(creating || serviceBusy) || removing || !selectedVerified; $("fea").disabled=(creating || serviceBusy) || !structuralAvailable; $("analyze").disabled=(creating || serviceBusy) || !structuralAvailable || !selectedIsNative; $("create").disabled=(creating || serviceBusy) || ($("backend").value==="picogk" && !nativeAvailable); }
+function updateCreation(){ updateServiceButtons();$("prepare-voice").disabled=!voiceAvailable || voiceBusy || !currentStudy; $("remove-run").disabled=(creating || serviceBusy) || removing || !selectedVerified; $("fea").disabled=(creating || serviceBusy) || !structuralAvailable; $("analyze").disabled=(creating || serviceBusy) || !structuralAvailable || !selectedIsNative; $("create").disabled=(creating || serviceBusy) || ($("backend").value==="picogk" && !nativeAvailable); }
 $("backend").onchange=updateCreation;
 function badge(id,text,kind=''){ $(id).textContent=text; $(id).className='badge '+kind; }
 function clearModel(){if(boundaryMarkers){scene.remove(boundaryMarkers);boundaryMarkers.traverse(object=>{object.geometry?.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material?.dispose();});boundaryMarkers=null;} if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null;} $('empty').hidden=false; $('fit').disabled=true; $('wireframe').disabled=true; }
-function clearDetails(){$("refinement-explorations").hidden=true;$("exploration-rows").replaceChildren();$("exploration-evidence").value="";if(studyReportUrl)URL.revokeObjectURL(studyReportUrl);studyReportUrl=null;$("readable-study").hidden=true;$("study-report-text").value="";$("study-report-view").open=false;$("download-study-report").removeAttribute("href");clearComparisonExport();currentStudy=null;$('pin-comparison').disabled=true;$('comparison').hidden=true;$('comparison-rows').replaceChildren();$('stress-diagnostics').hidden=true;$('hotspot-values').replaceChildren();$('geometry-measurements').hidden=true;$('hole-values').replaceChildren();selectedVerified=false;$('remove-run').disabled=true;isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
+function clearDetails(){voiceRequest?.abort();voiceRequest=null;voiceBusy=false;$("voice-audio").pause();$("voice-audio").removeAttribute("src");$("voice-audio").load();$("voice-audio").hidden=true;if(voiceUrl)URL.revokeObjectURL(voiceUrl);voiceUrl=null;$("prepare-voice").disabled=true;$("refinement-explorations").hidden=true;$("exploration-rows").replaceChildren();$("exploration-evidence").value="";if(studyReportUrl)URL.revokeObjectURL(studyReportUrl);studyReportUrl=null;$("readable-study").hidden=true;$("study-report-text").value="";$("study-report-view").open=false;$("download-study-report").removeAttribute("href");clearComparisonExport();currentStudy=null;$('pin-comparison').disabled=true;$('comparison').hidden=true;$('comparison-rows').replaceChildren();$('stress-diagnostics').hidden=true;$('hotspot-values').replaceChildren();$('geometry-measurements').hidden=true;$('hole-values').replaceChildren();selectedVerified=false;$('remove-run').disabled=true;isBracketStudy=false;$("boundaries").checked=false;$("boundaries").disabled=true;$("boundary-legend").hidden=true;fieldData=null;sourceStl=null;archiveDigest=null;$('field').checked=false;$('field').disabled=true;$('scale-label').hidden=true;$('quantity-label').hidden=true;$('field-legend').hidden=true; selectedIsNative=false;$("analyze").disabled=true; $('result-title').textContent='Screening result';$('mesh-study').hidden=true;$('mesh-rows').replaceChildren();$('validation-checks').hidden=true;$('check-values').replaceChildren(); $('result').hidden=true;$('result-empty').hidden=false;$('metrics').replaceChildren();$('provenance').replaceChildren();$('assumptions').replaceChildren();$('solver-files').hidden=true;$('solver-files').removeAttribute('href');for(const id of ['report','manifest'])$(id).removeAttribute('href'); }
 function beginSelection(){ selection++;activeRequest?.abort();activeRequest=new AbortController();clearModel();clearDetails();return {ticket:selection,signal:activeRequest.signal}; }
 function addMetric(list,label,value){ const dt=document.createElement('dt'), dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;$(list).append(dt,dd); }
 function fitModel(){
@@ -102,7 +102,7 @@ async function selectRun(id){
             const tr=document.createElement('tr');
             for(const value of [row.global_target_mm+' / '+(row.root_target_mm??'—'),row.nodes,row.displacement_mm.toFixed(6),row.peak_stress_MPa.toFixed(2)]){const td=document.createElement('td');td.textContent=value;tr.appendChild(td);}
             const archiveCell=document.createElement('td');
-            if(row.archive_integrity==='verified' && ['global-1.3','root-0.9','root-0.75'].includes(row.download_key)){const link=document.createElement('a');link.href=`/api/runs/${id}/refinement-explorations/${row.download_key}/archive`;link.download='';link.textContent='Download ZIP';link.setAttribute('aria-label',`Download ${row.download_key} exploratory solver archive`);archiveCell.appendChild(link);}else archiveCell.textContent='Unavailable';
+            if(row.archive_integrity==='verified' && ['global-1.3','root-0.9','root-0.75'].includes(row.download_key)){const link=document.createElement('a');link.href=`/api/runs/${id}/refinement-explorations/${row.download_key}/archive`;link.download='';link.textContent='ZIP';link.setAttribute('aria-label',`Download ${row.download_key} exploratory solver archive`);archiveCell.appendChild(link);}else archiveCell.textContent='Unavailable';
             tr.appendChild(archiveCell);$('exploration-rows').appendChild(tr);
           }
           $('exploration-evidence').value=JSON.stringify(evidence,null,2);
@@ -127,7 +127,7 @@ async function selectRun(id){
     addMetric('provenance','Run ID',record.id);if(record.parent_id)addMetric('provenance','Parent design',record.parent_id);addMetric('provenance','Created',new Date(record.created_at).toLocaleString());addMetric('provenance','Geometry',result.geometry_backend);addMetric('provenance','Structural model',result.structural_backend);addMetric('provenance','Validation status',record.validation_status);addMetric('provenance','Manifest SHA-256',record.manifest_sha256);
     selectedIsNative=result.geometry_backend.startsWith('PicoGK');updateCreation();
     if(result.fea){$('result-title').textContent=result.kind==='bracket_structural'?'Bracket structural study':'Cantilever verification';$('mesh-study').hidden=false;$('displacement-heading').textContent=result.kind==='bracket_structural'?'Loaded patch (mm)':'Tip (mm)';$('stress-heading').hidden=result.kind!=='bracket_structural';$('mesh-note').hidden=result.kind!=='bracket_structural';for(const mesh of result.fea.mesh_study){const row=document.createElement('tr');for(const value of [mesh.elements,mesh.tip_deflection_mm.toFixed(6),mesh.reaction_z_N.toFixed(4),...(result.kind==='bracket_structural'?[mesh.maximum_von_mises_MPa.toFixed(2)]:[])]){const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell);}$('mesh-rows').appendChild(row);}$('solver-files').href=artifactUrl(id,'fea-artifacts.zip');$('solver-files').hidden=false;}
-    currentStudy=result.kind==='bracket_structural'?{id,result,record}:null;$('pin-comparison').disabled=!currentStudy;if(currentStudy){$('study-report-text').value=studyMarkdown(currentStudy,verifiedDiagnostic,verifiedExploration);studyReportUrl=URL.createObjectURL(new Blob([$('study-report-text').value],{type:'text/markdown'}));$('download-study-report').href=studyReportUrl;$('download-study-report').download=`kcee-study-${id.slice(0,8)}.md`;$('readable-study').hidden=false;}await showComparison(ticket,signal);if(ticket!==selection)return;
+    currentStudy=result.kind==='bracket_structural'?{id,result,record}:null;updateCreation();$('pin-comparison').disabled=!currentStudy;if(currentStudy){$('study-report-text').value=studyMarkdown(currentStudy,verifiedDiagnostic,verifiedExploration);studyReportUrl=URL.createObjectURL(new Blob([$('study-report-text').value],{type:'text/markdown'}));$('download-study-report').href=studyReportUrl;$('download-study-report').download=`kcee-study-${id.slice(0,8)}.md`;$('readable-study').hidden=false;}await showComparison(ticket,signal);if(ticket!==selection)return;
     $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Recorded numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(sourceLoadWarning?' Retrospective check: load-strip area differs from the original STL by more than 5%; study needs attention.':'')+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
   } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
 }
@@ -137,7 +137,8 @@ function refreshServiceStatus(){
   servicePoll=(async()=>{
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
     try{
-      const [capabilities,control]=await Promise.all([request('/capabilities',{signal:controller.signal}),request('/services/control',{signal:controller.signal}).catch(()=>({available:false}))]);
+      const [capabilities,control,voice]=await Promise.all([request('/capabilities',{signal:controller.signal}),request('/services/control',{signal:controller.signal}).catch(()=>({available:false})),request('/voice/status',{signal:controller.signal}).catch(()=>({available:false}))]);
+      voiceAvailable=voice.available;if(!voiceBusy)$('voice-status').textContent=voiceAvailable?'Local Kokoro ready. Prepare audio, then press Play.':'Local Kokoro unavailable. Start the provisioned voice worker on this Mac.';
       controlAvailable=control.available;
       nativeAvailable=Boolean(capabilities.geometry?.picogk);structuralAvailable=Boolean(capabilities.structural?.calculix);
       badge('service-health',nativeAvailable || structuralAvailable?'On':'Off',nativeAvailable && structuralAvailable?'good':'');
@@ -149,7 +150,7 @@ function refreshServiceStatus(){
         controlAvailable=false;$('service-status').textContent='Service operation needs inspection on this Mac. Refresh after resolving it.';
       }else if(!serviceBusy)$('service-status').textContent=controlAvailable?'Service controls ready':'Local controls unavailable. Run the KCEE startup command on this Mac.';
     }catch{
-      nativeAvailable=false;structuralAvailable=false;controlAvailable=false;
+      nativeAvailable=false;structuralAvailable=false;controlAvailable=false;voiceAvailable=false;
       badge('service-health','Unknown','error');$('service-health').title='Service status is unavailable';
       $('native-status').textContent='Native status unavailable.';$('fea-status').textContent='Structural status unavailable.';
       if(!serviceBusy)$('service-status').textContent='Unable to check services. Status will retry automatically.';
@@ -336,3 +337,25 @@ $('stop-services-dialog').addEventListener('close',()=>$('stop-services').focus(
 
 setInterval(()=>{if(!document.hidden)refreshServiceStatus();},10000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshServiceStatus();});
+
+$('prepare-voice').onclick=async()=>{
+  if(!currentStudy || voiceBusy)return;
+  const study=currentStudy,ticket=selection;voiceRequest?.abort();const controller=new AbortController();voiceRequest=controller;voiceBusy=true;updateCreation();$('voice-status').textContent='Preparing local voice summary…';
+  try{
+    const job=await request(`/runs/${study.id}/voice`,{method:'POST',headers:{'X-KCEE-Voice':'1'},signal:controller.signal});
+    let result;const deadline=Date.now()+150000;
+    do{
+      await new Promise(resolve=>setTimeout(resolve,1000));if(controller.signal.aborted)return;
+      result=await request('/voice/jobs/'+job.job_id,{signal:controller.signal});
+      if(result.status==='failed')throw new Error(result.message);
+      if(Date.now()>deadline)throw new Error('Voice preparation timed out.');
+    }while(result.status==='pending');
+    if(result.run_id!==study.id || result.summary_sha256!==study.record.manifest.artifacts['voice-summary.json'])throw new Error('Voice summary source mismatch');
+    const response=await fetch('/api/voice/jobs/'+job.job_id+'/audio',{signal:controller.signal});if(!response.ok)throw new Error('Voice audio unavailable');
+    const bytes=await response.arrayBuffer();const digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(value=>value.toString(16).padStart(2,'0')).join('');
+    if(digest!==result.audio_sha256)throw new Error('Voice audio integrity mismatch');
+    if(ticket!==selection)return;
+    if(voiceUrl)URL.revokeObjectURL(voiceUrl);voiceUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));$('voice-audio').src=voiceUrl;$('voice-audio').hidden=false;$('voice-status').textContent='Verified local Kokoro summary ready. Press Play to listen.';
+  }catch(error){if(ticket===selection && error.name!=='AbortError')$('voice-status').textContent=error.message;}
+  finally{if(voiceRequest===controller){voiceBusy=false;updateCreation();}}
+};

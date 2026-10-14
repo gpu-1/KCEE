@@ -327,3 +327,9 @@ The API now streams SHA-256 checks of fixed exploratory archives through a read-
 ## 2026-10-14 — Verified exploratory archive downloads
 
 Added per-case ZIP downloads for available source-linked exploratory archives. The download endpoint verifies saved run identity and report linkage, then hashes the exact bytes returned; a changed archive cannot be served under its recorded hash. Only the three fixed experiment keys are accepted. Missing host archives have no download link.
+
+## 2026-10-14 — Native Kokoro summary playback
+
+Provisioned local quantized Kokoro ONNX weights and an isolated pinned Python runtime. Added signed, bounded native summary jobs, source-linked audio metadata, API integrity checks and independent browser WAV hashing. Bracket study playback is explicitly opt-in through an audio control; selecting another run clears playback. No original artifacts are modified. Voice transport is mounted separately from weights/runtime. Automatic alerts, priority scheduling and whisper input remain pending.
+
+The exploratory archive link text is now ZIP to fit the compact table column; descriptive accessibility labels are retained. Native Kokoro produced the saved bracket summary successfully and the browser verified its bytes. The audio control reports 5.099 seconds, loaded and paused with autoplay disabled.
