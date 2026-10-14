@@ -56,6 +56,22 @@ class RegistryIntegration(unittest.TestCase):
         with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
             with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM local_pdf_extractions')
 
+    def test_large_scanned_pdf_import_and_ocr_page_citation(self):
+        import base64,io
+        from pypdf import PdfReader,PdfWriter
+        from kcee.knowledge import Knowledge
+        writer=PdfWriter();writer.append(PdfReader('/tests/fixtures/scanned-thermal-guide.pdf'));writer.add_attachment('size-check.txt',b'x'*(6*1024*1024));stream=io.BytesIO();writer.write(stream);raw=stream.getvalue()
+        self.assertGreater(len(raw),5*1024*1024)
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        req=Request(BASE+'/knowledge/documents',data=json.dumps({'name':'integration-large-scan.pdf','bytes_base64':base64.b64encode(raw).decode()}).encode(),headers=headers,method='POST')
+        with urlopen(req,timeout=60) as response:document=json.load(response)
+        self.assertEqual(document['ocr_pages'],[1,2])
+        with urlopen(BASE+'/knowledge/documents/'+document['id']+'/text',timeout=30) as response:preview=json.load(response)
+        self.assertEqual(preview['pages'][1]['method'],'ocr')
+        k=Knowledge();rows=k.retrieve('C3D20 0.525');chunk=next(c for c in rows if c['document_id']==document['id'])
+        self.assertEqual(chunk['page_number'],2);self.assertEqual(chunk['extraction_method'],'ocr');k.verify_citations([chunk])
+        with self.assertRaises(IntegrityError):k.verify_citations([dict(chunk,extraction_method='embedded_text')])
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:

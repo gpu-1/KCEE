@@ -385,7 +385,7 @@ async def upload_knowledge(request: Request):
     raw=bytearray()
     async for part in request.stream():
         raw.extend(part)
-        if len(raw)>7100000:raise HTTPException(413,'Document request exceeds 5 MB source limit')
+        if len(raw)>71000000:raise HTTPException(413,'Document request exceeds 50 MB source limit')
     try:
         data=json.loads(raw)
         if set(data)!={'name','bytes_base64'}:raise ValueError('Unexpected document fields')
