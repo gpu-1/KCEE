@@ -315,3 +315,7 @@ Added bounded optional root-box refinement for exploratory single-mesh solves; p
 ## 2026-10-14 — Website exploration evidence
 
 Added source-linked recorded exploration evidence to a separate panel for the matching verified bracket study. The table presents the 1.3 mm global mesh and 0.9/0.75 mm local-root targets; full evidence is available to copy. The API verifies saved run integrity and matches manifest/STL hashes before returning bundled investigation records. Archive hashes are recorded evidence, not a claim of live archive verification. No exploratory result replaces the original study or its validation status.
+
+## 2026-10-14 — Explorations in readable report export
+
+Study report exports now include a separate exploratory refinement table when source-linked investigations exist. Full-precision measurements, report hashes and recorded archive hashes accompany explicit source matching and archive-verification limits. Source mismatch and malformed measurements cannot be exported as evidence. Empty or unavailable investigations do not add a results table.

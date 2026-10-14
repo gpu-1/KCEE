@@ -60,3 +60,14 @@ test('study energy report retains precision and rejects missing or inconsistent 
  diagnostic.energy_consistency.passes_demo_tolerance=false;assert.ok(studyMarkdown(study,diagnostic).includes('Energy consistency: Needs attention'));
  diagnostic.energy_consistency.strain_energy_N_mm=NaN;assert.ok(studyMarkdown(study,diagnostic).includes('invalid diagnostic values'));
 });
+
+
+test('study export keeps exploratory evidence separate and validates source identity',()=>{
+ const study={record:{id,validation_status:'pending',manifest_sha256:hash('m'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('s'),'fea-artifacts.zip':hash('a')}}},result:{kind:'bracket_structural',validation_status:'pending',fea:{mesh_study:[],checks:{}}}};
+ const evidence={run_id:id,manifest_sha256:hash('m'),source_stl_sha256:hash('s'),items:[{report_sha256:hash('report'),rows:[{global_target_mm:1.5,root_target_mm:.75,nodes:39447,displacement_mm:.7922995976527467,peak_stress_MPa:334.430322251212,recorded_archive_sha256:hash('archive')}]}]};
+ const text=studyMarkdown(study,null,evidence);
+ assert.ok(text.includes('## Separate exploratory refinement'));assert.ok(text.includes('334.430322251212'));assert.ok(text.includes(hash('report')));assert.ok(text.includes(hash('archive')));assert.ok(text.includes('not reverified during report export'));
+ assert.ok(!studyMarkdown(study,null,{items:[]}).includes('## Separate exploratory refinement'));
+ const wrong=structuredClone(evidence);wrong.source_stl_sha256=hash('other');assert.throws(()=>studyMarkdown(study,null,wrong),/source mismatch/);
+ const bad=structuredClone(evidence);bad.items[0].rows[0].peak_stress_MPa=NaN;assert.throws(()=>studyMarkdown(study,null,bad),/Invalid exploration/);
+});

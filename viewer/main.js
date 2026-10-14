@@ -51,7 +51,7 @@ try {
 } catch {renderer=null;$('empty').textContent='3D rendering unavailable. Run history and reports remain accessible.';}
 function highlight(){for(const button of $('runs').querySelectorAll('button'))button.setAttribute('aria-current',String(button.dataset.id===selectedId));}
 async function selectRun(id){
-  let sourceLoadWarning=false,verifiedDiagnostic=null;
+  let sourceLoadWarning=false,verifiedDiagnostic=null,verifiedExploration=null;
   const {ticket,signal}=beginSelection();selectedId=id;highlight();$('model-title').textContent='Bracket '+id.slice(0,8);badge('integrity','Verifying…');$('status').textContent='Checking provenance and downloading geometry…';
   try {
     const {record,result,stl}=await loadRun(id,signal);if(ticket!==selection)return;
@@ -95,6 +95,7 @@ async function selectRun(id){
       try{
         const evidence=await request(`/runs/${id}/refinement-explorations`,{signal});if(ticket!==selection)return;
         if(evidence.run_id!==id || evidence.manifest_sha256!==record.manifest_sha256 || evidence.source_stl_sha256!==record.manifest.artifacts['bracket.stl'])throw new Error('Exploration source identity mismatch');
+        verifiedExploration=evidence;
         if(evidence.items.length){
           $('refinement-explorations').hidden=false;
           for(const item of evidence.items)for(const row of item.rows){
@@ -123,7 +124,7 @@ async function selectRun(id){
     addMetric('provenance','Run ID',record.id);if(record.parent_id)addMetric('provenance','Parent design',record.parent_id);addMetric('provenance','Created',new Date(record.created_at).toLocaleString());addMetric('provenance','Geometry',result.geometry_backend);addMetric('provenance','Structural model',result.structural_backend);addMetric('provenance','Validation status',record.validation_status);addMetric('provenance','Manifest SHA-256',record.manifest_sha256);
     selectedIsNative=result.geometry_backend.startsWith('PicoGK');updateCreation();
     if(result.fea){$('result-title').textContent=result.kind==='bracket_structural'?'Bracket structural study':'Cantilever verification';$('mesh-study').hidden=false;$('displacement-heading').textContent=result.kind==='bracket_structural'?'Loaded patch (mm)':'Tip (mm)';$('stress-heading').hidden=result.kind!=='bracket_structural';$('mesh-note').hidden=result.kind!=='bracket_structural';for(const mesh of result.fea.mesh_study){const row=document.createElement('tr');for(const value of [mesh.elements,mesh.tip_deflection_mm.toFixed(6),mesh.reaction_z_N.toFixed(4),...(result.kind==='bracket_structural'?[mesh.maximum_von_mises_MPa.toFixed(2)]:[])]){const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell);}$('mesh-rows').appendChild(row);}$('solver-files').href=artifactUrl(id,'fea-artifacts.zip');$('solver-files').hidden=false;}
-    currentStudy=result.kind==='bracket_structural'?{id,result,record}:null;$('pin-comparison').disabled=!currentStudy;if(currentStudy){$('study-report-text').value=studyMarkdown(currentStudy,verifiedDiagnostic);studyReportUrl=URL.createObjectURL(new Blob([$('study-report-text').value],{type:'text/markdown'}));$('download-study-report').href=studyReportUrl;$('download-study-report').download=`kcee-study-${id.slice(0,8)}.md`;$('readable-study').hidden=false;}await showComparison(ticket,signal);if(ticket!==selection)return;
+    currentStudy=result.kind==='bracket_structural'?{id,result,record}:null;$('pin-comparison').disabled=!currentStudy;if(currentStudy){$('study-report-text').value=studyMarkdown(currentStudy,verifiedDiagnostic,verifiedExploration);studyReportUrl=URL.createObjectURL(new Blob([$('study-report-text').value],{type:'text/markdown'}));$('download-study-report').href=studyReportUrl;$('download-study-report').download=`kcee-study-${id.slice(0,8)}.md`;$('readable-study').hidden=false;}await showComparison(ticket,signal);if(ticket!==selection)return;
     $('report').href=artifactUrl(id,'report.md');$('manifest').href=artifactUrl(id,'manifest.json');$('result').hidden=false;$('result-empty').hidden=true;badge('integrity','Artifacts verified','good');$('status').textContent=(result.kind==='bracket_structural'?(Object.values(result.fea.checks).every(Boolean)?'Recorded numerical checks passed. Engineering validation remains pending.':'Bracket numerical checks need attention. No engineering acceptance.'):(result.fea?'Cantilever benchmark checks passed. Bracket validation remains pending.':'Artifact integrity verified. Analytical screening remains unvalidated.'))+(sourceLoadWarning?' Retrospective check: load-strip area differs from the original STL by more than 5%; study needs attention.':'')+(renderer?'':' 3D rendering is unavailable; reports are accessible.');
   } catch(error){if(ticket!==selection||error.name==='AbortError')return;clearModel();clearDetails();badge('integrity','Unable to verify','error');$('status').textContent=error.message;}
 }
