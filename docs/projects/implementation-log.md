@@ -353,3 +353,7 @@ Read-only host readiness now optionally checks Kokoro worker availability, model
 ## 2026-10-14 — Heart voice default
 
 Set the local synthesis default to Heart (`af_heart`), US English female, at 1.2× speed. Worker response and downloadable provenance now record the speed and language alongside the voice. Previously generated jobs are unchanged; missing historical speed/language are not inferred.
+
+## 2026-10-14 — Roadmap checkpoint
+
+Updated the implementation roadmap to reflect measured bore profiles, global/local-root refinement evidence and archive downloads, native manual Kokoro voice feedback, website lifecycle controls, audio/provenance exports and optional voice readiness. Local AI, speech input, thermal physics, complete database backup/restore and engineering acceptance remain explicit outstanding milestones.
