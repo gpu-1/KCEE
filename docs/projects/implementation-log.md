@@ -341,3 +341,7 @@ Added local voice On/Off status and Start/Stop next to engineering controls. Voi
 ## 2026-10-14 — Verified voice audio export
 
 Prepared voice summaries now expose Download audio (WAV) using the same hash-checked bytes as the player. The link appears only after successful source/audio verification, and selecting another study clears it together with the player and revokes the blob URL.
+
+## 2026-10-14 — Voice provenance export
+
+Prepared audio now has downloadable/copyable JSON linking its checked bytes to the saved study manifest, source summary, job identity and Kokoro model manifest. The export validates those identities and keeps saved validation status unchanged. Selecting another study clears audio and evidence together. This derived export does not register a new engineering result.

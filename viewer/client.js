@@ -93,3 +93,14 @@ export function numericalCheckRows(fea){
   const rows=[['force_balance','Force balance',Math.max(...fea.mesh_study.map(m=>Math.abs(m.reaction_z_N-100)/100))],['displacement_refinement','Last displacement change',fea.last_mesh_displacement_change],['load_patch_refinement','Last load-patch area change',fea.last_load_patch_area_change],['source_volume_agreement','Source volume error',fea.relative_source_volume_error],['load_patch_source_agreement','Load-strip area vs original STL',fea.relative_source_load_patch_area_error]];
   return rows.map(([key,label,value])=>({key,label,value,verdict:fea.checks[key]===true?'Pass':fea.checks[key]===false?'Needs attention':'Not recorded'}));
 }
+
+
+export function voiceEvidence(study,job,actualAudioHash){
+  const source=comparisonEvidence(study,study,[],0).selected;
+  const summaryHash=study.record.manifest.artifacts['voice-summary.json'];
+  const hash=value=>/^[a-f0-9]{64}$/.test(value||'');
+  if(job.status!=='completed' || job.run_id!==source.run_id || job.summary_sha256!==summaryHash || !hash(summaryHash))throw new Error('Voice evidence source mismatch');
+  if(!hash(actualAudioHash) || actualAudioHash!==job.audio_sha256 || !hash(job.model_manifest_sha256) || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(job.job_id||''))throw new Error('Invalid voice evidence provenance');
+  if(job.sample_rate_Hz!==24000 || !/^[a-z0-9_]{1,64}$/.test(job.voice||''))throw new Error('Invalid voice evidence format');
+  return {schema_version:1,exported_at:new Date().toISOString(),source,summary_sha256:summaryHash,job_id:job.job_id,audio_sha256:actualAudioHash,model_manifest_sha256:job.model_manifest_sha256,voice:job.voice,sample_rate_Hz:job.sample_rate_Hz,format:'mono PCM16 WAV',backend:'native_kokoro',integrity:'source_and_audio_verified',limitations:['Model manifest hash refers to the provisioned local runtime manifest','Voice job is derived output and does not change saved study artifacts or engineering validation','Audio integrity does not establish engineering acceptance']};
+}

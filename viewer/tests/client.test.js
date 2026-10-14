@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence,comparisonMarkdown,studyMarkdown,numericalCheckRows} from '../client.js';
+import {artifactUrl,loadRun,request,verifiedBytes,comparisonEvidence,comparisonMarkdown,studyMarkdown,numericalCheckRows,voiceEvidence} from '../client.js';
 const id='12345678-1234-1234-1234-123456789abc';
 const result=JSON.stringify({validation_status:'unvalidated_analytical_screening'}),stl='solid example';
 const hash=text=>createHash('sha256').update(text).digest('hex');
@@ -71,4 +71,15 @@ test('study export keeps exploratory evidence separate and validates source iden
  assert.ok(!studyMarkdown(study,null,{items:[]}).includes('## Separate exploratory refinement'));
  const wrong=structuredClone(evidence);wrong.source_stl_sha256=hash('other');assert.throws(()=>studyMarkdown(study,null,wrong),/source mismatch/);
  const bad=structuredClone(evidence);bad.items[0].rows[0].peak_stress_MPa=NaN;assert.throws(()=>studyMarkdown(study,null,bad),/Invalid exploration/);
+});
+
+
+test('voice provenance preserves exact checked audio and refuses unrelated sources',()=>{
+ const study={record:{id,validation_status:'pending',manifest_sha256:hash('m'),manifest:{run_id:id,artifacts:{'bracket.stl':hash('s'),'fea-artifacts.zip':hash('a'),'voice-summary.json':hash('summary')}}},result:{kind:'bracket_structural',validation_status:'pending'}};
+ const job={job_id:id,run_id:id,status:'completed',summary_sha256:hash('summary'),audio_sha256:hash('audio'),model_manifest_sha256:hash('model'),voice:'af_sarah',sample_rate_Hz:24000};
+ const evidence=voiceEvidence(study,job,hash('audio'));
+ assert.equal(evidence.source.manifest_sha256,hash('m'));assert.equal(evidence.audio_sha256,hash('audio'));assert.equal(evidence.model_manifest_sha256,hash('model'));assert.equal(evidence.source.validation_status,'pending');
+ assert.throws(()=>voiceEvidence(study,job,hash('changed')),/provenance/);
+ assert.throws(()=>voiceEvidence(study,{...job,summary_sha256:hash('other')},hash('audio')),/source mismatch/);
+ assert.throws(()=>voiceEvidence(study,{...job,model_manifest_sha256:null},hash('audio')),/provenance/);
 });
