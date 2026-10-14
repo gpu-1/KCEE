@@ -182,6 +182,8 @@ function updateBoundaries(){
 }
 $('boundaries').onchange=updateBoundaries;
 
+$('diagnostics-help-link').onclick=event=>{event.preventDefault();$('diagnostics-help').showModal();};
+$('diagnostics-help').addEventListener('close',()=> $('diagnostics-help-link').focus());
 $('geometry-help-link').onclick=event=>{event.preventDefault();$('geometry-help').showModal();};
 $('geometry-help').addEventListener('close',()=> $('geometry-help-link').focus());
 

@@ -273,3 +273,7 @@ Energy diagnostics now reject truncated or oversized displacement rows, non-fini
 ## 2026-10-14 — Energy mesh refinement
 
 Archive diagnostics retain energy/work consistency for each of the three mesh sizes and compute the absolute relative strain-energy change between the last two meshes. The viewer shows this change as informational, and readable study reports preserve each mesh's energy evidence. No convergence threshold or engineering acceptance is inferred.
+
+## 2026-10-14 — Diagnostic interpretation help
+
+Added a compact question-mark help link beside stress and energy diagnostics. Its accessible dialog explains the half-work identity and demo tolerance, energy refinement, integration-point peaks versus averaged nodal colors, regional exclusions and corner quality. It explicitly distinguishes these numerical observations from stress convergence and engineering acceptance. Closing returns focus to the help link.
