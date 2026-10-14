@@ -1,5 +1,5 @@
-"""Local immutable UTF-8 sources, line-preserving chunks and lexical retrieval."""
-import hashlib,re,uuid
+"""Immutable local sources, verified PDF pages and hybrid document retrieval."""
+import hashlib,json,re,uuid
 from kcee.provenance import IntegrityError
 MAX_BYTES=256*1024
 
@@ -24,13 +24,28 @@ class Knowledge:
         from kcee.registry import Registry
         return Registry().connect()
     def ingest(self,name,raw):
-        digest,chunks=document_parts(name,raw);identifier=str(uuid.uuid4())
+        extraction=None
+        if isinstance(name,str) and name.lower().endswith('.pdf'):
+            document_parts(name[:-4]+'.txt',b'validate filename')
+            from kcee.pdf_text import extract_pdf
+            extraction=extract_pdf(raw);digest=hashlib.sha256(raw).hexdigest();chunks=[];offset=0
+            for page in extraction['pages']:
+                text=page['text']
+                if text.strip():
+                    _,parts=document_parts('page.txt',text.encode())
+                    chunks.extend({**part,'line_start':part['line_start']+offset,'line_end':part['line_end']+offset,'page_number':page['page_number']} for part in parts)
+                offset+=len(text.splitlines(keepends=True))
+        else:digest,chunks=document_parts(name,raw)
+        identifier=str(uuid.uuid4())
         with self.connect() as conn:
             inserted=conn.execute('INSERT INTO local_documents(id,name,source_sha256,original_bytes) VALUES(%s,%s,%s,%s) ON CONFLICT(source_sha256) DO NOTHING RETURNING id',(identifier,name,digest,raw)).fetchone()
             if inserted:
-                for chunk in chunks:conn.execute('INSERT INTO local_document_chunks(document_id,line_start,line_end,content,chunk_sha256) VALUES(%s,%s,%s,%s,%s)',(identifier,chunk['line_start'],chunk['line_end'],chunk['content'],chunk['chunk_sha256']))
+                if extraction:
+                    canonical=json.dumps(extraction,sort_keys=True,separators=(',',':'),ensure_ascii=True)
+                    conn.execute('INSERT INTO local_pdf_extractions(document_id,extractor,extraction_sha256,extraction) VALUES(%s,%s,%s,%s::jsonb)',(identifier,extraction['extractor'],hashlib.sha256(canonical.encode()).hexdigest(),canonical))
+                for chunk in chunks:conn.execute('INSERT INTO local_document_chunks(document_id,line_start,line_end,content,chunk_sha256,page_number) VALUES(%s,%s,%s,%s,%s,%s)',(identifier,chunk['line_start'],chunk['line_end'],chunk['content'],chunk['chunk_sha256'],chunk.get('page_number')))
             stored=conn.execute('SELECT id,name,source_sha256 FROM local_documents WHERE source_sha256=%s',(digest,)).fetchone()
-        return {**stored,'id':str(stored['id']),'deduplicated':not bool(inserted),'chunks':len(chunks)}
+        return {**stored,'id':str(stored['id']),'deduplicated':not bool(inserted),'chunks':len(chunks),**({'page_count':extraction['page_count'],'empty_pages':extraction['empty_pages']} if extraction else {})}
     def list(self):
         with self.connect() as conn:return conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,count(c.id) AS chunks FROM local_documents d JOIN local_document_chunks c ON c.document_id=d.id GROUP BY d.id ORDER BY d.created_at DESC LIMIT 100').fetchall()
     def source(self,identifier):
@@ -41,19 +56,44 @@ class Knowledge:
         return row,raw
     def retrieve(self,question,with_metadata=False):
         if not isinstance(question,str) or not 1<=len(question.strip())<=800:raise ValueError('Use a question of 1 to 800 characters')
-        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
+        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
         from kcee.semantic_knowledge import retrieve
         rows,metadata=retrieve(self,question,rows)
         result=[]
         for index,row in enumerate(rows,1):
-            source,raw=self.source(row['document_id']);lines=raw.decode('utf-8').splitlines(keepends=True);excerpt=''.join(lines[row['line_start']-1:row['line_end']])
+            source,raw=self.source(row['document_id']);lines,pdf=self.reference_lines(source,raw);excerpt=''.join(lines[row['line_start']-1:row['line_end']])
+            if pdf and (type(row.get('page_number')) is not int or not 1<=row['page_number']<=pdf['page_count']):raise IntegrityError('Invalid PDF chunk page')
             if excerpt!=row['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=row['chunk_sha256']:raise IntegrityError('Document chunk differs from original source')
-            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256'],**{key:row[key] for key in ('chunk_id','cosine_similarity','embedding_vector_sha256','retrieval_ranks','hybrid_score') if key in row}})
+            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256'],**({'extractor':pdf['extractor'],'page_text_sha256':pdf['pages'][row['page_number']-1]['text_sha256']} if pdf else {}),**{key:row[key] for key in ('page_number','chunk_id','cosine_similarity','embedding_vector_sha256','retrieval_ranks','hybrid_score') if key in row}})
+        self.verify_citations(result)
         return (result,dict(metadata,matches=len(result))) if with_metadata else result
+    def reference_lines(self,row,raw):
+        if not row['name'].lower().endswith('.pdf'):return raw.decode('utf-8').splitlines(keepends=True),None
+        with self.connect() as conn:saved=conn.execute('SELECT extraction,extraction_sha256,extractor FROM local_pdf_extractions WHERE document_id=%s',(row['id'],)).fetchone()
+        if not saved:raise IntegrityError('PDF extraction record missing')
+        canonical=json.dumps(saved['extraction'],sort_keys=True,separators=(',',':'),ensure_ascii=True)
+        if hashlib.sha256(canonical.encode()).hexdigest()!=saved['extraction_sha256']:raise IntegrityError('PDF extraction hash mismatch')
+        from kcee.pdf_text import extract_pdf,EXTRACTOR
+        if saved['extractor']!=EXTRACTOR:raise IntegrityError('PDF extractor identity mismatch')
+        try:actual=extract_pdf(raw)
+        except ValueError as error:raise IntegrityError('PDF source cannot be verified') from error
+        if actual!=saved['extraction']:raise IntegrityError('PDF extraction differs from original file')
+        return ''.join(page['text'] for page in actual['pages']).splitlines(keepends=True),actual
+
     def verify_citations(self,chunks):
         for chunk in chunks:
-            row,raw=self.source(chunk['document_id']);lines=raw.decode('utf-8').splitlines(keepends=True)
+            row,raw=self.source(chunk['document_id']);lines,pdf=self.reference_lines(row,raw)
             if not 1<=chunk['line_start']<=chunk['line_end']<=len(lines) or row['name']!=chunk['name']:raise IntegrityError('Cited source name or line range mismatch')
+            if pdf:
+                offset=0;matching=False
+                for page in pdf['pages']:
+                    count=len(page['text'].splitlines(keepends=True))
+                    if chunk.get('page_number')==page['page_number'] and offset<chunk['line_start']<=chunk['line_end']<=offset+count:
+                        if ('extractor' in chunk and chunk['extractor']!=pdf['extractor']) or ('page_text_sha256' in chunk and chunk['page_text_sha256']!=page['text_sha256']):raise IntegrityError('PDF extraction citation fingerprint mismatch')
+                        matching=True
+                    offset+=count
+                if not matching:raise IntegrityError('Cited PDF page mismatch')
+            elif chunk.get('page_number') is not None:raise IntegrityError('Unexpected PDF page citation')
             excerpt=''.join(lines[chunk['line_start']-1:chunk['line_end']])
             if row['source_sha256']!=chunk['source_sha256'] or excerpt!=chunk['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=chunk['chunk_sha256']:raise IntegrityError('Cited source mismatch')
 

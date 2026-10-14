@@ -385,12 +385,13 @@ async def upload_knowledge(request: Request):
     raw=bytearray()
     async for part in request.stream():
         raw.extend(part)
-        if len(raw)>360000:raise HTTPException(413,'Document request exceeds 256 KB source limit')
+        if len(raw)>7100000:raise HTTPException(413,'Document request exceeds 5 MB source limit')
     try:
         data=json.loads(raw)
         if set(data)!={'name','bytes_base64'}:raise ValueError('Unexpected document fields')
-        return Knowledge().ingest(data['name'],base64.b64decode(data['bytes_base64'],validate=True))
-    except (ValueError,TypeError,KeyError):raise HTTPException(422,'Use a nonempty UTF-8 .txt or .md document up to 256 KB; lines must be shorter than 1800 characters')
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(Knowledge().ingest,data['name'],base64.b64decode(data['bytes_base64'],validate=True))
+    except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:250])
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
 
 @app.get('/knowledge/documents/{document_id}/source')
@@ -398,7 +399,8 @@ def knowledge_source(document_id: UUID):
     from kcee.knowledge import Knowledge
     try:
         row,raw=Knowledge().source(document_id)
-        return Response(raw,media_type='text/plain; charset=utf-8',headers={'X-Source-SHA256':row['source_sha256'],'X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="kcee-document.txt"'})
+        pdf=row['name'].lower().endswith('.pdf')
+        return Response(raw,media_type='application/pdf' if pdf else 'text/plain; charset=utf-8',headers={'X-Source-SHA256':row['source_sha256'],'X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="kcee-document.'+('pdf' if pdf else 'txt')+'"'})
     except KeyError:raise HTTPException(404,'Document not found')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
@@ -420,3 +422,13 @@ def index_knowledge(request: Request):
     except QueueError as error:raise HTTPException(503,str(error))
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Embedding database unavailable')
+
+@app.get('/knowledge/documents/{document_id}/text')
+def knowledge_extracted_text(document_id: UUID):
+    from kcee.knowledge import Knowledge
+    try:
+        knowledge=Knowledge();row,raw=knowledge.source(document_id);lines,pdf=knowledge.reference_lines(row,raw)
+        return {'name':row['name'],'source_sha256':row['source_sha256'],'pages':pdf['pages'] if pdf else None,'text':None if pdf else ''.join(lines),'extractor':pdf['extractor'] if pdf else None}
+    except KeyError:raise HTTPException(404,'Document not found')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except psycopg.Error:raise HTTPException(503,'PDF extraction migration unavailable')

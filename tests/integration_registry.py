@@ -35,6 +35,27 @@ class RegistryIntegration(unittest.TestCase):
             with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
                 with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM '+table)
 
+    def test_pdf_ingestion_page_citations_and_immutability(self):
+        import base64
+        from pdf_fixture import pdf_bytes
+        from kcee.knowledge import Knowledge
+        raw=pdf_bytes();headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        req=Request(BASE+'/knowledge/documents',data=json.dumps({'name':'integration-pages.pdf','bytes_base64':base64.b64encode(raw).decode()}).encode(),headers=headers,method='POST')
+        with urlopen(req,timeout=30) as response:document=json.load(response)
+        self.assertEqual(document['page_count'],2)
+        with urlopen(BASE+'/knowledge/documents/'+document['id']+'/source') as response:
+            self.assertEqual(response.read(),raw);self.assertEqual(response.headers['Content-Type'],'application/pdf');self.assertIn('attachment',response.headers['Content-Disposition'])
+        with urlopen(BASE+'/knowledge/documents/'+document['id']+'/text') as response:preview=json.load(response)
+        self.assertEqual(preview['pages'][1]['page_number'],2)
+        rows=Knowledge().retrieve('rear face fixed boundary')
+        chunk=next(c for c in rows if c['document_id']==document['id'])
+        self.assertEqual(chunk['page_number'],1);Knowledge().verify_citations([chunk])
+        with self.assertRaises(IntegrityError):Knowledge().verify_citations([dict(chunk,page_number=2)])
+        with Registry().connect() as conn:
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):conn.execute('DELETE FROM local_pdf_extractions')
+        with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
+            with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM local_pdf_extractions')
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:
