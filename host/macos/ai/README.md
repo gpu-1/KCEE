@@ -1,6 +1,6 @@
 # Local study assistant
 
-Implemented: native llama.cpp Metal inference with the official Qwen3 4B Q4_K_M model, grounded in one verified bracket structural study. It explains evidence and cannot edit designs, run tools/solvers, approve engineering acceptance or access arbitrary files. Generated text remains an AI draft, not a verified engineering result.
+Implemented: native llama.cpp Metal inference with the official Qwen3 4B Q4_K_M model, grounded in one verified structural or thermal study. It explains evidence and cannot edit designs, run tools/solvers, approve engineering acceptance or access arbitrary files. Generated text remains an AI draft, not a verified engineering result.
 
 ## Provision and start
 
@@ -17,7 +17,7 @@ The model server binds 127.0.0.1:8081 and requires a private API key for inferen
 
 The API verifies saved artifacts, selects evidence from recorded results, diagnostics and source-linked exploratory investigations, and hashes the snapshot. Questions are limited to 800 characters, evidence to 20 KB, one pending/processing job, 30-second delivery TTL and 150-second inference timeout. Responses are signed, their source/evidence identities are checked again, and cited category names are schema constrained and validated. Responses retain question, evidence, model/runtime hashes and expire after one day. Local logs and queue data are private to the project account.
 
-Select a bracket FEA study and use Ask about this study. Answers cite evidence categories and remain explicitly labelled as drafts. A passing schema/hash check does not prove every generated claim; check explanations against the displayed results. Fixed tests of a manufacture-approval override and an unsupported thermal question were refused by the model, but these examples are not comprehensive model safety or engineering validation.
+Select a bracket FEA, bracket thermal or 1D thermal benchmark study and use Ask about this study. Answers cite evidence categories and remain explicitly labelled as drafts. A passing schema/hash check does not prove every generated claim; check explanations against the displayed results. Fixed tests of a manufacture-approval override and an unsupported thermal question on a structural-only source were refused by the model, but these examples are not comprehensive model safety or engineering validation.
 
 Website Local AI Start/Stop uses the same restricted supervisor as the other services and asks for confirmation on stop. The model and gateway stop separately from geometry/structural/voice. Full CLI shutdown includes them. Changing studies aborts the browser's pending request and clears its answer; cancelling active native inference is not yet implemented.
 

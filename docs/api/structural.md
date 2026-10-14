@@ -18,7 +18,7 @@ POST /runs/{uuid}/structural verifies the native source run and analyzes the def
 
 ## Local study AI
 
-`GET /assistant/status` reports signed native gateway availability. `POST /runs/{run_id}/assistant` accepts a question up to 800 characters, requiring local website Origin and `X-KCEE-Assistant: 1`. It verifies the saved bracket structural run and its evidence before enqueueing a read-only explanation. Other kinds return 422, unknown runs 404 and integrity failures 409. `GET /assistant/jobs/{job_id}` returns pending/completed/failed; completed responses contain the evidence snapshot/digest, cited categories, model/runtime hashes and an AI-draft label. Source integrity is rechecked on retrieval. No design or solver action is available to this model.
+`GET /assistant/status` reports signed native gateway availability. `POST /runs/{run_id}/assistant` accepts a question up to 800 characters, requiring local website Origin and `X-KCEE-Assistant: 1`. It verifies the saved bracket structural or thermal run and its evidence before enqueueing a read-only explanation. Other kinds return 422, unknown runs 404 and integrity failures 409. `GET /assistant/jobs/{job_id}` returns pending/completed/failed; completed responses contain the evidence snapshot/digest, cited categories, model/runtime hashes and an AI-draft label. Source integrity is rechecked on retrieval. No design or solver action is available to this model.
 
 ## Thermal verification
 
@@ -27,3 +27,5 @@ POST /runs/{uuid}/structural verifies the native source run and analyzes the def
 ## Native bracket temperature
 
 `POST /runs/{id}/thermal` verifies a default native source and registers a separate steady 3D conduction study through the existing CalculiX worker. Non-native sources return 422; source integrity failure returns 409; solver failure returns 503 with a retained diagnostic run ID. `GET /runs/{id}/temperature-surface` returns the archived fine boundary nodal field with source archive hash after full saved-run verification; unsupported kinds return 422. Full solver archive and nodal CSV are manifest-linked artifacts. See [native bracket thermal study](../engineering/bracket-thermal.md).
+
+The local study assistant also accepts verified `bracket_thermal` and `thermal_benchmark` results. Thermal evidence snapshots include saved mesh summaries, imposed conditions, tolerances and reference checks, omit full nodal profiles, and do not imply structural results or engineering acceptance. The separate rectangular reference bar is explicitly identified in the snapshot.

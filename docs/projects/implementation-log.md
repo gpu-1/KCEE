@@ -403,3 +403,9 @@ Verification: 74 Python tests, 13 viewer tests and 16 isolated integration tests
 ## 2026-10-14 — Thermal boundary markers
 
 The bracket thermal viewer now enables a Thermal boundaries toggle. Blue and red outlines identify the nominal 20 °C rear upright and 80 °C free end; the legend states that remaining surfaces are insulated and boundaries are ideal reservoirs. Markers follow the original geometry without deformation. Structural load/support labeling and markers are restored when switching back to a structural study.
+
+## 2026-10-14 — Local AI for verified thermal studies
+
+Extended bounded read-only assistant snapshots to bracket thermal and 1D thermal verification runs. Evidence includes the selected fine mesh, imposed conditions, numerical checks/tolerances, global refinement and exact-reference diagnostics; full nodal profiles are excluded from model context. Thermal questions and prompts distinguish imposed reservoirs from computed results and do not invent structural stresses or local heat-flux convergence. Existing source hashes, signed jobs, draft labels and exports apply unchanged.
+
+Verification: 76 Python tests, 13 viewer tests and 16 isolated integration tests passed. Real local-model tests explained the bracket’s ±1.4996 W balance and 38.2938 °C volume mean, refused to invent mechanical stress for the thermal-only source, and returned the 1D benchmark’s recorded 80.1811 °C peak. The separate rectangular solver reference is explicitly scoped in supplied diagnostics. These targeted checks do not certify every generated answer.

@@ -26,6 +26,9 @@ class RegistryIntegration(unittest.TestCase):
         status,data=request('/runs/thermal-benchmark','POST');self.assertEqual(status,201)
         run_id=data['run_id'];record=request('/runs/'+run_id)[1]
         self.assertEqual(record['manifest']['kind'],'thermal_benchmark')
+        req=Request(BASE+'/runs/'+run_id+'/assistant',data=json.dumps({'question':'Explain heat balance'}).encode(),headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Assistant':'1'},method='POST')
+        with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
+        self.assertEqual(error.exception.code,503) # Correct thermal scope reaches unavailable AI gateway.
         self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
         result=json.loads((Path('/data/runs')/run_id/'result.json').read_text())
         self.assertTrue(all(result['thermal']['checks'].values()))

@@ -47,11 +47,11 @@ After `python3 scripts/start_kcee.py`, the website's Engineering services panel 
 
 ## Local voice summaries
 
-Kokoro can prepare verified bracket-study summaries for playback in the website. Provision explicitly, then start with `python3 scripts/start_voice_worker.py` or `python3 scripts/start_kcee.py --voice`. Select a bracket structural study, choose Prepare voice summary, then press Play. See [local voice setup and limits](host/macos/kokoro/README.md). Voice preparation stays local; AI, automatic voice alerts and speech input remain pending.
+Kokoro can prepare verified bracket-study summaries for playback in the website. Provision explicitly, then start with `python3 scripts/start_voice_worker.py` or `python3 scripts/start_kcee.py --voice`. Select a bracket structural study, choose Prepare voice summary, then press Play. See [local voice setup and limits](host/macos/kokoro/README.md). Voice preparation stays local; automatic voice alerts and speech input remain pending.
 
 ## Local AI for verified study results
 
-Provision the native model once, then start with `python3 scripts/start_kcee.py --ai --voice`. Select a bracket FEA study and ask a question in Ask about this study. The local model receives a verified evidence snapshot; replies cite evidence categories and remain drafts. Website Local AI controls start/stop the provisioned model without downloads. See [local AI setup, grounding and limits](host/macos/ai/README.md).
+Provision the native model once, then start with `python3 scripts/start_kcee.py --ai --voice`. Select a bracket FEA, bracket thermal or 1D thermal benchmark study and ask a question in Ask about this study. The local model receives a verified evidence snapshot; replies cite evidence categories and remain drafts. Website Local AI controls start/stop the provisioned model without downloads. See [local AI setup, grounding and limits](host/macos/ai/README.md).
 
 Thermal verification: the engineering workers now include a fixed steady 1D conduction example. Use **Run thermal benchmark** in the website; see [thermal benchmark](docs/engineering/thermal-benchmark.md) for equations, numerical gates and scope. This verifies an implementation, not bracket thermal performance.
 

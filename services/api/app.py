@@ -282,7 +282,7 @@ def assistant_status():
     if ready:
         try:model=read_signed(Path(assistant_paths()[0])/'heartbeat.json',key_bytes(assistant_paths()[1]),4096).get('model_sha256')
         except Exception:ready=False
-    return {'available':ready,'model_sha256':model,'scope':'read_only_verified_bracket_study','backend':'native_llama_cpp_metal'}
+    return {'available':ready,'model_sha256':model,'scope':'read_only_verified_structural_and_thermal_studies','backend':'native_llama_cpp_metal'}
 
 class StudyQuestion(BaseModel):
     question: str
@@ -296,9 +296,10 @@ def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
     if not 1<=len(body.question.strip())<=800:raise HTTPException(422,'Use a question of 1 to 800 characters')
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
-        if record['manifest'].get('kind')!='bracket_structural':raise HTTPException(422,'Study AI currently supports bracket structural studies')
+        kind=record['manifest'].get('kind')
+        if kind not in ('bracket_structural','bracket_thermal','thermal_benchmark'):raise HTTPException(422,'Study AI supports verified structural and thermal studies')
         result=json.loads((ARTIFACTS/str(run_id)/'result.json').read_text())
-        evidence,digest=study_evidence(record,result,stress_diagnostics(run_id),refinement_explorations(run_id))
+        evidence,digest=study_evidence(record,result,stress_diagnostics(run_id) if kind=='bracket_structural' else {},refinement_explorations(run_id) if kind=='bracket_structural' else {'items':[]})
         return {'job_id':submit_assistant(body.question,evidence,digest,*assistant_paths()),'evidence_sha256':digest,'status':'pending'}
     except KeyError:raise HTTPException(404,'Unknown or incomplete study')
     except IntegrityError as error:raise HTTPException(409,str(error))

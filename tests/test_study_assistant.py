@@ -29,6 +29,23 @@ class StudyAssistantTests(unittest.TestCase):
             path=queue/(job+'.response.json');atomic_write(path,envelope(response,key.read_bytes()));self.assertEqual(assistant_result(job,queue,key)['status'],'completed')
             response['evidence_sha256']='wrong';atomic_write(path,envelope(response,key.read_bytes()))
             with self.assertRaises(QueueError):assistant_result(job,queue,key)
+    def test_thermal_evidence_is_bounded_and_has_no_mechanical_values(self):
+        from kcee.thermal import benchmark
+        record,_=self.fixture();record['manifest']['artifacts'].update({'thermal.json':'t','temperature.csv':'c'})
+        result={'kind':'thermal_benchmark','validation_status':record['validation_status'],'thermal':benchmark()}
+        evidence,digest=study_evidence(record,result,{}, {'items':[]})
+        self.assertEqual(evidence['study_kind'],'thermal_benchmark');self.assertEqual(evidence['selected_study_result']['cells'],80)
+        self.assertEqual(evidence['source']['temperature_csv_sha256'],'c');self.assertNotIn('stress_convergence',evidence['validation'])
+        self.assertTrue(all('profile' not in row for row in evidence['mesh_results']));self.assertLess(len(encoded(evidence)),20000)
+        self.assertEqual(digest,hashlib.sha256(encoded(evidence)).hexdigest())
+    def test_bracket_thermal_snapshot_uses_fine_mesh_and_archive(self):
+        record,_=self.fixture();record['manifest']['artifacts'].update({'thermal.json':'t','temperature.csv':'c','thermal-artifacts.zip':'archive'})
+        result={'kind':'bracket_thermal','validation_status':record['validation_status'],'thermal':{'mesh_study':[{'target_size_mm':2.5,'hot_reaction_heat_W':1.4,'load_patch_area_mm2':123},{'target_size_mm':1.5,'hot_reaction_heat_W':1.5,'volume_mean_temperature_C':38.2}], 'checks':{'heat_balance':True},'boundary':'20 and 80 C reservoirs','conductivity_W_m_K':15,'limits':['No structural coupling'],'last_relative_heat_flow_change':.001}}
+        evidence,_=study_evidence(record,result,{}, {'items':[]})
+        self.assertEqual(evidence['source']['solver_archive_sha256'],'archive');self.assertEqual(evidence['selected_study_result']['hot_reaction_heat_W'],1.5)
+        self.assertNotIn('load_patch_area_mm2',evidence['mesh_results'][0]);self.assertEqual(evidence['assumptions']['conductivity_W_m_K'],15)
+        record['manifest']['kind']='bracket_structural'
+        with self.assertRaises(ValueError):study_evidence(record,result,{}, {'items':[]})
     def test_unrecognized_model_citations_are_rejected(self):
         with self.assertRaises(ValueError):validate_answer({'answer':'Claim','source_keys':['internet']})
         with self.assertRaises(ValueError):validate_answer({'answer':'Claim','source_keys':[],'execute':'anything'})
