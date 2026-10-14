@@ -373,3 +373,7 @@ Retry verification caught an ambiguous displacement answer drawn from a separate
 ## 2026-10-14 — Suggested study questions
 
 Added compact displacement, stress convergence and refinement question buttons. Each fills the editable question box; inference only starts when the user presses Ask local AI. Suggestions explicitly distinguish the selected original study from exploratory follow-ups and are disabled while an answer is pending.
+
+## 2026-10-14 — Readable AI answer download
+
+Added a plain-text companion to the full JSON answer record. It preserves the exact question and draft answer, evidence categories, study/source hashes, job identity, model/runtime/prompt fingerprints and generation settings. Both exports clear together on a new question or study selection.
