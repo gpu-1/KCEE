@@ -399,3 +399,7 @@ Added actual native-STL Gmsh/C3D10 steady conduction through the existing isolat
 Actual study 2c5c8413-8154-4cc6-b76f-fd849b8a7560 derives from c072e470-2fd9-452a-aee2-19d9cb2a2329. Fine total heat is 1.499583 W; last heat-flow change 0.1401%, last mean-temperature change 0.0420 °C. All seven numerical gates passed. Exact bar temperature error is zero at saved precision and computed heat is 0.525 W. Saved CSV and solver archive downloads matched their registered hashes. Temperature preview contains 19,846 surface nodes and is archive-linked.
 
 Verification: 74 Python tests, 13 viewer tests and 16 isolated integration tests passed. The website created the real three-grid study and displayed source-linked temperature colors with deformation controls hidden. Unit checks reject invalid/non-finite field values and mismatched ranges/connectivity. API integration rejects unsupported source kinds. Actual CSV/archive bytes matched registered hashes and the whole saved run verified against the database manifest. Existing native generation, structural analysis, 1D thermal, AI and voice services remain available.
+
+## 2026-10-14 — Thermal boundary markers
+
+The bracket thermal viewer now enables a Thermal boundaries toggle. Blue and red outlines identify the nominal 20 °C rear upright and 80 °C free end; the legend states that remaining surfaces are insulated and boundaries are ideal reservoirs. Markers follow the original geometry without deformation. Structural load/support labeling and markers are restored when switching back to a structural study.
