@@ -337,3 +337,7 @@ The exploratory archive link text is now ZIP to fit the compact table column; de
 ## 2026-10-14 — Website voice lifecycle controls
 
 Added local voice On/Off status and Start/Stop next to engineering controls. Voice stop asks for confirmation and pauses current audio; the website/database remain running. The signed supervisor accepts only fixed voice_start/voice_stop actions. Its starter now safely reloads stale supervisor code only when no operation is active, checking signed heartbeat and process identity before graceful termination. No provisioning or model download is triggered from the website.
+
+## 2026-10-14 — Verified voice audio export
+
+Prepared voice summaries now expose Download audio (WAV) using the same hash-checked bytes as the player. The link appears only after successful source/audio verification, and selecting another study clears it together with the player and revokes the blob URL.
