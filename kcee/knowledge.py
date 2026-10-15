@@ -72,11 +72,13 @@ class Knowledge:
         raw=bytes(row['original_bytes'])
         if hashlib.sha256(raw).hexdigest()!=row['source_sha256']:raise IntegrityError('Document source hash mismatch')
         return row,raw
-    def retrieve(self,question,with_metadata=False):
+    def retrieve(self,question,with_metadata=False,document_id=None):
         if not isinstance(question,str) or not 1<=len(question.strip())<=800:raise ValueError('Use a question of 1 to 800 characters')
-        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(question,question)).fetchall()
+        if document_id is not None:document_id=str(uuid.UUID(str(document_id)))
+        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE (%s::uuid IS NULL OR d.id=%s::uuid) AND to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(document_id,document_id,question,question)).fetchall()
         from kcee.semantic_knowledge import retrieve
-        rows,metadata=retrieve(self,question,rows)
+        rows,metadata=retrieve(self,question,rows,document_id=document_id)
+        if document_id is not None:metadata['document_id']=document_id
         result=[]
         for index,row in enumerate(rows,1):
             source,raw=self.source(row['document_id']);lines,pdf=self.reference_lines(source,raw,[row.get('page_number')] if row.get('page_number') else None);excerpt=''.join(lines[row['line_start']-1:row['line_end']])

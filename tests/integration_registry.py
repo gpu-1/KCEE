@@ -14,6 +14,25 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_selected_document_search_stays_scoped(self):
+        from kcee.knowledge import Knowledge
+        k=Knowledge();selected=k.ingest('scope-selected.txt',b'ScopedSearchReference thermal conductivity 9.25 W per metre kelvin.\n')
+        other=k.ingest('scope-other.txt',b'ScopedSearchReference thermal conductivity other source must be excluded.\n')
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        def search(document_id):
+            payload={'question':'ScopedSearchReference thermal conductivity','document_id':document_id}
+            return urlopen(Request(BASE+'/knowledge/search',data=json.dumps(payload).encode(),headers=headers,method='POST'),timeout=30)
+        with search(selected['id']) as response:result=json.load(response)
+        self.assertTrue(result['passages']);self.assertEqual(result['retrieval']['document_id'],selected['id'])
+        self.assertTrue(all(p['document_id']==selected['id'] for p in result['passages']));self.assertEqual(result['integrity'],'verified')
+        import uuid
+        with search(str(uuid.uuid4())) as response:self.assertEqual(json.load(response)['passages'],[])
+        for invalid in ('bad',42):
+            with self.assertRaises(HTTPError) as error:search(invalid)
+            self.assertEqual(error.exception.code,422)
+        k.visibility(selected['id'],True,selected['source_sha256'],True)
+        with search(selected['id']) as response:self.assertEqual(json.load(response)['passages'],[])
+
     def test_local_document_ingestion_integrity_and_retrieval(self):
         import base64
         from kcee.knowledge import Knowledge
