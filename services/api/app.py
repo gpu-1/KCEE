@@ -424,6 +424,15 @@ def page_review_notes(document_id: UUID,page_number: int,before: int | None=None
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Page review notes migration unavailable')
 
+@app.get('/knowledge/documents/{document_id}/pages/{page_number}/notes/export')
+def export_page_review_notes(document_id: UUID,page_number: int):
+    from kcee.page_notes import export_notes
+    try:return export_notes(document_id,page_number)
+    except KeyError:raise HTTPException(404,'Document not found')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Page review notes migration unavailable')
+
 @app.post('/knowledge/documents/{document_id}/pages/{page_number}/notes',status_code=201)
 async def save_page_review_note(document_id: UUID,page_number: int,request: Request):
     from kcee.page_notes import save_note

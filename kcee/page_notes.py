@@ -29,3 +29,18 @@ def list_notes(document_id,page_number,before=None):
     for row in rows:
         if any(str(row[key])!=str(identity[key]) for key in identity) or note_digest(row)!=row['note_sha256']:raise IntegrityError('Saved review note integrity mismatch')
     return {'items':rows[:20],'next_before':rows[19]['id'] if len(rows)>20 else None,'identity':identity}
+
+def export_notes(document_id,page_number):
+    from datetime import datetime,timezone
+    knowledge=Knowledge();identity=verified_page(knowledge,document_id,page_number)
+    row,original=knowledge.source(document_id)
+    with knowledge.connect() as conn:rows=conn.execute('SELECT * FROM document_page_notes WHERE document_id=%s AND page_number=%s ORDER BY id DESC LIMIT 5001',(str(document_id),page_number)).fetchall()
+    if len(rows)>5000:raise ValueError('Page note history exceeds the 5000-note export limit; no partial export created')
+    notes=[]
+    for note in rows:
+        if any(str(note[key])!=str(identity[key]) for key in identity) or note_digest(note)!=note['note_sha256']:raise IntegrityError('Saved review note integrity mismatch')
+        notes.append({**note,'document_id':str(note['document_id']),'created_at':note['created_at'].isoformat()})
+    record={'schema':'kcee.page-review-notes.v1','exported_at':datetime.now(timezone.utc).isoformat(),'identity':dict(identity,name=row['name']),'notes':notes,'note_count':len(notes),'latest_note_id':notes[0]['id'] if notes else None,'integrity':'verified_at_export','limitations':['Saved observations only; unsaved drafts are not included.','Notes do not change original PDF text or establish engineering approval.','Export-time snapshot; later notes are not included.']}
+    raw=json.dumps(record,sort_keys=True,separators=(',',':'),ensure_ascii=True).encode()
+    if len(raw)>16*1024*1024:raise ValueError('Page note history exceeds the 16 MB export limit; no partial export created')
+    return dict(record,snapshot_sha256=hashlib.sha256(raw).hexdigest())

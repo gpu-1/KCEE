@@ -33,6 +33,13 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(notes[0]['note_sha256'],note_digest(notes[0]))
         with urlopen(path,timeout=15) as response:latest=json.load(response)
         self.assertEqual(len(latest['items']),20);self.assertEqual(latest['items'][0]['id'],notes[-1]['id'])
+        with urlopen(path+'/export',timeout=15) as response:exported=json.load(response)
+        self.assertEqual(exported['note_count'],22);self.assertEqual(exported['latest_note_id'],notes[-1]['id'])
+        self.assertEqual([n['id'] for n in exported['notes']],[n['id'] for n in reversed(notes)])
+        snapshot_hash=exported.pop('snapshot_sha256');self.assertEqual(hashlib.sha256(json.dumps(exported,sort_keys=True,separators=(',',':'),ensure_ascii=True).encode()).hexdigest(),snapshot_hash)
+        self.assertEqual(exported['identity']['source_sha256'],doc['source_sha256'])
+        with urlopen(path.replace('/pages/1/','/pages/2/')+'/export',timeout=15) as response:self.assertEqual(json.load(response)['notes'],[])
+
         with urlopen(path+'?before='+str(latest['next_before']),timeout=15) as response:older=json.load(response)
         self.assertEqual(len(older['items']),2);self.assertIsNone(older['next_before'])
         with urlopen(path.replace('/pages/1/','/pages/2/'),timeout=15) as response:self.assertEqual(json.load(response)['items'],[])
