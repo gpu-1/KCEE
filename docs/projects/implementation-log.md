@@ -427,3 +427,7 @@ The document workspace Verify panel now exports TXT and JSON reports after snaps
 ### Backup and restore status in the document workspace
 
 A Backup tab reads the newest local bundle receipt and restore verification record independently through a read-only API. It shows record modification times, inventory counts, stored bundle SHA-256, file presence and whether review-note verification was recorded. It does not rehash bundles, certify current database coverage or imply the restore tested the displayed bundle. Invalid newest records are reported rather than silently replaced with older successes. The API exposes sanitized names, not host paths or source payloads. The backup folder is mounted read-only; no start/restore controls or archive downloads are exposed. Future successful restore commands retain a status record in `.local/backups`; old records without event timestamps are labelled by file modification time.
+
+### Literal search-result highlighting
+
+Search passages highlight whole query words and decimal numbers, case-insensitively, with common English/Spanish words ignored. A checkbox turns presentation highlighting off or on without fetching again. Semantic-only matches may have no highlighted tokens. Rendering creates text-only span/mark nodes; literal OCR, citation payloads, hashes and exports remain unchanged. Tests cover token boundaries, decimals, Unicode, exact text preservation and HTML-like source text.
