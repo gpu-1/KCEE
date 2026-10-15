@@ -13,3 +13,5 @@ Update documentation and ADRs with interface/model changes. Record units, assump
 - [Finer bracket mesh exploration](engineering/finer-mesh-exploration.md): separate 1.3 mm solve and current stress-convergence limits
 
 - [Local root refinement](engineering/root-refinement-exploration.md): hotspot sensitivity within the current node budget
+
+- [Reference workflow](tutorials/reference-workflow.md): saved labels, PDF page ranges, scoped assistant and export verification

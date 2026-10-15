@@ -58,3 +58,17 @@ class MultiDocumentAPITests(unittest.TestCase):
   for fields in ({'document_ids':[],'include_documents':True},{'document_ids':[id,id],'include_documents':True},{'document_ids':[id]},{'document_id':id,'document_ids':[id],'include_documents':True}):
    with self.assertRaises(HTTPException) as error:ask_study(uuid.uuid4(),StudyQuestion(question='Question',**fields),Request())
    self.assertEqual(error.exception.status_code,422)
+
+class RangedAssistantTests(unittest.TestCase):
+ def test_range_is_forwarded_and_bound_to_evidence_hash(self):
+  import hashlib
+  from kcee.knowledge import attach_documents
+  from kcee.geometry_queue import encoded
+  identifier='12345678-1234-1234-1234-123456789abc'
+  with patch('kcee.knowledge.Knowledge') as constructor:
+   knowledge=constructor.return_value;knowledge.connect.return_value.__enter__.return_value.execute.return_value.fetchone.return_value={'id':identifier};knowledge.source.return_value=({'name':'selected.pdf','source_sha256':'hash'},b'original');knowledge.retrieve.return_value=([],{'matches':0,'page_range':{'start':2,'end':2}})
+   evidence,digest=attach_documents({},'Question',identifier,page_start=2,page_end=2);knowledge.retrieve.assert_called_once_with('Question',with_metadata=True,document_id=identifier,page_start=2,page_end=2);self.assertEqual(evidence['document_search']['scope']['page_range'],{'start':2,'end':2});self.assertEqual(digest,hashlib.sha256(encoded(evidence)).hexdigest())
+ def test_ranges_without_single_source_fail_before_retrieval(self):
+  from kcee.knowledge import attach_documents
+  for args in ({'page_start':2,'page_end':2},{'document_ids':['12345678-1234-1234-1234-123456789abc'],'page_start':2,'page_end':2}):
+   with self.assertRaises(ValueError):attach_documents({},'Question',**args)

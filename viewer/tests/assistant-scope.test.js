@@ -12,3 +12,8 @@ test('answer scope requires all selected identities and rejects outside citation
  assert.equal(scopeMatches(sources,evidence),true);assert.ok(scopeDescription(evidence).includes('b.pdf'));assert.ok(scopeDescription(evidence).includes('a'.repeat(64)));
  assert.equal(scopeMatches([sources[0]],evidence),false);evidence.documents.push({document_id:'outside'});assert.equal(scopeMatches(sources,evidence),false);
 });
+
+test('page-limited scope survives handoff and rejects broader evidence or out-of-range citations',()=>{
+ const source={...sources[0],page_range:{start:2,end:3}},scoped=handoffSources({document:source});assert.deepEqual(scopeRequest(scoped),{document_id:source.id,page_start:2,page_end:3});
+ const evidence={document_search:{scope:{document_id:source.id,name:source.name,source_sha256:'a'.repeat(64),page_range:{start:2,end:3}}},documents:[{document_id:source.id,page_number:2}]};assert.equal(scopeMatches(scoped,evidence),true);assert.match(scopeDescription(evidence),/physical pages 2–3/);evidence.documents[0].page_number=1;assert.equal(scopeMatches(scoped,evidence),false);evidence.documents=[];delete evidence.document_search.scope.page_range;assert.equal(scopeMatches(scoped,evidence),false);assert.equal(handoffSources({documents:[source,sources[1]]}),null);
+});

@@ -455,3 +455,9 @@ Search optionally limits a selected active PDF to an inclusive physical page ran
 ### Page ranges in saved searches
 
 Saved searches retain optional inclusive physical PDF page bounds. All-pages and different page ranges are separate saved identities. Loading restores the checkbox and bounds; old saved records load as all-pages. Transfer exports use v2 to preserve bounds; import still accepts original v1 files. Invalid ranges, ranges without a PDF selection and reversed bounds are rejected before storage writes. The study assistant remains unavailable for ranged questions.
+
+### Reference workflow batch 1
+
+Page-limited document questions now carry bounds through the study-assistant request, independent retrieval, evidence scope/hash, displayed reference scope and TXT/JSON answer exports. The browser rejects broader returned scopes or out-of-range passages. Multi-document comparisons retain their existing all-pages scopes. Saved searches support optional 100-character labels and filtering across labels, question, document and pages; saving again retains the label. Transfer schema v3 preserves labels and ranges, still accepting v1/v2 files and merging without replacing existing records. Scope wording distinguishes all-pages from physical-page ranges. All queries remain read-only and answers remain drafts requiring source review.
+
+Assistant answer JSON now includes the original Python-canonical evidence string, whose UTF-8 hash is verified in the browser together with structural equality to the displayed evidence. This preserves reproducibility across browser number serialization (for example `1.0` versus `1`). Older saved answer files remain readable but lack this additional canonical string.

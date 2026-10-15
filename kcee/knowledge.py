@@ -162,9 +162,12 @@ def balanced_document_passages(groups,limit=4):
             if len(selected)>=limit:return selected
     return selected
 
-def attach_documents(evidence,question,document_id=None,document_ids=None):
+def attach_documents(evidence,question,document_id=None,document_ids=None,page_start=None,page_end=None):
     from kcee.geometry_queue import encoded
     knowledge=Knowledge();scopes=[]
+    from kcee.page_range import validate_page_range
+    page_range=validate_page_range(document_id,page_start,page_end)
+    if page_range and document_ids is not None:raise ValueError('Page bounds require one document')
     if document_ids is not None:
         if document_id is not None or not isinstance(document_ids,list) or not 1<=len(document_ids)<=3:raise ValueError('Choose one to three document identities')
         identifiers=[str(uuid.UUID(str(value))) for value in document_ids]
@@ -177,7 +180,9 @@ def attach_documents(evidence,question,document_id=None,document_ids=None):
         scopes.append({'document_id':identifier,'name':row['name'],'source_sha256':row['source_sha256']})
     evidence=dict(evidence)
     if len(scopes)<=1:
-        evidence['documents'],evidence['document_search']=knowledge.retrieve(question,with_metadata=True,document_id=identifiers[0] if identifiers else None)
+        evidence['documents'],evidence['document_search']=knowledge.retrieve(question,with_metadata=True,document_id=identifiers[0] if identifiers else None,**({'page_start':page_start,'page_end':page_end} if page_range else {}))
+        if page_range:
+            scopes[0]['page_range']=page_range
         if scopes:evidence['document_search']['scope']=scopes[0]
     else:
         groups=[];searches=[]
