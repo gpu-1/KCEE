@@ -12,6 +12,7 @@ from typing import Literal
 from kcee.picogk import GeometryError
 from kcee.geometry_queue import available
 from kcee.fea_run import run_benchmark,solver_available
+from kcee.cfd_run import run_cfd,cfd_available
 from kcee.thermal_run import run_thermal,thermal_available
 from kcee.fea import SolverError
 from kcee.bracket_analysis import analyze,BracketAnalysisError
@@ -43,7 +44,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available()},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -606,3 +607,13 @@ def get_transfer_readiness():
             library=library_snapshot(conn);studies=study_snapshot(conn)
     except psycopg.Error:raise HTTPException(503,'Transfer inventory unavailable')
     return dict(transfer_readiness(recorded_status(os.environ.get('KCEE_BACKUP_STATUS_DIR','/data/backup-status')),library,studies),checked_at=datetime.now(timezone.utc).isoformat())
+
+@app.post('/runs/cfd-benchmark',status_code=201)
+def cfd_benchmark(body: dict | None=None):
+    if body:raise HTTPException(422,'CFD benchmark uses a fixed preset and accepts no input parameters')
+    ready()
+    try:dest=run_cfd(ARTIFACTS)
+    except Exception:raise HTTPException(503,'CFD worker unavailable or numerical reproduction failed')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'CFD artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'validation_status':'cfd_numerical_checks_passed_not_engineering_validated'}

@@ -34,7 +34,7 @@ def main():
         result=subprocess.run(readiness,cwd=root)
         print('Readiness report: '+str(report),flush=True)
         if result.returncode:return result.returncode
-        print('KCEE geometry/FEA'+('/AI' if args.ai else '')+('/voice' if args.voice else '')+' stack ready. Open http://localhost:5173/',flush=True)
+        print('KCEE geometry/FEA/CFD'+('/AI' if args.ai else '')+('/voice' if args.voice else '')+' stack ready. Open http://localhost:5173/',flush=True)
         return 0
     except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error:
         print('Startup did not complete: '+str(error),file=sys.stderr)

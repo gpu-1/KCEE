@@ -453,6 +453,17 @@ class RegistryIntegration(unittest.TestCase):
             req=Request(BASE+'/runs/bracket',data=json.dumps({'geometry_backend':backend}).encode(),method='POST',headers={'Content-Type':'application/json'})
             with self.assertRaises(HTTPError) as context: urlopen(req,timeout=15)
             self.assertEqual(context.exception.code,expected)
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Engineering worker profile not requested')
+    def test_cfd_channel_benchmark_is_saved_and_verified(self):
+        self.assertTrue(request('/capabilities')[1]['cfd']['plane_poiseuille'])
+        status,data=request('/runs/cfd-benchmark','POST');self.assertEqual(status,201)
+        run_id=data['run_id'];record=request('/runs/'+run_id)[1];self.assertEqual(record['manifest']['kind'],'cfd_benchmark');self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+        directory=Path('/data/runs')/run_id;flow=json.loads((directory/'result.json').read_text())['cfd'];self.assertTrue(all(flow['checks'].values()));self.assertEqual(len((directory/'velocity.csv').read_text().splitlines()),129)
+        self.assertAlmostEqual(flow['mesh_study'][-1]['relative_flow_error'],2/128**2,places=10)
+        req=Request(BASE+'/runs/cfd-benchmark',data=b'{"cells":8}',method='POST',headers={'Content-Type':'application/json'})
+        with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
+        self.assertEqual(error.exception.code,422)
+
     @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Structural profile not requested')
     def test_structural_benchmark_provenance(self):
         self.assertTrue(request('/capabilities')[1]['structural']['calculix'])

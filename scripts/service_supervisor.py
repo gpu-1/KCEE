@@ -38,8 +38,8 @@ try:
                     elif action=='voice_stop':stop_voice(root,150)
                     elif action=='start':
                         subprocess.run([sys.executable,str(root/'scripts/start_geometry_worker.py')],cwd=root,stdout=log,stderr=log,check=True,timeout=30)
-                        command=['docker','compose','--profile','fea','up','-d','--no-deps','--wait','--wait-timeout','60','structural','thermal']
-                    elif action=='stop':command=['docker','compose','--profile','fea','stop','--timeout','300','structural','thermal']
+                        command=['docker','compose','--profile','fea','up','-d','--no-deps','--wait','--wait-timeout','60','structural','thermal','cfd']
+                    elif action=='stop':command=['docker','compose','--profile','fea','stop','--timeout','300','structural','thermal','cfd']
                     if action in ('start','stop'):subprocess.run(command,cwd=root,stdout=log,stderr=log,check=True,timeout=320)
                     if action=='stop':stop_native(root,150)
                 response={'job_id':job_id,'action':action,'status':'completed'}

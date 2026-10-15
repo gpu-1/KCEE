@@ -22,6 +22,7 @@ services:
       dockerfile: services/api/Dockerfile
     ports: ["127.0.0.1:8000:8000"]
     environment:
+      CFD_URL: http://cfd:8007
       THERMAL_URL: http://thermal:8006
       STRUCTURAL_URL: http://structural:8005
       PGHOST: postgres
@@ -94,6 +95,21 @@ services:
       timeout: 4s
       retries: 10
     networks: [local]
+  cfd:
+    profiles: [fea]
+    build:
+      context: .
+      dockerfile: services/workers/cfd/Dockerfile
+    read_only: true
+    mem_limit: 128m
+    cpus: 1
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8007/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
+    networks: [local]
+
 volumes:
   postgres:
 networks:

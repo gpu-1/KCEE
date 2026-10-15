@@ -17,3 +17,5 @@ Update documentation and ADRs with interface/model changes. Record units, assump
 - [Reference workflow](tutorials/reference-workflow.md): saved labels, PDF page ranges, scoped assistant and export verification
 
 - [Guided engineering workflow](tutorials/engineering-workflow.md): fixed presets, independent structural/thermal comparison and consolidated reports
+
+- [CFD channel benchmark](engineering/cfd-benchmark.md): finite-volume momentum verification, profile charts, grid refinement and limits

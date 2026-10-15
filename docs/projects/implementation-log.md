@@ -471,3 +471,9 @@ Live guided acceptance created structural study `2fa09ea6` and thermal study `b8
 ### Mac Studio readiness batch 3
 
 Backup audits and receipts now fingerprint saved-study identities, manifest hashes and visibility history as well as document-library metadata. Restore verification compares these fingerprints when present and automatically records the tested archive SHA-256. The Backup panel identifies whether the latest restore tested the latest bundle, shows source-data freshness and provides a migration checklist and downloadable timestamped readiness report. Legacy receipts without study fingerprints remain inconclusive; native destination acceptance and browser saved-search transfer stay explicit manual checks.
+
+### Verified CFD workflow batch
+
+Added a bounded internal CFD worker for a fixed, fully developed plane-Poiseuille finite-volume benchmark. Four grids verify analytical velocity/flow, second-order refinement, momentum balance, residual and symmetry. API-side transport reproduction gates immutable run registration. The viewer supports saved CFD runs, per-grid numerical/analytical profile charts, physical-unit metrics, check/refinement tables and verified report/CSV/manifest downloads. The displayed channel is explicitly an illustrative envelope; no general pressure–velocity coupling or bracket flow is claimed. CFD is included in engineering service lifecycle controls and isolated CI worker integration.
+
+Live acceptance saved CFD run `8ddb8032`, verified all six checks, changed displayed grid resolution, and confirmed website Start recovers a stopped CFD worker while saved results remain available. Finest-grid flow error was 0.012207% and observed profile orders were 2.0000. The isolated engineering integration suite passed all 28 tests.
