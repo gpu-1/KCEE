@@ -10,7 +10,7 @@ export function pageIndicators(page){
  if(replacementCharacters)warnings.push('Replacement characters found. Some characters may not have been decoded correctly.');
  return {characters,replacementCharacters,numericTokens,warnings,ocr:page.method==='ocr'};
 }
-export function showPdfReview(extracted,item){
+export function showPdfReview(extracted,item,onPage=()=>{}){
  const get=id=>document.getElementById(id),pages=extracted.pages;
  if(!Array.isArray(pages)||!pages.length)throw new Error('PDF pages unavailable');
  const indicators=pages.map(pageIndicators),ocr=indicators.filter(p=>p.ocr).length,flagged=indicators.filter(p=>p.warnings.length).length;
@@ -29,6 +29,7 @@ export function showPdfReview(extracted,item){
   const language={'eng':'English','spa':'Spanish','eng+spa':'English + Spanish'}[extracted.ocr_languages]||'not recorded';
   get('pdf-review-indicators').textContent=method+(info.ocr?' · '+language:'')+' · '+info.characters+' characters · '+info.numericTokens+' numeric tokens · '+info.replacementCharacters+' replacement characters. '+(info.warnings.join(' ')||'No empty, short-text or replacement-character warnings. This does not confirm text accuracy.');
   get('pdf-review-original').replaceChildren();appendPdfPageLink(get('pdf-review-original'),{...item,document_id:item.id,page_number:page.page_number});
+  onPage(item,page);
   get('pdf-review-previous').disabled=index===0;get('pdf-review-next').disabled=index===pages.length-1;
  };
  select.onchange=render;

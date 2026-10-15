@@ -415,6 +415,32 @@ def knowledge_source(document_id: UUID, inline: bool = False):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
 
+@app.get('/knowledge/documents/{document_id}/pages/{page_number}/notes')
+def page_review_notes(document_id: UUID,page_number: int,before: int | None=None):
+    from kcee.page_notes import list_notes
+    try:return list_notes(document_id,page_number,before)
+    except KeyError:raise HTTPException(404,'Document not found')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Page review notes migration unavailable')
+
+@app.post('/knowledge/documents/{document_id}/pages/{page_number}/notes',status_code=201)
+async def save_page_review_note(document_id: UUID,page_number: int,request: Request):
+    from kcee.page_notes import save_note
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Review notes require the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>16384:raise HTTPException(413,'Review note is too large')
+    try:
+        import json
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(save_note,document_id,page_number,json.loads(raw))
+    except KeyError:raise HTTPException(404,'Document not found')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except (ValueError,TypeError) as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Page review notes migration unavailable')
+
 @app.get('/knowledge/semantic-status')
 def knowledge_semantic_status():
     from kcee.knowledge import Knowledge

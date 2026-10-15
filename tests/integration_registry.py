@@ -14,6 +14,32 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_page_review_notes_are_bound_to_original_page(self):
+        from kcee.knowledge import Knowledge
+        from kcee.page_notes import note_digest
+        from pdf_fixture import pdf_bytes
+        k=Knowledge();doc=k.ingest('review-note-fixture.pdf',pdf_bytes(('Page review notes fixture 0.525 W.','Second review page fixture.')))
+        with urlopen(BASE+'/knowledge/documents/'+doc['id']+'/text',timeout=15) as response:extracted=json.load(response)
+        path=BASE+'/knowledge/documents/'+doc['id']+'/pages/1/notes'
+        data={'source_sha256':doc['source_sha256'],'page_text_sha256':extracted['pages'][0]['text_sha256'],'note':'Review fixture observation'}
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        def save(payload,send_headers=headers):
+            with urlopen(Request(path,data=json.dumps(payload).encode(),headers=send_headers,method='POST'),timeout=15) as response:return json.load(response)
+        with self.assertRaises(HTTPError) as error:save(data,{})
+        self.assertEqual(error.exception.code,403)
+        with self.assertRaises(HTTPError) as error:save(dict(data,page_text_sha256='0'*64))
+        self.assertEqual(error.exception.code,409)
+        notes=[save(dict(data,note='Review observation '+str(n))) for n in range(22)]
+        self.assertEqual(notes[0]['note_sha256'],note_digest(notes[0]))
+        with urlopen(path,timeout=15) as response:latest=json.load(response)
+        self.assertEqual(len(latest['items']),20);self.assertEqual(latest['items'][0]['id'],notes[-1]['id'])
+        with urlopen(path+'?before='+str(latest['next_before']),timeout=15) as response:older=json.load(response)
+        self.assertEqual(len(older['items']),2);self.assertIsNone(older['next_before'])
+        with urlopen(path.replace('/pages/1/','/pages/2/'),timeout=15) as response:self.assertEqual(json.load(response)['items'],[])
+        k.visibility(doc['id'],True,doc['source_sha256'],True)
+        with urlopen(path,timeout=15) as response:self.assertEqual(len(json.load(response)['items']),20)
+        row,raw=k.source(doc['id']);self.assertEqual(row['source_sha256'],doc['source_sha256']);self.assertEqual(raw,pdf_bytes(('Page review notes fixture 0.525 W.','Second review page fixture.')))
+
     def test_library_pagination_filters_entire_collection(self):
         from kcee.knowledge import Knowledge
         from urllib.parse import urlencode
