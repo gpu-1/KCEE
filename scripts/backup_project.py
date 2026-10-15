@@ -25,6 +25,7 @@ def audit(root):
     return report
 def verify_restore_inventory(expected,actual):
     if actual['counts']!=expected['counts']:raise ValueError('Restored database inventory differs')
+    if expected.get('library_snapshot') and actual.get('library_snapshot')!=expected['library_snapshot']:raise ValueError('Restored library metadata differs from backup')
     if 'document_page_notes' in expected['counts'] or expected.get('review_notes') is not None:
         if not expected.get('review_notes') or expected['review_notes'].get('integrity')!='verified' or actual.get('review_notes')!=expected['review_notes']:raise ValueError('Restored review note history differs from backup verification')
 
@@ -94,7 +95,7 @@ def export(root,output):
                 staging.rename(output)
             finally:
                 if staging.exists():staging.unlink()
-        receipt={'created_at':time.time(),'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts'],'review_notes':report.get('review_notes')}
+        receipt={'created_at':time.time(),'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts'],'review_notes':report.get('review_notes'),'library_snapshot':report.get('library_snapshot')}
         receipt_path=output.with_suffix(output.suffix+'.receipt.json');receipt_path.write_text(json.dumps(receipt,indent=2));os.chmod(receipt_path,0o600)
         return receipt
     finally:

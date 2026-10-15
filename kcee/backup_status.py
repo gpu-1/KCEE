@@ -23,6 +23,7 @@ def recorded_status(directory):
             if kind=='backup':
                 digest=data['bundle_sha256']
                 if not isinstance(digest,str) or len(digest)!=64 or any(c not in '0123456789abcdef' for c in digest):raise ValueError('Invalid bundle fingerprint')
+                summary['library_snapshot']=data.get('library_snapshot')
                 summary.update(bundle_name=Path(data['bundle']).name,bundle_sha256=digest)
                 bundle=directory/summary['bundle_name']
                 summary['bundle_present']=bundle.is_file() and not bundle.is_symlink()

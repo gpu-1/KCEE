@@ -575,3 +575,16 @@ def document_import_state():
 def backup_status():
     from kcee.backup_status import recorded_status
     return recorded_status(os.environ.get('KCEE_BACKUP_STATUS_DIR','/data/backup-status'))
+
+@app.get('/backup-coverage')
+def backup_coverage():
+    from datetime import datetime,timezone
+    from kcee.backup_status import recorded_status
+    from kcee.library_coverage import library_snapshot,compare_library
+    saved=recorded_status(os.environ.get('KCEE_BACKUP_STATUS_DIR','/data/backup-status'))['backup']
+    try:
+        with registry.connect() as conn:
+            conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            current=library_snapshot(conn)
+    except psycopg.Error:raise HTTPException(503,'Current library comparison unavailable')
+    return {**compare_library(saved,current),'checked_at':datetime.now(timezone.utc).isoformat(),'receipt':saved['record_name'] if saved else None,'current':current,'limitations':'Metadata comparison only; does not rehash original bytes or backup archives, cover saved searches in browser storage, or establish whole-project coverage.'}

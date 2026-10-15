@@ -1,7 +1,7 @@
 import {request} from './client.js';
 const get=id=>document.getElementById(id);let pending=false;
 async function refresh(){
- if(pending)return;pending=true;get('refresh-backup-status').disabled=true;get('backup-status-records').replaceChildren();get('backup-status-message').textContent='Reading saved backup and restore records…';
+ if(pending)return;pending=true;get('refresh-backup-status').disabled=true;get('backup-coverage-result').textContent='';get('backup-status-records').replaceChildren();get('backup-status-message').textContent='Reading saved backup and restore records…';
  try{const result=await request('/backup-status');const container=get('backup-status-records');
   for(const kind of ['backup','restore']){const record=result[kind],section=document.createElement('section'),heading=document.createElement('h4');heading.textContent=kind==='backup'?'Latest backup receipt':'Latest restore verification';section.append(heading);
    const line=text=>{const p=document.createElement('p');p.textContent=text;section.append(p);};
@@ -18,3 +18,5 @@ async function refresh(){
 get('refresh-backup-status').onclick=refresh;
 window.addEventListener('hashchange',()=>{if(location.hash==='#documents/backup')refresh();});
 if(location.hash==='#documents/backup')refresh();
+
+get('check-backup-coverage').onclick=async()=>{const button=get('check-backup-coverage');button.disabled=true;get('backup-coverage-result').textContent='Comparing current library metadata…';try{const r=await request('/backup-coverage');get('backup-coverage-result').textContent=r.message+' Checked: '+new Date(r.checked_at).toLocaleString()+'. '+(r.receipt?'Receipt: '+r.receipt+'. ':'')+(r.differences||[]).map(d=>d.table.replaceAll('_',' ')+': backup '+(d.backup??'unknown')+', current '+d.current+'.').join(' ')+' '+r.limitations;}catch(error){get('backup-coverage-result').textContent='Comparison unavailable: '+error.message;}finally{button.disabled=false;}};

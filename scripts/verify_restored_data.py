@@ -2,6 +2,7 @@
 import argparse,hashlib,json,sys
 from pathlib import Path
 from datetime import timezone
+from kcee.library_coverage import library_snapshot
 from kcee.page_notes import note_digest,FIELDS
 from kcee.registry import Registry
 from kcee.provenance import verify_directory,IntegrityError
@@ -23,6 +24,7 @@ def review_note_history(rows,docs):
 def verify(root):
     counts={}
     with Registry().connect() as conn:
+        conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         for table in TABLES:counts[table]=conn.execute('SELECT count(*) AS n FROM '+table).fetchone()['n']
         for row in conn.execute('SELECT id,manifest,manifest_sha256 FROM design_runs'):
             verify_directory(Path(root)/str(row['id']),row['manifest'],row['manifest_sha256'])
@@ -46,6 +48,7 @@ def verify(root):
             if float32_vector(json.loads(row['vector']))[1]!=row['vector_sha256'] or row['source_sha256']!=row['original_source_sha256'] or row['chunk_sha256']!=row['original_chunk_sha256']:raise IntegrityError('Restored embedding fingerprint mismatch')
         notes=review_note_history(conn.execute('SELECT * FROM document_page_notes ORDER BY id'),docs)
         if notes['count']!=counts['document_page_notes']:raise IntegrityError('Review note history changed during verification')
-    return {'integrity':'verified','counts':counts,'review_notes':notes,'limitations':['OCR text hashes and saved extraction are checked; OCR accuracy is not re-certified','Destination native services and new solver runs require separate acceptance checks']}
+        snapshot=library_snapshot(conn)
+    return {'integrity':'verified','counts':counts,'review_notes':notes,'library_snapshot':snapshot,'limitations':['OCR text hashes and saved extraction are checked; OCR accuracy is not re-certified','Destination native services and new solver runs require separate acceptance checks']}
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--runs',default='/data/runs');args=parser.parse_args();print(json.dumps(verify(args.runs),indent=2))

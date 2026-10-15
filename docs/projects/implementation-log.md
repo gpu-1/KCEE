@@ -435,3 +435,7 @@ Search passages highlight whole query words and decimal numbers, case-insensitiv
 ### Saved document searches
 
 Search can save up to 50 questions with all-document or selected-document scope in this browser's local storage. Identical question/scope saves update the existing entry. Load restores the question and scope without automatically querying or reusing historical evidence; rerunning verifies current sources and rejects unavailable/archived documents. A selected document outside the current library page is retained in the selector until the next library refresh. Removal requires an inline confirmation. Corrupt or unavailable browser storage is reported without overwriting it. Saved questions are device/browser-local and excluded from project backups; evidence exports remain separate.
+
+### Current library backup coverage
+
+The Backup panel compares a consistent read-only database snapshot with the latest receipt. New backup audits and receipts carry a deterministic, length-framed SHA-256 fingerprint of ordered document, passage, extraction, embedding, visibility and note metadata (including stored content hashes and record identities). Restore verification compares this fingerprint when present. Old receipts can establish count differences but matching counts are explicitly inconclusive. Matching metadata requires local bundle presence and does not rehash archive/source bytes, certify OCR, include browser saved searches or establish whole-project coverage.
