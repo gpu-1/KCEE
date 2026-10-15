@@ -1,3 +1,4 @@
+import './saved-searches-ui.js';
 import './backup-status-ui.js';
 import {handoffSources,scopeRequest,scopeMatches,answerScopes,scopeDescription} from './assistant-scope.js';
 import {appendPdfPageLink} from './pdf-source.js';

@@ -431,3 +431,7 @@ A Backup tab reads the newest local bundle receipt and restore verification reco
 ### Literal search-result highlighting
 
 Search passages highlight whole query words and decimal numbers, case-insensitively, with common English/Spanish words ignored. A checkbox turns presentation highlighting off or on without fetching again. Semantic-only matches may have no highlighted tokens. Rendering creates text-only span/mark nodes; literal OCR, citation payloads, hashes and exports remain unchanged. Tests cover token boundaries, decimals, Unicode, exact text preservation and HTML-like source text.
+
+### Saved document searches
+
+Search can save up to 50 questions with all-document or selected-document scope in this browser's local storage. Identical question/scope saves update the existing entry. Load restores the question and scope without automatically querying or reusing historical evidence; rerunning verifies current sources and rejects unavailable/archived documents. A selected document outside the current library page is retained in the selector until the next library refresh. Removal requires an inline confirmation. Corrupt or unavailable browser storage is reported without overwriting it. Saved questions are device/browser-local and excluded from project backups; evidence exports remain separate.
