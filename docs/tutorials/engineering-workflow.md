@@ -1,0 +1,11 @@
+# Guided engineering workflow
+
+Open **Guided engineering workflow** in Design.
+
+1. Choose a verified native PicoGK bracket from Saved runs, or create the native preset. The supported geometry is 60 × 30 × 40 mm, 3.5 mm thick, with mounting holes and a root transition. Baseline geometry and cantilever verification are separate demonstrations.
+2. Review the preset cards and the selected study's recorded boundary definitions. Structural analysis uses a 100 N downward free-end-strip load, ideal rear clamp and illustrative isotropic aluminum (69,000 MPa, Poisson ratio 0.33). Thermal analysis uses 20/80 °C ideal reservoirs, insulated remaining surfaces and illustrative conductivity 15 W/(m·K). These controls do not introduce custom solver parameters.
+3. Run structural, thermal or structural then thermal. The sequence calls existing analysis routes and registers separate immutable studies. It stops when a solver fails to produce the expected verified study. Use Select parent model for a derived result that cannot start another solve directly. Review numerical checks and retained diagnostics after a failure. Show selected study boundaries in 3D closes the guide and enables the existing nominal load/support or hot/cold overlays.
+4. Refresh study choices. Choose a structural and thermal study, then Verify and compare. The app verifies each registered run and its result/geometry hashes and requires matching STL bytes. Parent IDs and source manifest hashes are preserved independently; equal geometry does not imply equal boundary conditions or a coupled solution.
+5. Download the consolidated Markdown report and companion JSON. Both retain loads, boundaries, material values, checks, full mesh histories, run IDs and hashes. The JSON snapshot hash covers UTF-8 `JSON.stringify` in recorded property order, excluding `snapshot_sha256`. Archive downloads remain on each study.
+
+The pair comparison displays structural displacement/reaction/stress alongside thermal temperature/heat values with units. It does not subtract unlike quantities or compute thermal stress. Peak stress and local heat flux remain unaccepted as converged allowables. Engineering acceptance requires justified service conditions, suitable material data and validation beyond the demonstration's numerical checks.
