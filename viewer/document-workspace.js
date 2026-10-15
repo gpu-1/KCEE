@@ -1,4 +1,4 @@
-const panels=['library','search','compare','verify','review'];let previousRoute=null;
+const panels=['library','search','compare','verify','review','backup'];let previousRoute=null;
 export function workspaceRoute(hash){if(hash==='#documents')return 'library';if(!hash.startsWith('#documents/'))return null;const key=hash.slice(11);return panels.includes(key)?key:'library';}
 function applyRoute(){
  const route=workspaceRoute(location.hash),changed=route!==previousRoute,wasOpen=previousRoute!==null;previousRoute=route;

@@ -570,3 +570,8 @@ async def verify_export_records(request: Request):
 def document_import_state():
     from kcee.document_imports import imports
     with imports.lock:return {'active':[{'id':j['id'],'state':j['state']} for j in imports.jobs.values() if j['state'] in ('queued','extracting','saving')]}
+
+@app.get('/backup-status')
+def backup_status():
+    from kcee.backup_status import recorded_status
+    return recorded_status(os.environ.get('KCEE_BACKUP_STATUS_DIR','/data/backup-status'))

@@ -47,7 +47,7 @@ services:
       interval: 5s
       timeout: 4s
       retries: 10
-    volumes: ["./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant", "./.local/embeddings:/data/embeddings"]
+    volumes: ["./.local/backups:/data/backup-status:ro", "./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant", "./.local/embeddings:/data/embeddings"]
     depends_on:
       postgres: {condition: service_healthy}
     networks: [local]
