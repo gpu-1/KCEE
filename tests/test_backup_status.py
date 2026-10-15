@@ -24,3 +24,7 @@ class BackupStatusTests(unittest.TestCase):
             root=Path(tmp);(root/'external').write_text('{}');(root/'x.zip.receipt.json').symlink_to(root/'external')
             (root/'x-restore-verification.json').write_text(json.dumps({'verification':{'integrity':'failed','counts':{}}}))
             result=recorded_status(root);self.assertEqual(len(result['warnings']),2)
+
+    def test_restore_link_identifies_exact_backup_and_stopped_test(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'x.zip.receipt.json').write_text(json.dumps({'bundle':'x.zip','bundle_sha256':'a'*64,'counts':{}}));(root/'r-restore-verification.json').write_text(json.dumps({'tested_bundle_sha256':'a'*64,'isolated_restore_stopped':True,'verification':{'integrity':'verified','counts':{}}}));r=recorded_status(root);self.assertEqual(r['restore_link']['status'],'matches');self.assertTrue(r['restore']['isolated_restore_stopped'])

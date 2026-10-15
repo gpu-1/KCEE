@@ -25,6 +25,7 @@ def audit(root):
     return report
 def verify_restore_inventory(expected,actual):
     if actual['counts']!=expected['counts']:raise ValueError('Restored database inventory differs')
+    if expected.get('study_snapshot') and actual.get('study_snapshot')!=expected['study_snapshot']:raise ValueError('Restored study metadata differs from backup')
     if expected.get('library_snapshot') and actual.get('library_snapshot')!=expected['library_snapshot']:raise ValueError('Restored library metadata differs from backup')
     if 'document_page_notes' in expected['counts'] or expected.get('review_notes') is not None:
         if not expected.get('review_notes') or expected['review_notes'].get('integrity')!='verified' or actual.get('review_notes')!=expected['review_notes']:raise ValueError('Restored review note history differs from backup verification')
@@ -95,7 +96,7 @@ def export(root,output):
                 staging.rename(output)
             finally:
                 if staging.exists():staging.unlink()
-        receipt={'created_at':time.time(),'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts'],'review_notes':report.get('review_notes'),'library_snapshot':report.get('library_snapshot')}
+        receipt={'created_at':time.time(),'source_commit':manifest['git_commit'],'study_snapshot':report.get('study_snapshot'),'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts'],'review_notes':report.get('review_notes'),'library_snapshot':report.get('library_snapshot')}
         receipt_path=output.with_suffix(output.suffix+'.receipt.json');receipt_path.write_text(json.dumps(receipt,indent=2));os.chmod(receipt_path,0o600)
         return receipt
     finally:
@@ -144,7 +145,7 @@ def restore(bundle,destination,expected):
     with (destination/'database.dump').open('rb') as stream:compose(root,'exec','-T','postgres','pg_restore','-U','kcee','-d','kcee','--clean','--if-exists','--no-owner','--exit-on-error','--single-transaction',stdin=stream,stdout=subprocess.DEVNULL)
     report=audit(root)
     verify_restore_inventory(manifest['verification'],report)
-    result={'completed_at':time.time(),'project':project,'root':str(root),'verification':report,'services_started':['postgres'],'native_setup_required':True}
+    result={'completed_at':time.time(),'tested_bundle_sha256':expected,'source_commit':manifest.get('git_commit'),'project':project,'root':str(root),'verification':report,'services_started':['postgres'],'native_setup_required':True}
     (destination/'restore-report.json').write_text(json.dumps(result,indent=2))
     status_dir=ROOT/'.local/backups';status_dir.mkdir(parents=True,exist_ok=True)
     status_file=status_dir/(project+'-restore-verification.json');status_file.write_text(json.dumps(result,indent=2));os.chmod(status_file,0o600)

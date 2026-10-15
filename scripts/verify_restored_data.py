@@ -3,6 +3,7 @@ import argparse,hashlib,json,sys
 from pathlib import Path
 from datetime import timezone
 from kcee.library_coverage import library_snapshot
+from kcee.transfer_readiness import study_snapshot
 from kcee.page_notes import note_digest,FIELDS
 from kcee.provenance import verify_directory,IntegrityError
 from kcee.embeddings import float32_vector
@@ -49,6 +50,7 @@ def verify(root):
         notes=review_note_history(conn.execute('SELECT * FROM document_page_notes ORDER BY id'),docs)
         if notes['count']!=counts['document_page_notes']:raise IntegrityError('Review note history changed during verification')
         snapshot=library_snapshot(conn)
-    return {'integrity':'verified','counts':counts,'review_notes':notes,'library_snapshot':snapshot,'limitations':['OCR text hashes and saved extraction are checked; OCR accuracy is not re-certified','Destination native services and new solver runs require separate acceptance checks']}
+        studies=study_snapshot(conn)
+    return {'integrity':'verified','counts':counts,'review_notes':notes,'library_snapshot':snapshot,'study_snapshot':studies,'limitations':['OCR text hashes and saved extraction are checked; OCR accuracy is not re-certified','Destination native services and new solver runs require separate acceptance checks']}
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--runs',default='/data/runs');args=parser.parse_args();print(json.dumps(verify(args.runs),indent=2))
