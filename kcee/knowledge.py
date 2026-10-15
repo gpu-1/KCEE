@@ -56,6 +56,20 @@ class Knowledge:
         table='local_documents' if include_archived else 'active_local_documents'
         with self.connect() as conn:return conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,(SELECT count(*) FROM local_document_chunks c WHERE c.document_id=d.id) AS chunks,COALESCE((SELECT e.archived FROM document_visibility_events e WHERE e.document_id=d.id ORDER BY e.id DESC LIMIT 1),false) AS archived FROM '+table+' d ORDER BY d.created_at DESC LIMIT 100').fetchall()
 
+    def library(self,include_archived=False,page=1,page_size=25,name='',file_type='all',sort='newest'):
+        if type(page) is not int or page<1 or page>1000000 or type(page_size) is not int or page_size not in (10,25,50,100):raise ValueError('Invalid library page or page size')
+        if not isinstance(name,str) or len(name)>200 or file_type not in ('all','pdf','md','txt'):raise ValueError('Invalid library filter')
+        orders={'newest':'d.created_at DESC,d.id DESC','oldest':'d.created_at ASC,d.id ASC','name':'lower(d.name) ASC,d.id ASC','size':'octet_length(d.original_bytes) DESC,d.id ASC'}
+        if sort not in orders:raise ValueError('Invalid library sort')
+        table='local_documents' if include_archived else 'active_local_documents'
+        where=" WHERE strpos(lower(d.name),lower(%s))>0 AND (%s='all' OR right(lower(d.name),length(%s)+1)='.'||%s)"
+        params=(name.strip(),file_type,file_type,file_type)
+        with self.connect() as conn:
+            total=conn.execute('SELECT count(*) AS n FROM '+table+' d'+where,params).fetchone()['n']
+            pages=max(1,(total+page_size-1)//page_size);page=min(page,pages)
+            rows=conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,(SELECT count(*) FROM local_document_chunks c WHERE c.document_id=d.id) AS chunks,COALESCE((SELECT e.archived FROM document_visibility_events e WHERE e.document_id=d.id ORDER BY e.id DESC LIMIT 1),false) AS archived FROM '+table+' d'+where+' ORDER BY '+orders[sort]+' LIMIT %s OFFSET %s',(*params,page_size,(page-1)*page_size)).fetchall()
+        return {'items':rows,'total':total,'page':page,'page_size':page_size,'pages':pages}
+
     def visibility(self,identifier,archived,source_sha256,confirmed=False):
         if type(archived) is not bool or (archived and confirmed is not True):raise ValueError('Archiving requires confirmation')
         row,raw=self.source(identifier)

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterDocuments} from '../document-library.js';
-const items=[{id:'1',name:'Bracket 10.PDF',bytes:10,created_at:'2026-10-10',archived:true},{id:'2',name:'Bracket 2.pdf',bytes:30,created_at:'2026-10-12'},{id:'3',name:'Notes.md',bytes:20,created_at:'2026-10-11'}];
-test('filename and type filters combine without dropping archive metadata',()=>{
- const result=filterDocuments(items,{name:' BRACKET ',type:'pdf'});assert.deepEqual(result.map(x=>x.id),['2','1']);assert.equal(result[1].archived,true);
- assert.equal(filterDocuments(items,{name:'missing'}).length,0);assert.equal(filterDocuments(items,{type:'txt'}).length,0);
+import {libraryQuery,libraryPageLabel} from '../document-library.js';
+test('server library query carries pagination, literal filename filter and ordering',()=>{
+ const query=libraryQuery({includeArchived:true,page:5,pageSize:25,name:'A & B%?.pdf',type:'pdf',sort:'size'});
+ const p=new URL('http://local'+query).searchParams;
+ assert.equal(p.get('name'),'A & B%?.pdf');assert.equal(p.get('page'),'5');assert.equal(p.get('page_size'),'25');assert.equal(p.get('include_archived'),'true');assert.equal(p.get('sort'),'size');assert.equal(p.get('file_type'),'pdf');
 });
-test('library sorting uses dates, numeric names and size without mutating input',()=>{
- for(const [sort,expected] of [['newest',['2','3','1']],['oldest',['1','3','2']],['name',['2','1','3']],['size',['2','3','1']]])assert.deepEqual(filterDocuments(items,{sort}).map(x=>x.id),expected);
- assert.deepEqual(items.map(x=>x.id),['1','2','3']);
+test('page labels describe final and empty pages',()=>{
+ assert.equal(libraryPageLabel({total:105,page:5,page_size:25,pages:5,items:Array(5)}),'101–105 of 105 matching documents · Page 5 of 5');
+ assert.equal(libraryPageLabel({total:0,items:[]}), 'No documents match these filters.');
 });

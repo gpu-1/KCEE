@@ -14,6 +14,31 @@ def request(path,method='GET'):
     with urlopen(req,timeout=15) as response: return response.status,json.load(response)
 
 class RegistryIntegration(unittest.TestCase):
+    def test_library_pagination_filters_entire_collection(self):
+        from kcee.knowledge import Knowledge
+        from urllib.parse import urlencode
+        k=Knowledge();docs=[k.ingest('PaginationFixture-'+str(i).zfill(3)+'.txt',('Pagination fixture '+str(i)+' '+('x'*i)).encode()) for i in range(105)]
+        def library(**options):
+            query={'name':'paginationfixture-','sort':'name','page_size':25,**options}
+            with urlopen(BASE+'/knowledge/library?'+urlencode(query),timeout=15) as response:return json.load(response)
+        pages=[library(page=page) for page in range(1,6)]
+        ids=[item['id'] for page in pages for item in page['items']]
+        self.assertEqual(ids,[doc['id'] for doc in docs]);self.assertEqual(len(set(ids)),105)
+        self.assertEqual(pages[-1]['total'],105);self.assertEqual(len(pages[-1]['items']),5)
+        self.assertEqual(library(name='PaginationFixture-104')['items'][0]['id'],docs[-1]['id'])
+        self.assertEqual(library(file_type='pdf')['total'],0)
+        self.assertEqual(library(sort='size')['items'][0]['id'],docs[-1]['id'])
+        self.assertEqual(library(sort='oldest')['items'][0]['id'],docs[0]['id'])
+        self.assertEqual(library(sort='newest')['items'][0]['id'],docs[-1]['id'])
+        for doc in docs[-5:]:k.visibility(doc['id'],True,doc['source_sha256'],True)
+        clamped=library(page=2,page_size=100);self.assertEqual(clamped['page'],1);self.assertEqual(clamped['total'],100)
+        self.assertEqual(library(include_archived='true')['total'],105)
+        literal=k.ingest('Literal%_name.txt',b'Literal filename filter sample')
+        self.assertEqual(library(name='%_')['items'][0]['id'],literal['id'])
+        for options in ({'page':0},{'page_size':1000},{'sort':'invalid'},{'file_type':'invalid'}):
+            with self.assertRaises(HTTPError) as error:library(**options)
+            self.assertEqual(error.exception.code,422)
+
     def test_selected_document_search_stays_scoped(self):
         from kcee.knowledge import Knowledge
         k=Knowledge();selected=k.ingest('scope-selected.txt',b'ScopedSearchReference thermal conductivity 9.25 W per metre kelvin.\n')

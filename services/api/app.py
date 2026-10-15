@@ -377,6 +377,13 @@ def knowledge_documents(include_archived: bool=False):
     try:return {'items':Knowledge().list(include_archived),'retrieval':'local hybrid semantic and English keyword search when indexed'}
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
 
+@app.get('/knowledge/library')
+def knowledge_library(include_archived: bool=False,page: int=1,page_size: int=25,name: str='',file_type: str='all',sort: str='newest'):
+    from kcee.knowledge import Knowledge
+    try:return Knowledge().library(include_archived,page,page_size,name,file_type,sort)
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
+
 @app.post('/knowledge/documents',status_code=201)
 async def upload_knowledge(request: Request):
     import base64,json
