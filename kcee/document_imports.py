@@ -1,11 +1,12 @@
 """One cancellable local import at a time; atomic registration after extraction."""
 import copy,threading,time,uuid
 from kcee.knowledge import Knowledge,document_parts
-from kcee.pdf_text import MAX_PDF_BYTES,extract_pdf,ImportCancelled
+from kcee.pdf_text import MAX_PDF_BYTES,extract_pdf,ImportCancelled,validate_language
 
 class Imports:
     def __init__(self):self.lock=threading.RLock();self.jobs={}
-    def start(self,name,raw):
+    def start(self,name,raw,ocr_languages='eng+spa'):
+        validate_language(ocr_languages)
         pdf=isinstance(name,str) and name.lower().endswith('.pdf')
         document_parts(name[:-4]+'.txt' if pdf else name,b'validate filename' if pdf else raw)
         if pdf and (not isinstance(raw,bytes) or not 0<len(raw)<=MAX_PDF_BYTES or not raw.startswith(b'%PDF-')):raise ValueError('Use a PDF up to 50 MB')
@@ -13,7 +14,7 @@ class Imports:
             self.jobs={key:value for key,value in self.jobs.items() if value['state'] not in ('completed','failed','cancelled') or time.time()-value['updated_at']<3600}
             if any(j['state'] in ('queued','extracting','saving') for j in self.jobs.values()):raise RuntimeError('Another document import is active')
             if len(self.jobs)>=20:raise RuntimeError('Import history is full; retry after older entries expire')
-            identifier=str(uuid.uuid4());self.jobs[identifier]={'id':identifier,'name':name,'state':'queued','completed_pages':0,'total_pages':None,'stage':'queued','updated_at':time.time(),'cancel_event':threading.Event()}
+            identifier=str(uuid.uuid4());self.jobs[identifier]={'id':identifier,'name':name,'state':'queued','completed_pages':0,'total_pages':None,'stage':'queued','ocr_languages':ocr_languages,'updated_at':time.time(),'cancel_event':threading.Event()}
             threading.Thread(target=self._run,args=(identifier,name,raw,pdf),daemon=True).start()
             return self.get(identifier)
     def get(self,identifier):
@@ -36,7 +37,7 @@ class Imports:
                 if event.is_set():raise ImportCancelled('Import cancelled')
                 job['state']='saving';job['stage']='saving';job['updated_at']=time.time()
         try:
-            extraction=extract_pdf(raw,cancel_event=event,progress=progress) if pdf else None
+            extraction=extract_pdf(raw,cancel_event=event,progress=progress,ocr_languages=job['ocr_languages']) if pdf else None
             result=Knowledge().ingest(name,raw,extraction=extraction,before_save=save_gate)
             with self.lock:job.update(state='completed',stage='completed',result=result,updated_at=time.time())
         except ImportCancelled:

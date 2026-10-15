@@ -428,7 +428,7 @@ def knowledge_extracted_text(document_id: UUID):
     from kcee.knowledge import Knowledge
     try:
         knowledge=Knowledge();row,raw=knowledge.source(document_id);lines,pdf=knowledge.reference_lines(row,raw)
-        return {'name':row['name'],'source_sha256':row['source_sha256'],'pages':pdf['pages'] if pdf else None,'text':None if pdf else ''.join(lines),'extractor':pdf['extractor'] if pdf else None}
+        return {'name':row['name'],'source_sha256':row['source_sha256'],'pages':pdf['pages'] if pdf else None,'text':None if pdf else ''.join(lines),'extractor':pdf['extractor'] if pdf else None,'ocr_languages':pdf.get('ocr_settings',{}).get('languages') if pdf else None}
     except KeyError:raise HTTPException(404,'Document not found')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'PDF extraction migration unavailable')
@@ -444,8 +444,8 @@ async def start_document_import(request: Request):
         if len(raw)>71000000:raise HTTPException(413,'Document request exceeds 50 MB source limit')
     try:
         data=json.loads(raw)
-        if set(data)!={'name','bytes_base64'}:raise ValueError('Unexpected document fields')
-        return imports.start(data['name'],base64.b64decode(data['bytes_base64'],validate=True))
+        if not {'name','bytes_base64'}<=set(data) or set(data)-{'name','bytes_base64','ocr_languages'}:raise ValueError('Unexpected document fields')
+        return imports.start(data['name'],base64.b64decode(data['bytes_base64'],validate=True),data.get('ocr_languages','eng+spa'))
     except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:250])
     except RuntimeError as error:raise HTTPException(409,str(error))
 

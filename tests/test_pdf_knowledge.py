@@ -78,3 +78,16 @@ class CancellableOCRTests(unittest.TestCase):
   import threading
   updates=[];result=extract_pdf(pdf_bytes(),cancel_event=threading.Event(),progress=updates.append)
   self.assertEqual(result['page_count'],2);self.assertTrue(updates);self.assertEqual(updates[-1]['total_pages'],2)
+
+@unittest.skipUnless(__import__('pathlib').Path('/usr/bin/tesseract').exists(),'Local OCR tested in API image')
+class OCRLanguageTests(unittest.TestCase):
+ def test_selected_languages_and_old_combined_parser(self):
+  from pathlib import Path
+  from kcee.pdf_text import COMBINED_EXTRACTOR
+  raw=(Path(__file__).parent/'fixtures/scanned-thermal-guide.pdf').read_bytes()
+  for language in ('eng','spa','eng+spa'):
+   result=extract_pdf(raw,page_numbers=[2],ocr_languages=language)
+   self.assertEqual(result['ocr_settings']['languages'],language);self.assertIn('0.525',result['pages'][0]['text'])
+  legacy=extract_pdf(raw,COMBINED_EXTRACTOR,[2]);self.assertEqual(legacy['extractor'],COMBINED_EXTRACTOR);self.assertEqual(legacy['ocr_settings']['languages'],'eng+spa')
+ def test_unsupported_language_rejected_before_start(self):
+  with self.assertRaises(ValueError):extract_pdf(pdf_bytes(),ocr_languages='eng;anything')

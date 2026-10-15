@@ -23,11 +23,11 @@ class Knowledge:
     def connect(self):
         from kcee.registry import Registry
         return Registry().connect()
-    def ingest(self,name,raw,extraction=None,before_save=None):
+    def ingest(self,name,raw,extraction=None,before_save=None,ocr_languages='eng+spa'):
         if isinstance(name,str) and name.lower().endswith('.pdf'):
             document_parts(name[:-4]+'.txt',b'validate filename')
             from kcee.pdf_text import extract_pdf
-            extraction=extraction if extraction is not None else extract_pdf(raw);digest=hashlib.sha256(raw).hexdigest();chunks=[];offset=0
+            extraction=extraction if extraction is not None else extract_pdf(raw,ocr_languages=ocr_languages);digest=hashlib.sha256(raw).hexdigest();chunks=[];offset=0
             for page in extraction['pages']:
                 text=page['text']
                 if text.strip():
@@ -45,7 +45,13 @@ class Knowledge:
                     conn.execute('INSERT INTO local_pdf_extractions(document_id,extractor,extraction_sha256,extraction) VALUES(%s,%s,%s,%s::jsonb)',(identifier,extraction['extractor'],hashlib.sha256(canonical.encode()).hexdigest(),canonical))
                 for chunk in chunks:conn.execute('INSERT INTO local_document_chunks(document_id,line_start,line_end,content,chunk_sha256,page_number) VALUES(%s,%s,%s,%s,%s,%s)',(identifier,chunk['line_start'],chunk['line_end'],chunk['content'],chunk['chunk_sha256'],chunk.get('page_number')))
             stored=conn.execute('SELECT id,name,source_sha256 FROM local_documents WHERE source_sha256=%s',(digest,)).fetchone()
-        return {**stored,'id':str(stored['id']),'deduplicated':not bool(inserted),'chunks':len(chunks),**({'page_count':extraction['page_count'],'empty_pages':extraction['empty_pages'],'ocr_pages':extraction.get('ocr_pages',[])} if extraction else {})}
+        chunk_count=len(chunks)
+        if not inserted:
+            with self.connect() as conn:
+                existing=conn.execute('SELECT extraction FROM local_pdf_extractions WHERE document_id=%s',(stored['id'],)).fetchone()
+                chunk_count=conn.execute('SELECT count(*) AS n FROM local_document_chunks WHERE document_id=%s',(stored['id'],)).fetchone()['n']
+            extraction=existing['extraction'] if existing else None
+        return {**stored,'id':str(stored['id']),'deduplicated':not bool(inserted),'chunks':chunk_count,**({'page_count':extraction['page_count'],'empty_pages':extraction['empty_pages'],'ocr_pages':extraction.get('ocr_pages',[]),'ocr_languages':extraction.get('ocr_settings',{}).get('languages')} if extraction else {})}
     def list(self,include_archived=False):
         table='local_documents' if include_archived else 'active_local_documents'
         with self.connect() as conn:return conn.execute('SELECT d.id,d.name,d.source_sha256,d.created_at,octet_length(d.original_bytes) AS bytes,(SELECT count(*) FROM local_document_chunks c WHERE c.document_id=d.id) AS chunks,COALESCE((SELECT e.archived FROM document_visibility_events e WHERE e.document_id=d.id ORDER BY e.id DESC LIMIT 1),false) AS archived FROM '+table+' d ORDER BY d.created_at DESC LIMIT 100').fetchall()
@@ -76,7 +82,7 @@ class Knowledge:
             source,raw=self.source(row['document_id']);lines,pdf=self.reference_lines(source,raw,[row.get('page_number')] if row.get('page_number') else None);excerpt=''.join(lines[row['line_start']-1:row['line_end']])
             if pdf and (type(row.get('page_number')) is not int or not 1<=row['page_number']<=pdf['page_count']):raise IntegrityError('Invalid PDF chunk page')
             if excerpt!=row['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=row['chunk_sha256']:raise IntegrityError('Document chunk differs from original source')
-            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256'],**({'extractor':pdf['extractor'],'page_text_sha256':pdf['pages'][row['page_number']-1]['text_sha256'],'extraction_method':pdf['pages'][row['page_number']-1].get('method','embedded_text')} if pdf else {}),**{key:row[key] for key in ('page_number','chunk_id','cosine_similarity','embedding_vector_sha256','retrieval_ranks','hybrid_score') if key in row}})
+            result.append({'citation_id':'D'+str(index),'document_id':str(row['document_id']),'name':row['name'],'line_start':row['line_start'],'line_end':row['line_end'],'content':excerpt,'source_sha256':row['source_sha256'],'chunk_sha256':row['chunk_sha256'],**({'extractor':pdf['extractor'],'page_text_sha256':pdf['pages'][row['page_number']-1]['text_sha256'],'extraction_method':pdf['pages'][row['page_number']-1].get('method','embedded_text'),'ocr_languages':pdf.get('ocr_settings',{}).get('languages')} if pdf else {}),**{key:row[key] for key in ('page_number','chunk_id','cosine_similarity','embedding_vector_sha256','retrieval_ranks','hybrid_score') if key in row}})
         self.verify_citations(result)
         return (result,dict(metadata,matches=len(result))) if with_metadata else result
     def reference_lines(self,row,raw,page_numbers=None):
@@ -85,8 +91,8 @@ class Knowledge:
         if not saved:raise IntegrityError('PDF extraction record missing')
         canonical=json.dumps(saved['extraction'],sort_keys=True,separators=(',',':'),ensure_ascii=True)
         if hashlib.sha256(canonical.encode()).hexdigest()!=saved['extraction_sha256']:raise IntegrityError('PDF extraction hash mismatch')
-        from kcee.pdf_text import extract_pdf,EXTRACTOR,LEGACY_EXTRACTOR
-        if saved['extractor'] not in (EXTRACTOR,LEGACY_EXTRACTOR):raise IntegrityError('PDF extractor identity mismatch')
+        from kcee.pdf_text import extract_pdf,EXTRACTOR,LEGACY_EXTRACTOR,COMBINED_EXTRACTOR
+        if saved['extractor'] not in (EXTRACTOR,LEGACY_EXTRACTOR,COMBINED_EXTRACTOR):raise IntegrityError('PDF extractor identity mismatch')
         pdf=saved['extraction']
         if saved['extractor']==LEGACY_EXTRACTOR:
             try:actual=extract_pdf(raw,LEGACY_EXTRACTOR)
@@ -96,7 +102,7 @@ class Knowledge:
             cache=getattr(self,'_pdf_page_cache',set())
             missing=[n for n in page_numbers if (row['source_sha256'],saved['extraction_sha256'],n) not in cache]
             if missing:
-                try:actual=extract_pdf(raw,EXTRACTOR,missing)
+                try:actual=extract_pdf(raw,saved['extractor'],missing,ocr_languages=pdf.get('ocr_settings',{}).get('languages','eng+spa'))
                 except ValueError as error:raise IntegrityError('PDF cited page cannot be verified') from error
                 if actual['page_count']!=pdf['page_count']:raise IntegrityError('PDF page count mismatch')
                 for page in actual['pages']:
@@ -114,6 +120,7 @@ class Knowledge:
                 for page in pdf['pages']:
                     count=len(page['text'].splitlines(keepends=True))
                     if chunk.get('page_number')==page['page_number'] and offset<chunk['line_start']<=chunk['line_end']<=offset+count:
+                        if 'ocr_languages' in chunk and chunk['ocr_languages']!=pdf.get('ocr_settings',{}).get('languages'):raise IntegrityError('PDF citation OCR language mismatch')
                         if ('extraction_method' in chunk and chunk['extraction_method']!=page.get('method','embedded_text')):raise IntegrityError('PDF citation OCR method mismatch')
                         if ('extractor' in chunk and chunk['extractor']!=pdf['extractor']) or ('page_text_sha256' in chunk and chunk['page_text_sha256']!=page['text_sha256']):raise IntegrityError('PDF extraction citation fingerprint mismatch')
                         matching=True

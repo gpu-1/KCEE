@@ -145,6 +145,21 @@ class RegistryIntegration(unittest.TestCase):
         with psycopg.connect(user='kcee',password=os.environ['KCEE_TEST_ADMIN_PASSWORD']) as conn:
             with self.assertRaises(psycopg.errors.RaiseException):conn.execute('DELETE FROM document_visibility_events')
 
+    def test_ocr_language_import_choice_is_recorded_and_immutable(self):
+        import base64,io
+        from pypdf import PdfReader,PdfWriter
+        from kcee.knowledge import Knowledge
+        from kcee.document_imports import Imports
+        with self.assertRaises(ValueError):Imports().start('scan.pdf',b'%PDF-test',ocr_languages='unsupported')
+        writer=PdfWriter();writer.append(PdfReader('/tests/fixtures/scanned-thermal-guide.pdf'));writer.add_metadata({'/Subject':'OCR language regression'});out=io.BytesIO();writer.write(out);raw=out.getvalue()
+        k=Knowledge();first=k.ingest('language-scan.pdf',raw,ocr_languages='spa');self.assertEqual(first['ocr_languages'],'spa')
+        second=k.ingest('language-scan.pdf',raw,ocr_languages='eng');self.assertTrue(second['deduplicated']);self.assertEqual(second['ocr_languages'],'spa')
+        row,original=k.source(first['id']);lines,pdf=k.reference_lines(row,original,[2]);self.assertEqual(pdf['ocr_settings']['languages'],'spa')
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Knowledge':'1'}
+        req=Request(BASE+'/knowledge/imports',data=json.dumps({'name':'bad.pdf','bytes_base64':base64.b64encode(raw).decode(),'ocr_languages':'unsupported'}).encode(),headers=headers,method='POST')
+        with self.assertRaises(HTTPError) as error:urlopen(req,timeout=10)
+        self.assertEqual(error.exception.code,422)
+
     def test_native_thermal_rejects_wrong_study_kind(self):
         run_id=request('/runs/bracket','POST')[1]['run_id']
         for path,method in [('/runs/'+run_id+'/thermal','POST'),('/runs/'+run_id+'/temperature-surface','GET')]:
