@@ -1,4 +1,5 @@
-import {loadSavedSearches,saveSearch,removeSavedSearch} from './saved-searches.js';
+import {exportSavedSearches,parseSavedSearchExport} from './saved-search-transfer.js';
+import {loadSavedSearches,saveSearch,removeSavedSearch,mergeSavedSearches} from './saved-searches.js';
 const get=id=>document.getElementById(id);
 function status(message){get('saved-search-status').textContent=message;}
 function render(){
@@ -12,3 +13,10 @@ function render(){
 }
 get('save-current-search').onclick=()=>{try{const select=get('knowledge-search-document');saveSearch(localStorage,get('knowledge-search-question').value,select.value?{id:select.value,name:select.selectedOptions[0].textContent}:null);render();status('Search saved in this browser.');}catch(error){status('Could not save: '+error.message);}};
 window.addEventListener('storage',render);render();
+
+let transferRevision=0,importRows=null,downloadUrl=null;
+function clearTransfer(){transferRevision++;importRows=null;get('apply-saved-search-import').hidden=true;get('saved-search-transfer-status').textContent='';if(downloadUrl)URL.revokeObjectURL(downloadUrl);downloadUrl=null;get('download-saved-searches').hidden=true;}
+get('saved-search-import-file').onchange=clearTransfer;
+get('export-saved-searches').onclick=async()=>{clearTransfer();const ticket=transferRevision;try{const record=await exportSavedSearches(loadSavedSearches(localStorage));if(ticket!==transferRevision)return;downloadUrl=URL.createObjectURL(new Blob([JSON.stringify(record,null,2)],{type:'application/json'}));const link=get('download-saved-searches');link.href=downloadUrl;link.download='kcee-saved-searches-'+record.exported_at.replace(/[:.]/g,'-')+'.json';link.hidden=false;get('saved-search-transfer-status').textContent=record.searches.length+' saved searches ready to download.';}catch(error){if(ticket===transferRevision)get('saved-search-transfer-status').textContent=error.message;}};
+get('preview-saved-search-import').onclick=async()=>{clearTransfer();const ticket=transferRevision;try{const file=get('saved-search-import-file').files[0];if(!file||file.size>256*1024||!file.name.toLowerCase().endsWith('.json'))throw new Error('Choose a saved-search JSON file up to 256 KB');const rows=await parseSavedSearchExport(new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer()));if(ticket!==transferRevision)return;const result=mergeSavedSearches(localStorage,rows);importRows=rows;get('saved-search-transfer-status').textContent='File hash matches. '+result.added+' new searches; '+result.skipped+' duplicates skipped. Existing searches will be preserved. This does not verify authorship or document availability.';get('apply-saved-search-import').hidden=false;}catch(error){if(ticket===transferRevision)get('saved-search-transfer-status').textContent='Import unavailable: '+error.message;}};
+get('apply-saved-search-import').onclick=()=>{if(!importRows)return;try{const result=mergeSavedSearches(localStorage,importRows,true);clearTransfer();render();get('saved-search-transfer-status').textContent='Imported '+result.added+' searches; skipped '+result.skipped+' duplicates. Existing searches preserved.';}catch(error){get('saved-search-transfer-status').textContent='Import failed: '+error.message;}};

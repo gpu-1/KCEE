@@ -439,3 +439,7 @@ Search can save up to 50 questions with all-document or selected-document scope 
 ### Current library backup coverage
 
 The Backup panel compares a consistent read-only database snapshot with the latest receipt. New backup audits and receipts carry a deterministic, length-framed SHA-256 fingerprint of ordered document, passage, extraction, embedding, visibility and note metadata (including stored content hashes and record identities). Restore verification compares this fingerprint when present. Old receipts can establish count differences but matching counts are explicitly inconclusive. Matching metadata requires local bundle presence and does not rehash archive/source bytes, certify OCR, include browser saved searches or establish whole-project coverage.
+
+### Saved-search transfer
+
+Saved searches can export versioned JSON with a SHA-256 snapshot digest and import UTF-8 JSON up to 256 KB. Preview validates the complete file and reports additions/duplicates before applying. Import merges atomically, preserves existing entries and assigns new local identities; duplicate question/document pairs are skipped. Overflow beyond 50 or invalid storage rejects the whole import. Files contain only questions, document selections and saved timestamps, not source documents/evidence; matching hashes do not establish authorship or document availability.
