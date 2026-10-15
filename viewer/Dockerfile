@@ -2,7 +2,7 @@ FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY index.html main.js client.js thermal-chart.js knowledge-ui.js pdf-source.js pdf-review.js page-notes.js search-export.js document-library.js style.css vite.config.js ./
+COPY index.html main.js client.js thermal-chart.js knowledge-ui.js pdf-source.js pdf-review.js page-notes.js search-export.js compare-evidence.js compare-ui.js document-library.js style.css vite.config.js ./
 COPY tests tests
 RUN npm test && npm run build
 CMD ["npm", "run", "preview"]

@@ -53,3 +53,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #knowledge-search-document{display:block;width:100%;margin-bottom:10px}
 
 #page-note-history pre{white-space:pre-wrap;overflow-wrap:anywhere}#page-note-history .hint{overflow-wrap:anywhere}#page-note-text{width:100%}
+
+#reference-comparison-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}#reference-comparison-results section{padding:10px;border:1px solid #314653;min-width:0}#reference-comparison-results .hint,#reference-comparison-results h4{overflow-wrap:anywhere}#reference-comparison-results pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto}#compare-selected p{overflow-wrap:anywhere;font-size:12px}
