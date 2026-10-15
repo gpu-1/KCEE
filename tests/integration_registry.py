@@ -38,6 +38,14 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual([n['id'] for n in exported['notes']],[n['id'] for n in reversed(notes)])
         snapshot_hash=exported.pop('snapshot_sha256');self.assertEqual(hashlib.sha256(json.dumps(exported,sort_keys=True,separators=(',',':'),ensure_ascii=True).encode()).hexdigest(),snapshot_hash)
         self.assertEqual(exported['identity']['source_sha256'],doc['source_sha256'])
+        def verify_note_records(payload):
+            with urlopen(Request(BASE+'/knowledge/verify-export-records',data=json.dumps(payload).encode(),headers=headers,method='POST'),timeout=15) as response:return json.load(response)
+        imported={'kind':'notes','identity':exported['identity'],'notes':exported['notes']}
+        self.assertEqual(verify_note_records(imported)['notes'],22)
+        changed=json.loads(json.dumps(imported));changed['notes'][0]['note']='Different observation'
+        with self.assertRaises(HTTPError) as error:verify_note_records(changed)
+        self.assertEqual(error.exception.code,409)
+
         with urlopen(path.replace('/pages/1/','/pages/2/')+'/export',timeout=15) as response:self.assertEqual(json.load(response)['notes'],[])
 
         with urlopen(path+'?before='+str(latest['next_before']),timeout=15) as response:older=json.load(response)
@@ -83,6 +91,16 @@ class RegistryIntegration(unittest.TestCase):
         with search(selected['id']) as response:result=json.load(response)
         self.assertTrue(result['passages']);self.assertEqual(result['retrieval']['document_id'],selected['id'])
         self.assertTrue(all(p['document_id']==selected['id'] for p in result['passages']));self.assertEqual(result['integrity'],'verified')
+        local_payload={'kind':'passages','documents':[{'id':selected['id'],'name':selected['name'],'source_sha256':selected['source_sha256']}],'passages':result['passages']}
+        def verify_passages(payload,send_headers=headers):
+            with urlopen(Request(BASE+'/knowledge/verify-export-records',data=json.dumps(payload).encode(),headers=send_headers,method='POST'),timeout=15) as response:return json.load(response)
+        self.assertEqual(verify_passages(local_payload)['integrity'],'matches_local_records')
+        with self.assertRaises(HTTPError) as error:verify_passages(local_payload,{})
+        self.assertEqual(error.exception.code,403)
+        changed=json.loads(json.dumps(local_payload));changed['passages'][0]['content']='A rewritten observation'
+        with self.assertRaises(HTTPError) as error:verify_passages(changed)
+        self.assertEqual(error.exception.code,409)
+
         import uuid
         with search(str(uuid.uuid4())) as response:self.assertEqual(json.load(response)['passages'],[])
         for invalid in ('bad',42):

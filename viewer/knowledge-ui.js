@@ -1,3 +1,4 @@
+import './verify-export-ui.js';
 import {addCompareChoice,beginComparePage,removeCompareDocument} from './compare-ui.js';
 import {searchSnapshot,searchText} from './search-export.js';
 import {showPageNotes} from './page-notes.js';

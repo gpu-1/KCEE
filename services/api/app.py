@@ -547,6 +547,23 @@ async def document_visibility(document_id: UUID,request: Request):
     except (ValueError,TypeError) as error:raise HTTPException(422,str(error)[:200])
     except psycopg.Error:raise HTTPException(503,'Document visibility migration unavailable')
 
+@app.post('/knowledge/verify-export-records')
+async def verify_export_records(request: Request):
+    from kcee.export_verification import verify_records
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-knowledge')!='1':raise HTTPException(403,'Export source checks require the local website')
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>16*1024*1024:raise HTTPException(413,'Export records exceed 16 MB')
+    try:
+        import json
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(verify_records,json.loads(raw))
+    except KeyError:raise HTTPException(404,'An included local source or record is unavailable')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except (ValueError,TypeError,AttributeError,OverflowError) as error:raise HTTPException(422,'Invalid export records: '+str(error)[:150])
+    except psycopg.Error:raise HTTPException(503,'Knowledge database or migration unavailable')
+
 @app.get('/knowledge/import-state')
 def document_import_state():
     from kcee.document_imports import imports
