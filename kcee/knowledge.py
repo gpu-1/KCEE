@@ -86,12 +86,20 @@ class Knowledge:
         raw=bytes(row['original_bytes'])
         if hashlib.sha256(raw).hexdigest()!=row['source_sha256']:raise IntegrityError('Document source hash mismatch')
         return row,raw
-    def retrieve(self,question,with_metadata=False,document_id=None):
+    def retrieve(self,question,with_metadata=False,document_id=None,page_start=None,page_end=None):
         if not isinstance(question,str) or not 1<=len(question.strip())<=800:raise ValueError('Use a question of 1 to 800 characters')
         if document_id is not None:document_id=str(uuid.UUID(str(document_id)))
-        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE (%s::uuid IS NULL OR d.id=%s::uuid) AND to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(document_id,document_id,question,question)).fetchall()
+        from kcee.page_range import validate_page_range
+        page_range=validate_page_range(document_id,page_start,page_end)
+        if page_range:
+            with self.connect() as conn:
+                pdf=conn.execute("SELECT jsonb_array_length(e.extraction->'pages') AS pages FROM local_pdf_extractions e JOIN active_local_documents d ON d.id=e.document_id WHERE d.id=%s",(document_id,)).fetchone()
+            if not pdf or page_end>pdf['pages']:raise ValueError('Selected active PDF does not contain this page range')
+        with self.connect() as conn:rows=conn.execute("SELECT c.id AS chunk_id,c.document_id,c.page_number,c.line_start,c.line_end,c.content,c.chunk_sha256,d.name,d.source_sha256 FROM local_document_chunks c JOIN active_local_documents d ON d.id=c.document_id WHERE (%s::uuid IS NULL OR d.id=%s::uuid) AND (%s::int IS NULL OR c.page_number BETWEEN %s AND %s) AND to_tsvector('english',c.content) @@ replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery ORDER BY ts_rank_cd(to_tsvector('english',c.content),replace(plainto_tsquery('english',%s)::text,' & ',' | ')::tsquery) DESC,c.id LIMIT 12",(document_id,document_id,page_start,page_start,page_end,question,question)).fetchall()
         from kcee.semantic_knowledge import retrieve
-        rows,metadata=retrieve(self,question,rows,document_id=document_id)
+        rows,metadata=retrieve(self,question,rows,document_id=document_id,**({'page_range':page_range} if page_range else {}))
+        if page_range:metadata['page_range']=page_range
+        if page_range and any(not page_start<=row.get('page_number',0)<=page_end for row in rows):raise IntegrityError('Retrieved passage outside requested page range')
         if document_id is not None:metadata['document_id']=document_id
         result=[]
         for index,row in enumerate(rows,1):

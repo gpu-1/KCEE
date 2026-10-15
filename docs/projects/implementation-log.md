@@ -447,3 +447,7 @@ Saved searches can export versioned JSON with a SHA-256 snapshot digest and impo
 ### Retrieved passage page filter
 
 Search results can be filtered by physical PDF page number across matching documents, or to text documents. The filter shows visible/total passage counts and resets on new results or scope changes. It filters the retrieved set only; it does not rerun retrieval or discover other pages. Search exports and source hashes retain the complete original result.
+
+### PDF page bounds before retrieval
+
+Search optionally limits a selected active PDF to an inclusive physical page range. Bounds are validated against the stored page count; keyword and pgvector SQL apply them before ranking limits, including semantic fallback. Responses and evidence exports retain the requested bounds; the browser rejects out-of-range results. Saved-question and assistant handoffs are disabled for ranged searches because those flows do not yet retain page bounds. Display-only page filtering remains separate.

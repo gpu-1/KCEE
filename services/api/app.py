@@ -520,11 +520,11 @@ async def search_local_documents(request: Request):
     try:
         import json
         data=json.loads(raw)
-        if 'question' not in data or set(data)-{'question','document_id'}:raise ValueError('Use a question and optional document identity')
+        if 'question' not in data or set(data)-{'question','document_id','page_start','page_end'}:raise ValueError('Use a question and optional document identity')
         if data.get('document_id') is not None and not isinstance(data['document_id'],str):raise ValueError('Invalid document identity')
         document_id=str(UUID(data['document_id'])) if data.get('document_id') is not None else None
         from starlette.concurrency import run_in_threadpool
-        passages,metadata=await run_in_threadpool(Knowledge().retrieve,data['question'],True,document_id)
+        passages,metadata=await run_in_threadpool(Knowledge().retrieve,data['question'],True,document_id,data.get('page_start'),data.get('page_end'))
         return {'passages':passages,'retrieval':metadata,'integrity':'verified'}
     except IntegrityError as error:raise HTTPException(409,str(error))
     except (ValueError,TypeError,KeyError) as error:raise HTTPException(422,str(error)[:200])

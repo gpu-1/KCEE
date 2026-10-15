@@ -65,3 +65,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #knowledge-search-results mark{background:#f4d675;color:#17212a;border-radius:2px;padding:0;font-weight:600}
 
 #saved-searches{margin:16px 0}#saved-search-list section{padding:12px;border:1px solid #314653;border-radius:6px;margin:10px 0}#saved-search-list p{white-space:pre-wrap;overflow-wrap:anywhere}#saved-search-list button{margin-right:8px}
+
+#search-range-fields input[type=number]{display:block;width:100%;padding:8px;margin:6px 0 12px;border:1px solid #526b7b;border-radius:5px;background:#12202a;color:#dfe9f1}
