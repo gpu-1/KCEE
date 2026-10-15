@@ -4,7 +4,6 @@ from pathlib import Path
 from datetime import timezone
 from kcee.library_coverage import library_snapshot
 from kcee.page_notes import note_digest,FIELDS
-from kcee.registry import Registry
 from kcee.provenance import verify_directory,IntegrityError
 from kcee.embeddings import float32_vector
 TABLES=('design_runs','run_visibility_events','local_documents','local_document_chunks','local_pdf_extractions','local_chunk_embeddings','document_visibility_events','document_page_notes')
@@ -22,6 +21,7 @@ def review_note_history(rows,docs):
     return {'integrity':'verified','count':count,'history_sha256':history.hexdigest(),'hash_scheme':'sha256_length_prefixed_canonical_json_v1'}
 
 def verify(root):
+    from kcee.registry import Registry
     counts={}
     with Registry().connect() as conn:
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
