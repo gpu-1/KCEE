@@ -395,12 +395,13 @@ async def upload_knowledge(request: Request):
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable or migration not installed')
 
 @app.get('/knowledge/documents/{document_id}/source')
-def knowledge_source(document_id: UUID):
+def knowledge_source(document_id: UUID, inline: bool = False):
     from kcee.knowledge import Knowledge
     try:
         row,raw=Knowledge().source(document_id)
         pdf=row['name'].lower().endswith('.pdf')
-        return Response(raw,media_type='application/pdf' if pdf else 'text/plain; charset=utf-8',headers={'X-Source-SHA256':row['source_sha256'],'X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="kcee-document.'+('pdf' if pdf else 'txt')+'"'})
+        if inline and not pdf:raise HTTPException(422,'Only PDF documents can be viewed inline')
+        return Response(raw,media_type='application/pdf' if pdf else 'text/plain; charset=utf-8',headers={'X-Source-SHA256':row['source_sha256'],'X-Content-Type-Options':'nosniff','Content-Disposition':('inline' if inline else 'attachment')+'; filename="kcee-document.'+('pdf' if pdf else 'txt')+'"'})
     except KeyError:raise HTTPException(404,'Document not found')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except psycopg.Error:raise HTTPException(503,'Knowledge database unavailable')
