@@ -23,6 +23,11 @@ def audit(root):
     report=json.loads(result.stdout)
     report['counts']['knowledge_chunks']=int(compose(root,'exec','-T','postgres','psql','-U','kcee','-d','kcee','-At','-c','SELECT count(*) FROM knowledge_chunks',capture_output=True,text=True).stdout.strip())
     return report
+def verify_restore_inventory(expected,actual):
+    if actual['counts']!=expected['counts']:raise ValueError('Restored database inventory differs')
+    if 'document_page_notes' in expected['counts'] or expected.get('review_notes') is not None:
+        if not expected.get('review_notes') or expected['review_notes'].get('integrity')!='verified' or actual.get('review_notes')!=expected['review_notes']:raise ValueError('Restored review note history differs from backup verification')
+
 def files(root):
     result={}
     for prefix,target in (('runs','runs'),('.local/studies','studies')):
@@ -89,7 +94,7 @@ def export(root,output):
                 staging.rename(output)
             finally:
                 if staging.exists():staging.unlink()
-        receipt={'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts']}
+        receipt={'bundle':str(output),'bundle_sha256':digest(output),'counts':report['counts'],'review_notes':report.get('review_notes')}
         receipt_path=output.with_suffix(output.suffix+'.receipt.json');receipt_path.write_text(json.dumps(receipt,indent=2));os.chmod(receipt_path,0o600)
         return receipt
     finally:
@@ -137,7 +142,7 @@ def restore(bundle,destination,expected):
     compose(root,'up','-d','--wait','postgres',stdout=subprocess.DEVNULL)
     with (destination/'database.dump').open('rb') as stream:compose(root,'exec','-T','postgres','pg_restore','-U','kcee','-d','kcee','--clean','--if-exists','--no-owner','--exit-on-error','--single-transaction',stdin=stream,stdout=subprocess.DEVNULL)
     report=audit(root)
-    if report['counts']!=manifest['verification']['counts']:raise ValueError('Restored database inventory differs')
+    verify_restore_inventory(manifest['verification'],report)
     result={'project':project,'root':str(root),'verification':report,'services_started':['postgres'],'native_setup_required':True}
     (destination/'restore-report.json').write_text(json.dumps(result,indent=2));return result
 
