@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {libraryQuery,libraryPageLabel} from '../document-library.js';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-const source=readFileSync(new URL('../knowledge-ui.js',import.meta.url),'utf8').replace("import {request} from './client.js';",'').replace("import {appendPdfPageLink} from './pdf-source.js';",'').replace("import {showPdfReview} from './pdf-review.js';",'').replace("import {showPageNotes} from './page-notes.js';",'').replace("import {libraryQuery,libraryPageLabel} from './document-library.js';",'');
+const source=readFileSync(new URL('../knowledge-ui.js',import.meta.url),'utf8').replace("import {request} from './client.js';",'').replace("import {appendPdfPageLink} from './pdf-source.js';",'').replace("import {showPdfReview} from './pdf-review.js';",'').replace("import {showPageNotes} from './page-notes.js';",'').replace("import {searchSnapshot,searchText} from './search-export.js';",'').replace("import {libraryQuery,libraryPageLabel} from './document-library.js';",'');
 function setup(states){
  const elements=new Map(),posts=[];
  const get=id=>{if(!elements.has(id))elements.set(id,{hidden:true,disabled:false,value:'',files:[],addEventListener(){},removeAttribute(){},replaceChildren(){},appendChild(){}});return elements.get(id);};
