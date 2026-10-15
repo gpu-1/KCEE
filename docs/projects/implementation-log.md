@@ -443,3 +443,7 @@ The Backup panel compares a consistent read-only database snapshot with the late
 ### Saved-search transfer
 
 Saved searches can export versioned JSON with a SHA-256 snapshot digest and import UTF-8 JSON up to 256 KB. Preview validates the complete file and reports additions/duplicates before applying. Import merges atomically, preserves existing entries and assigns new local identities; duplicate question/document pairs are skipped. Overflow beyond 50 or invalid storage rejects the whole import. Files contain only questions, document selections and saved timestamps, not source documents/evidence; matching hashes do not establish authorship or document availability.
+
+### Retrieved passage page filter
+
+Search results can be filtered by physical PDF page number across matching documents, or to text documents. The filter shows visible/total passage counts and resets on new results or scope changes. It filters the retrieved set only; it does not rerun retrieval or discover other pages. Search exports and source hashes retain the complete original result.
