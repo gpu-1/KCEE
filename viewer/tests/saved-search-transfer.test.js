@@ -9,3 +9,10 @@ test('transfer roundtrip preserves scoped questions; preview is read-only and me
 test('changed or wrong files fail and overflow leaves storage unchanged',async()=>{
  const record=await exportSavedSearches([]);record.exported_at='2020-01-01';await assert.rejects(parseSavedSearchExport(JSON.stringify(record)),/hash/);await assert.rejects(parseSavedSearchExport('{}'));const s=store();for(let i=0;i<50;i++)saveSearch(s,'Q'+i);const original=loadSavedSearches(s);assert.throws(()=>mergeSavedSearches(s,[{id:'new',question:'Extra',document:null,saved_at:new Date().toISOString()}],true),/exceed/);assert.deepEqual(loadSavedSearches(s),original);
 });
+
+test('page ranges survive export/import, have distinct identity and validate before writing',async()=>{
+ const a=store(),doc={id:'12345678-1234-1234-1234-123456789abc',name:'a.pdf'};
+ saveSearch(a,'Heat?',doc);saveSearch(a,'Heat?',doc,undefined,{start:2,end:3});assert.equal(loadSavedSearches(a).length,2);
+ const data=await exportSavedSearches(loadSavedSearches(a));assert.equal(data.schema,'kcee.saved-searches-export.v2');const rows=await parseSavedSearchExport(JSON.stringify(data));assert.deepEqual(rows[0].page_range,{start:2,end:3});const b=store();assert.equal(mergeSavedSearches(b,rows,true).added,2);assert.equal(mergeSavedSearches(b,rows,true).skipped,2);
+ const before=loadSavedSearches(a);assert.throws(()=>saveSearch(a,'Invalid',doc,undefined,{start:3,end:2}));assert.deepEqual(loadSavedSearches(a),before);
+});

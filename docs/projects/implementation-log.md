@@ -451,3 +451,7 @@ Search results can be filtered by physical PDF page number across matching docum
 ### PDF page bounds before retrieval
 
 Search optionally limits a selected active PDF to an inclusive physical page range. Bounds are validated against the stored page count; keyword and pgvector SQL apply them before ranking limits, including semantic fallback. Responses and evidence exports retain the requested bounds; the browser rejects out-of-range results. Saved-question and assistant handoffs are disabled for ranged searches because those flows do not yet retain page bounds. Display-only page filtering remains separate.
+
+### Page ranges in saved searches
+
+Saved searches retain optional inclusive physical PDF page bounds. All-pages and different page ranges are separate saved identities. Loading restores the checkbox and bounds; old saved records load as all-pages. Transfer exports use v2 to preserve bounds; import still accepts original v1 files. Invalid ranges, ranges without a PDF selection and reversed bounds are rejected before storage writes. The study assistant remains unavailable for ranged questions.

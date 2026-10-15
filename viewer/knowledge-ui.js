@@ -61,4 +61,4 @@ $('ocr-language').onchange=()=>offerRetry(null);
 
 $('highlight-search-matches').onchange=()=>{for(const text of document.querySelectorAll('#knowledge-search-results .search-passage'))renderHighlightedPassage(text,text.textContent,text.dataset.highlightQuestion,$('highlight-search-matches').checked);};
 
-$('limit-search-pages').onchange=()=>{$('search-range-fields').hidden=!$('limit-search-pages').checked;$('save-current-search').disabled=$('limit-search-pages').checked;clearSearchScope();};for(const id of ['search-page-start','search-page-end'])$(id).addEventListener('input',clearSearchScope);
+$('limit-search-pages').onchange=()=>{$('search-range-fields').hidden=!$('limit-search-pages').checked;clearSearchScope();};for(const id of ['search-page-start','search-page-end'])$(id).addEventListener('input',clearSearchScope);
