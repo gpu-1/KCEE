@@ -1,10 +1,11 @@
+import {closeDocumentWorkspace} from './document-workspace.js';
 import {comparisonSnapshot,comparisonText} from './comparison-export.js';
 import {request} from './client.js';
 import {compareEvidence} from './compare-evidence.js';
 import {appendPdfPageLink} from './pdf-source.js';
 const selected=new Map(),choices=new Map();let revision=0,busy=false,exportUrls=[],handoff=null;
 const get=id=>document.getElementById(id);
-export function clearComparison(){revision++;handoff=null;get('use-comparison-in-study').hidden=true;for(const url of exportUrls)URL.revokeObjectURL(url);exportUrls=[];get('comparison-downloads').hidden=true;for(const id of ['download-comparison-text','download-comparison-json'])get(id).removeAttribute('href');get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then compare using the search question above.';}
+export function clearComparison(){revision++;handoff=null;get('use-comparison-in-study').hidden=true;for(const url of exportUrls)URL.revokeObjectURL(url);exportUrls=[];get('comparison-downloads').hidden=true;for(const id of ['download-comparison-text','download-comparison-json'])get(id).removeAttribute('href');get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then enter a comparison question.';}
 function refreshSelection(){
  get('compare-selected').replaceChildren();
  for(const item of selected.values()){const row=document.createElement('p'),name=document.createElement('span'),remove=document.createElement('button');name.textContent=item.name+' · '+item.id.slice(0,8)+' ';remove.textContent='Remove';remove.setAttribute('aria-label','Remove '+item.name+' from comparison');remove.disabled=busy;remove.onclick=()=>{selected.delete(item.id);clearComparison();refreshSelection();};row.append(name,remove);get('compare-selected').appendChild(row);}
@@ -21,7 +22,7 @@ export function beginComparePage(){choices.clear();}
 get('clear-compare-references').onclick=()=>{selected.clear();clearComparison();refreshSelection();};
 get('knowledge-search-question').addEventListener('input',clearComparison);
 get('compare-references').onclick=async()=>{
- const question=get('knowledge-search-question').value.trim();clearComparison();const ticket=revision;busy=true;refreshSelection();get('reference-comparison-status').textContent='Searching and verifying each selected source…';
+ const question=get('comparison-question').value.trim();clearComparison();const ticket=revision;busy=true;refreshSelection();get('reference-comparison-status').textContent='Searching and verifying each selected source…';
  try{
   const result=await compareEvidence(question,[...selected.values()],(question,id)=>request('/knowledge/search',{method:'POST',headers:{'Content-Type':'application/json','X-KCEE-Knowledge':'1'},body:JSON.stringify({question,document_id:id})}));
   if(ticket!==revision)return;
@@ -39,4 +40,4 @@ get('compare-references').onclick=async()=>{
  finally{busy=false;refreshSelection();}
 };
 
-get('use-comparison-in-study').onclick=()=>{if(!handoff)return;const event=new CustomEvent('kcee-study-question',{detail:handoff,cancelable:true});document.dispatchEvent(event);if(event.defaultPrevented){get('knowledge-dialog').close();get('assistant-question').focus();get('assistant-question').scrollIntoView({block:'center'});}else get('reference-comparison-status').textContent='Select a verified study and wait for any running explanation before using these references.';};
+get('use-comparison-in-study').onclick=()=>{if(!handoff)return;const event=new CustomEvent('kcee-study-question',{detail:handoff,cancelable:true});document.dispatchEvent(event);if(event.defaultPrevented){closeDocumentWorkspace();get('assistant-question').focus();get('assistant-question').scrollIntoView({block:'center'});}else get('reference-comparison-status').textContent='Select a verified study and wait for any running explanation before using these references.';};

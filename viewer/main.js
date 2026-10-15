@@ -59,8 +59,8 @@ try {
   camera=new THREE.PerspectiveCamera(45,1,.1,10000);camera.up.set(0,0,1);camera.position.set(100,100,100);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));$('viewport').appendChild(renderer.domElement);
   controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
-  new ResizeObserver(()=>{const width=$('viewport').clientWidth,height=$('viewport').clientHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}).observe($('viewport'));
-  renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
+  new ResizeObserver(()=>{const width=$('viewport').clientWidth,height=$('viewport').clientHeight;if(width<=0||height<=0)return;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}).observe($('viewport'));
+  renderer.setAnimationLoop(()=>{if($('design-workspace').hidden)return;controls.update();renderer.render(scene,camera);});
 } catch {renderer=null;$('empty').textContent='3D rendering unavailable. Run history and reports remain accessible.';}
 function highlight(){for(const button of $('runs').querySelectorAll('button'))button.setAttribute('aria-current',String(button.dataset.id===selectedId));}
 async function selectRun(id){
