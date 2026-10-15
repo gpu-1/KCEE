@@ -146,9 +146,17 @@ class Knowledge:
             excerpt=''.join(lines[chunk['line_start']-1:chunk['line_end']])
             if row['source_sha256']!=chunk['source_sha256'] or excerpt!=chunk['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=chunk['chunk_sha256']:raise IntegrityError('Cited source mismatch')
 
-def attach_documents(evidence,question):
+def attach_documents(evidence,question,document_id=None):
     from kcee.geometry_queue import encoded
-    evidence=dict(evidence);evidence['documents'],evidence['document_search']=Knowledge().retrieve(question,with_metadata=True)
+    knowledge=Knowledge();scope=None
+    if document_id is not None:
+        document_id=str(uuid.UUID(str(document_id)))
+        with knowledge.connect() as conn:active=conn.execute('SELECT id FROM active_local_documents WHERE id=%s',(document_id,)).fetchone()
+        if not active:raise ValueError('Selected document is unavailable or archived; choose another reference')
+        row,original=knowledge.source(document_id)
+        scope={'document_id':document_id,'name':row['name'],'source_sha256':row['source_sha256']}
+    evidence=dict(evidence);evidence['documents'],evidence['document_search']=knowledge.retrieve(question,with_metadata=True,document_id=document_id)
+    if scope:evidence['document_search']['scope']=scope
     raw=encoded(evidence)
     if len(raw)>20000:raise ValueError('Combined study and document context exceeds bounded limit')
     return evidence,hashlib.sha256(raw).hexdigest()
