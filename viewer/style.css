@@ -49,3 +49,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 .pdf-review-navigation{display:flex;gap:8px;margin:8px 0}#pdf-review-page{width:100%}#pdf-review-original a{color:#8ee4d4}
 
 .document-filter-row{display:flex;gap:8px;margin:8px 0}.document-filter-row>div{flex:1;min-width:0}.document-filter-row select,#document-filter-name{width:100%}
+
+#knowledge-search-document{display:block;width:100%;margin-bottom:10px}
