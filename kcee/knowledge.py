@@ -146,17 +146,40 @@ class Knowledge:
             excerpt=''.join(lines[chunk['line_start']-1:chunk['line_end']])
             if row['source_sha256']!=chunk['source_sha256'] or excerpt!=chunk['content'] or hashlib.sha256(excerpt.encode()).hexdigest()!=chunk['chunk_sha256']:raise IntegrityError('Cited source mismatch')
 
-def attach_documents(evidence,question,document_id=None):
+def balanced_document_passages(groups,limit=4):
+    selected=[]
+    for rank in range(max((len(group) for group in groups),default=0)):
+        for group in groups:
+            if rank<len(group):selected.append(dict(group[rank],citation_id='D'+str(len(selected)+1)))
+            if len(selected)>=limit:return selected
+    return selected
+
+def attach_documents(evidence,question,document_id=None,document_ids=None):
     from kcee.geometry_queue import encoded
-    knowledge=Knowledge();scope=None
-    if document_id is not None:
-        document_id=str(uuid.UUID(str(document_id)))
-        with knowledge.connect() as conn:active=conn.execute('SELECT id FROM active_local_documents WHERE id=%s',(document_id,)).fetchone()
+    knowledge=Knowledge();scopes=[]
+    if document_ids is not None:
+        if document_id is not None or not isinstance(document_ids,list) or not 1<=len(document_ids)<=3:raise ValueError('Choose one to three document identities')
+        identifiers=[str(uuid.UUID(str(value))) for value in document_ids]
+        if len(set(identifiers))!=len(identifiers):raise ValueError('Choose different documents')
+    else:identifiers=[str(uuid.UUID(str(document_id)))] if document_id is not None else []
+    for identifier in identifiers:
+        with knowledge.connect() as conn:active=conn.execute('SELECT id FROM active_local_documents WHERE id=%s',(identifier,)).fetchone()
         if not active:raise ValueError('Selected document is unavailable or archived; choose another reference')
-        row,original=knowledge.source(document_id)
-        scope={'document_id':document_id,'name':row['name'],'source_sha256':row['source_sha256']}
-    evidence=dict(evidence);evidence['documents'],evidence['document_search']=knowledge.retrieve(question,with_metadata=True,document_id=document_id)
-    if scope:evidence['document_search']['scope']=scope
+        row,original=knowledge.source(identifier)
+        scopes.append({'document_id':identifier,'name':row['name'],'source_sha256':row['source_sha256']})
+    evidence=dict(evidence)
+    if len(scopes)<=1:
+        evidence['documents'],evidence['document_search']=knowledge.retrieve(question,with_metadata=True,document_id=identifiers[0] if identifiers else None)
+        if scopes:evidence['document_search']['scope']=scopes[0]
+    else:
+        groups=[];searches=[]
+        for scope in scopes:
+            chunks,metadata=knowledge.retrieve(question,with_metadata=True,document_id=scope['document_id'])
+            if any(chunk['document_id']!=scope['document_id'] or chunk['source_sha256']!=scope['source_sha256'] for chunk in chunks):raise IntegrityError('Selected reference source mismatch')
+            groups.append(chunks);searches.append(metadata)
+        evidence['documents']=balanced_document_passages(groups)
+        evidence['document_search']={'method':'independent selected-source retrieval; round-robin selection up to four passages','query':question,'matches':len(evidence['documents']),'semantic_embeddings':any(search.get('semantic_embeddings') for search in searches),'scopes':scopes,'sources':[dict(scope,available_matches=len(group),included_matches=sum(chunk['document_id']==scope['document_id'] for chunk in evidence['documents']),retrieval=search) for scope,group,search in zip(scopes,groups,searches)]}
+        knowledge.verify_citations(evidence['documents'])
     raw=encoded(evidence)
     if len(raw)>20000:raise ValueError('Combined study and document context exceeds bounded limit')
     return evidence,hashlib.sha256(raw).hexdigest()

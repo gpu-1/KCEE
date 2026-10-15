@@ -288,6 +288,7 @@ class StudyQuestion(BaseModel):
     question: str
     include_documents: bool=False
     document_id: UUID | None=None
+    document_ids: list[UUID] | None=None
 
 @app.post('/runs/{run_id}/assistant',status_code=202)
 def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
@@ -295,7 +296,8 @@ def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
     from kcee.study_assistant import study_evidence,submit_assistant
     from kcee.geometry_queue import QueueError
     if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-assistant')!='1':raise HTTPException(403,'Study AI requires the local KCEE website')
-    if body.document_id is not None and not body.include_documents:raise HTTPException(422,'Selected document requires document references')
+    if body.document_ids is not None and (body.document_id is not None or not 1<=len(body.document_ids)<=3 or len(set(body.document_ids))!=len(body.document_ids)):raise HTTPException(422,'Choose one to three different documents using one scope field')
+    if (body.document_id is not None or body.document_ids is not None) and not body.include_documents:raise HTTPException(422,'Selected document requires document references')
     if not 1<=len(body.question.strip())<=800:raise HTTPException(422,'Use a question of 1 to 800 characters')
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
@@ -305,7 +307,7 @@ def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
         evidence,digest=study_evidence(record,result,stress_diagnostics(run_id) if kind=='bracket_structural' else {},refinement_explorations(run_id) if kind=='bracket_structural' else {'items':[]})
         if body.include_documents:
             from kcee.knowledge import attach_documents
-            evidence,digest=attach_documents(evidence,body.question,body.document_id)
+            evidence,digest=attach_documents(evidence,body.question,body.document_id,body.document_ids)
         return {'job_id':submit_assistant(body.question,evidence,digest,*assistant_paths()),'evidence_sha256':digest,'status':'pending'}
     except KeyError:raise HTTPException(404,'Unknown or incomplete study')
     except IntegrityError as error:raise HTTPException(409,str(error))

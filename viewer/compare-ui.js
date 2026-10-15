@@ -2,9 +2,9 @@ import {comparisonSnapshot,comparisonText} from './comparison-export.js';
 import {request} from './client.js';
 import {compareEvidence} from './compare-evidence.js';
 import {appendPdfPageLink} from './pdf-source.js';
-const selected=new Map(),choices=new Map();let revision=0,busy=false,exportUrls=[];
+const selected=new Map(),choices=new Map();let revision=0,busy=false,exportUrls=[],handoff=null;
 const get=id=>document.getElementById(id);
-export function clearComparison(){revision++;for(const url of exportUrls)URL.revokeObjectURL(url);exportUrls=[];get('comparison-downloads').hidden=true;for(const id of ['download-comparison-text','download-comparison-json'])get(id).removeAttribute('href');get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then compare using the search question above.';}
+export function clearComparison(){revision++;handoff=null;get('use-comparison-in-study').hidden=true;for(const url of exportUrls)URL.revokeObjectURL(url);exportUrls=[];get('comparison-downloads').hidden=true;for(const id of ['download-comparison-text','download-comparison-json'])get(id).removeAttribute('href');get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then compare using the search question above.';}
 function refreshSelection(){
  get('compare-selected').replaceChildren();
  for(const item of selected.values()){const row=document.createElement('p'),name=document.createElement('span'),remove=document.createElement('button');name.textContent=item.name+' · '+item.id.slice(0,8)+' ';remove.textContent='Remove';remove.setAttribute('aria-label','Remove '+item.name+' from comparison');remove.disabled=busy;remove.onclick=()=>{selected.delete(item.id);clearComparison();refreshSelection();};row.append(name,remove);get('compare-selected').appendChild(row);}
@@ -33,8 +33,10 @@ get('compare-references').onclick=async()=>{
   }
   const snapshot=await comparisonSnapshot(result);if(ticket!==revision)return;
   for(const [id,text,type,extension] of [['download-comparison-text',comparisonText(snapshot),'text/plain;charset=utf-8','txt'],['download-comparison-json',JSON.stringify(snapshot,null,2),'application/json','json']]){const url=URL.createObjectURL(new Blob([text],{type}));exportUrls.push(url);get(id).href=url;get(id).download='kcee-reference-comparison-'+snapshot.exported_at.replace(/[:.]/g,'-')+'.'+extension;}
-  get('comparison-downloads').hidden=false;
+  get('comparison-downloads').hidden=false;handoff={question:result.question,documents:result.sources.map(s=>({id:s.document.id,name:s.document.name}))};get('use-comparison-in-study').hidden=false;
   get('reference-comparison-status').textContent='Compared '+result.sources.length+' sources for: '+result.question+'. Citations are local to each source. Compare assumptions, units and relevance; these passages do not establish agreement or engineering validity.';
  }catch(error){if(ticket===revision)get('reference-comparison-status').textContent=error.message;}
  finally{busy=false;refreshSelection();}
 };
+
+get('use-comparison-in-study').onclick=()=>{if(!handoff)return;const event=new CustomEvent('kcee-study-question',{detail:handoff,cancelable:true});document.dispatchEvent(event);if(event.defaultPrevented){get('knowledge-dialog').close();get('assistant-question').focus();get('assistant-question').scrollIntoView({block:'center'});}else get('reference-comparison-status').textContent='Select a verified study and wait for any running explanation before using these references.';};

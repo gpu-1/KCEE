@@ -80,6 +80,18 @@ class RegistryIntegration(unittest.TestCase):
             with self.assertRaises(HTTPError) as error:library(**options)
             self.assertEqual(error.exception.code,422)
 
+    def test_multi_document_assistant_evidence_is_balanced_and_bounded(self):
+        from kcee.knowledge import Knowledge,attach_documents
+        from kcee.geometry_queue import encoded
+        k=Knowledge();documents=[k.ingest('assistant-multi-'+str(i)+'.txt',('MultiAssistantFixture reference '+str(i)+' heat flow 0.525 W.').encode()) for i in range(2)]
+        missing=k.ingest('assistant-no-match.txt',b'NoMatchingVocabularyForThisFixture')
+        evidence,digest=attach_documents({'source':{'run_id':'test-study'}},'MultiAssistantFixture',document_ids=[d['id'] for d in documents]+[missing['id']])
+        self.assertEqual(set(p['document_id'] for p in evidence['documents']),set(d['id'] for d in documents))
+        self.assertEqual(len(evidence['document_search']['scopes']),3);self.assertEqual(evidence['document_search']['sources'][2]['included_matches'],0)
+        self.assertEqual([p['citation_id'] for p in evidence['documents']],['D1','D2']);self.assertEqual(hashlib.sha256(encoded(evidence)).hexdigest(),digest)
+        k.verify_citations(evidence['documents']);k.visibility(documents[0]['id'],True,documents[0]['source_sha256'],True)
+        with self.assertRaisesRegex(ValueError,'unavailable or archived'):attach_documents({},'MultiAssistantFixture',document_ids=[d['id'] for d in documents])
+
     def test_selected_document_search_stays_scoped(self):
         from kcee.knowledge import Knowledge
         k=Knowledge();selected=k.ingest('scope-selected.txt',b'ScopedSearchReference thermal conductivity 9.25 W per metre kelvin.\n')

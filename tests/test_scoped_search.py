@@ -33,3 +33,28 @@ class AssistantDocumentScopeTests(unittest.TestCase):
    knowledge=constructor.return_value;knowledge.connect.return_value.__enter__.return_value.execute.return_value.fetchone.return_value=None
    with self.assertRaisesRegex(ValueError,'unavailable or archived'):attach_documents({},'Question','12345678-1234-1234-1234-123456789abc')
    knowledge.retrieve.assert_not_called()
+
+class MultiDocumentSelectionTests(unittest.TestCase):
+ def test_round_robin_includes_each_matching_source_before_second_passage(self):
+  from kcee.knowledge import balanced_document_passages
+  groups=[[{'document_id':name,'content':name+str(i),'citation_id':'D'+str(i+1)} for i in range(4)] for name in ('a','b','c')]
+  result=balanced_document_passages(groups)
+  self.assertEqual([p['document_id'] for p in result],['a','b','c','a']);self.assertEqual([p['citation_id'] for p in result],['D1','D2','D3','D4']);self.assertEqual(groups[1][0]['citation_id'],'D1')
+  self.assertEqual([p['document_id'] for p in balanced_document_passages([groups[0],[],groups[2]])],['a','c','a','c'])
+ def test_duplicate_empty_and_excessive_scopes_rejected(self):
+  from kcee.knowledge import attach_documents
+  id='12345678-1234-1234-1234-123456789abc'
+  for ids in ([],[id,id],[id]*4):
+   with self.assertRaises(ValueError):attach_documents({},'Question',document_ids=ids)
+
+@__import__('unittest').skipUnless(__import__('importlib').util.find_spec('app'),'API image required')
+class MultiDocumentAPITests(unittest.TestCase):
+ def test_invalid_scope_requests_reject_before_reading_study(self):
+  import uuid
+  from app import ask_study,StudyQuestion
+  from fastapi import HTTPException
+  class Request:headers={'origin':'http://localhost:5173','x-kcee-assistant':'1'}
+  id=str(uuid.uuid4())
+  for fields in ({'document_ids':[],'include_documents':True},{'document_ids':[id,id],'include_documents':True},{'document_ids':[id]},{'document_id':id,'document_ids':[id],'include_documents':True}):
+   with self.assertRaises(HTTPException) as error:ask_study(uuid.uuid4(),StudyQuestion(question='Question',**fields),Request())
+   self.assertEqual(error.exception.status_code,422)
