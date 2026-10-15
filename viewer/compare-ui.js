@@ -1,9 +1,10 @@
+import {comparisonSnapshot,comparisonText} from './comparison-export.js';
 import {request} from './client.js';
 import {compareEvidence} from './compare-evidence.js';
 import {appendPdfPageLink} from './pdf-source.js';
-const selected=new Map(),choices=new Map();let revision=0,busy=false;
+const selected=new Map(),choices=new Map();let revision=0,busy=false,exportUrls=[];
 const get=id=>document.getElementById(id);
-export function clearComparison(){revision++;get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then compare using the search question above.';}
+export function clearComparison(){revision++;for(const url of exportUrls)URL.revokeObjectURL(url);exportUrls=[];get('comparison-downloads').hidden=true;for(const id of ['download-comparison-text','download-comparison-json'])get(id).removeAttribute('href');get('reference-comparison-results').replaceChildren();get('reference-comparison-status').textContent='Choose two or three documents in the library, then compare using the search question above.';}
 function refreshSelection(){
  get('compare-selected').replaceChildren();
  for(const item of selected.values()){const row=document.createElement('p'),name=document.createElement('span'),remove=document.createElement('button');name.textContent=item.name+' · '+item.id.slice(0,8)+' ';remove.textContent='Remove';remove.setAttribute('aria-label','Remove '+item.name+' from comparison');remove.disabled=busy;remove.onclick=()=>{selected.delete(item.id);clearComparison();refreshSelection();};row.append(name,remove);get('compare-selected').appendChild(row);}
@@ -30,6 +31,9 @@ get('compare-references').onclick=async()=>{
    for(const chunk of snapshot.passages){const card=document.createElement('details'),heading=document.createElement('summary'),text=document.createElement('pre'),hash=document.createElement('p');heading.textContent='Source '+(index+1)+' ['+chunk.citation_id+']'+(chunk.page_number?' · page '+chunk.page_number:' · lines '+chunk.line_start+'–'+chunk.line_end)+(chunk.extraction_method==='ocr'?' · OCR':'');text.textContent=chunk.content;hash.textContent='Passage SHA-256: '+chunk.chunk_sha256;hash.className='hint';card.append(heading,text,hash);appendPdfPageLink(card,chunk);panel.appendChild(card);}
    get('reference-comparison-results').appendChild(panel);
   }
+  const snapshot=await comparisonSnapshot(result);if(ticket!==revision)return;
+  for(const [id,text,type,extension] of [['download-comparison-text',comparisonText(snapshot),'text/plain;charset=utf-8','txt'],['download-comparison-json',JSON.stringify(snapshot,null,2),'application/json','json']]){const url=URL.createObjectURL(new Blob([text],{type}));exportUrls.push(url);get(id).href=url;get(id).download='kcee-reference-comparison-'+snapshot.exported_at.replace(/[:.]/g,'-')+'.'+extension;}
+  get('comparison-downloads').hidden=false;
   get('reference-comparison-status').textContent='Compared '+result.sources.length+' sources for: '+result.question+'. Citations are local to each source. Compare assumptions, units and relevance; these passages do not establish agreement or engineering validity.';
  }catch(error){if(ticket===revision)get('reference-comparison-status').textContent=error.message;}
  finally{busy=false;refreshSelection();}
