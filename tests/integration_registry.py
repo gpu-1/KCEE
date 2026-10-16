@@ -478,10 +478,11 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
         directory=Path('/data/runs')/run_id;result=json.loads((directory/'result.json').read_text());flow=result['vortex']
         self.assertEqual(result['kind'],'cfd_vortex');self.assertTrue(all(flow['checks'].values()));self.assertEqual([m['cells'] for m in flow['mesh_study']],[256,1024,4096]);self.assertEqual(len((directory/'field.csv').read_text().splitlines()),4097)
+        self.assertEqual(flow['verification_version'],2);self.assertEqual([m['time_step_s'] for m in flow['time_study']],[.02,.01,.005,.0025]);self.assertEqual(len(flow['time_refinement']['successive_differences']),3);self.assertEqual(len((directory/'verification.csv').read_text().splitlines()),11);self.assertLess(flow['time_refinement']['successive_differences'][-1]['relative_pressure_difference'],.005)
         self.assertLess(flow['mesh_study'][-1]['relative_velocity_l2_error'],.02);self.assertLess(flow['mesh_study'][-1]['relative_pressure_l2_error'],.05)
         import zipfile
         with zipfile.ZipFile(directory/'cfd-artifacts.zip') as archive:
-            self.assertIn('64/constant/polyMesh/points',archive.namelist());self.assertIn('64/0.5/U',archive.namelist());self.assertIn('runtime.json',archive.namelist())
+            self.assertIn('64/constant/polyMesh/points',archive.namelist());self.assertIn('64/0.5/U',archive.namelist());self.assertIn('runtime.json',archive.namelist());self.assertIn('time-0.0025/0.5/U',archive.namelist());self.assertIn('time-0.02/system/controlDict',archive.namelist())
         with self.assertRaises(HTTPError) as error:urlopen(Request(BASE+'/runs/cfd-vortex',data=b'{"cells":8}',method='POST',headers={'Content-Type':'application/json'}),timeout=15)
         self.assertEqual(error.exception.code,422)
 

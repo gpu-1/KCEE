@@ -75,3 +75,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #cfd-chart svg{width:100%;height:auto}#cfd-results{margin:16px 0}#cfd-mesh-select{padding:8px;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}
 
 #vortex-view svg{width:100%;height:auto}#vortex-results select{display:block;width:100%;padding:8px;margin:6px 0 12px;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}
+
+#vortex-spatial-chart svg,#vortex-time-chart svg{width:100%;height:auto}

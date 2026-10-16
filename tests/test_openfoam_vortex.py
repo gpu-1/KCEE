@@ -35,3 +35,24 @@ class OpenFOAMVortexTests(unittest.TestCase):
   buffer=io.BytesIO()
   with zipfile.ZipFile(buffer,'w') as z:z.writestr('../escape','x')
   with self.assertRaisesRegex(ValueError,'Unsafe solver archive'):verify_payload(payload(buffer.getvalue()))
+ def test_time_refinement_uses_same_grid_finer_normalization_and_descriptive_orders(self):
+  from kcee.openfoam_vortex import time_refinement,TIME_STEPS
+  rows=[]
+  for dt in TIME_STEPS:
+   row={'cells_per_axis':64,'time_step_s':dt,'mesh_check_passed':True,'maximum_local_continuity_error':1e-12,'field':[{'x_m':0.,'y_m':0.,'u_m_s':1+dt*dt,'v_m_s':0.,'p_kinematic_m2_s2':1+dt}]};rows.append(row)
+  r=time_refinement(rows);self.assertTrue(all(r['checks'].values()));self.assertAlmostEqual(r['successive_differences'][0]['relative_velocity_difference'],(.02**2-.01**2)/(1+.01**2),places=12);self.assertAlmostEqual(r['observed_difference_orders']['relative_pressure_difference'][-1],1,places=2)
+  rows[-1]['field'][0]['x_m']=1
+  with self.assertRaisesRegex(ValueError,'grids differ'):time_refinement(rows)
+ def test_time_refinement_detects_non_decreasing_differences_and_wrong_scope(self):
+  from kcee.openfoam_vortex import time_refinement,TIME_STEPS
+  rows=[{'cells_per_axis':64,'time_step_s':dt,'mesh_check_passed':True,'maximum_local_continuity_error':0,'field':[{'x_m':0,'y_m':0,'u_m_s':u,'v_m_s':0,'p_kinematic_m2_s2':u}]} for dt,u in zip(TIME_STEPS,[1,1.1,1.4,2.3])]
+  result=time_refinement(rows);self.assertFalse(result['checks']['time_velocity_decreasing']);self.assertFalse(result['checks']['time_pressure_change'])
+  rows[0]['cells_per_axis']=32
+  with self.assertRaisesRegex(ValueError,'scope'):time_refinement(rows)
+ def test_time_case_control_dictionary_uses_exact_final_write_step(self):
+  from kcee.openfoam_vortex import TIME_STEPS
+  for dt in TIME_STEPS:
+   with tempfile.TemporaryDirectory() as tmp:
+    make_case(tmp,64,dt);control=(Path(tmp)/'system/controlDict').read_text();self.assertIn('deltaT '+str(dt)+';',control);self.assertIn('writeInterval '+str(round(.5/dt))+';',control)
+  with tempfile.TemporaryDirectory() as tmp:
+   with self.assertRaises(ValueError):make_case(tmp,64,.003)

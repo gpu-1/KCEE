@@ -85,3 +85,48 @@ to Mac Studio via the existing Docker Compose layout.
 
 Physical validation, turbulence, arbitrary-domain meshing, time-step studies,
 3D flows and coupled thermal-fluid engineering acceptance remain pending.
+
+## Version 2: combined mesh and time verification
+
+New runs retain the original three meshes at Δt = 0.005 s and add a fixed-grid
+time study at 64² cells with Δt = 0.02, 0.01, 0.005 and 0.0025 s. All end at
+0.5 s. The 64²/0.005 case is shared, so six distinct solver cases are executed.
+Each case writes its final fields after exactly 25, 50, 100 or 200 steps; the
+API requires three pressure-correction continuity records per step and verifies
+the generated time-step settings against the archived control dictionaries.
+
+Time-study analytical errors are recorded, but are not used as isolated time
+errors: they include fixed-grid spatial error and can exhibit cancellation.
+Instead, successive numerical velocity fields are compared on identical cell
+centres using ||U_coarse − U_fine||₂ / ||U_fine||₂. Pressure fields have their
+means removed separately before the same normalization. For each field,
+reported difference orders are log₂(D_coarse_pair / D_fine_pair). They are
+descriptive; no expected second order, Richardson extrapolation or asymptotic
+range acceptance is imposed. Startup and pressure-correction effects may give
+different observed behavior for velocity and pressure.
+
+Additional gates require decreasing successive velocity/pressure differences,
+a last velocity difference below 0.001 (0.1%), a last pressure difference below
+0.005 (0.5%), passing mesh checks and local continuity below 1e-7 on all time
+cases. These are demonstration sensitivity gates, not engineering error bounds.
+The mesh and time studies hold different discretizations fixed; a joint
+space-time limit is **not established**.
+
+The viewer displays separate logarithmic plots: analytical errors versus cell
+size, and successive time differences versus the coarse time step of each pair.
+Both have velocity/pressure curves and explicit axes. A study selector switches
+field maps between saved mesh and saved time-step cases. Summary metrics and
+field.csv continue to describe the original 64² mesh case at Δt=0.005 s.
+Temporal scalar tables and field views identify their own time step.
+
+New verification.csv combines three mesh rows, four time rows and three
+successive-difference rows. The combined report.md includes both studies,
+thresholds, descriptive orders and limitations. The downloadable result JSON
+contains all saved fields and checks; cfd-artifacts.zip contains all six raw
+cases. The verification_version=2 result and existing manifest hashes bind
+these outputs. Historical version-1 runs remain readable and are explicitly
+shown without temporal evidence; rerunning creates a new immutable run.
+
+This section supersedes the earlier spatial-only scope for new version-2 runs.
+Time-step studies now exist; a fully converged joint space-time solution,
+physical validation, turbulence and arbitrary geometry remain pending.
