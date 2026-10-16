@@ -9,10 +9,10 @@ class BracketFlowError(ValueError):
 
 def verified_archive(payload,raw,mesh_name='coarse',domain_name='base'):
  data=base64.b64decode(payload['archive_base64'],validate=True)
- if len(data)>24*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
+ if len(data)>36*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory() as tmp:
   names=z.namelist()
-  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>128*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
+  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>192*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
   runtime=json.loads(z.read('runtime.json'))
   if not runtime['package'].startswith('1912.200626-3') or set(runtime['binaries_sha256'])!={'snappyHexMesh','simpleFoam','checkMesh','surfaceCheck'} or any(len(v)!=64 or any(c not in '0123456789abcdef' for c in v) for v in runtime['binaries_sha256'].values()):raise ValueError('Invalid OpenFOAM runtime record')
   expected=Path(tmp)/'expected';metadata=make_case(expected,raw,mesh_name,domain_name)
@@ -33,13 +33,13 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
  for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(source/name,dest/name)
  try:
   request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name}).encode(),headers={'Content-Type':'application/json'},method='POST')
-  with urlopen(request,timeout=660) as response:
-   encoded=response.read(64*1024*1024+1)
-   if len(encoded)>64*1024*1024:raise ValueError('Flow response exceeds limit')
+  with urlopen(request,timeout=1080) as response:
+   encoded=response.read(96*1024*1024+1)
+   if len(encoded)>96*1024*1024:raise ValueError('Flow response exceeds limit')
    payload=json.loads(encoded)
   if payload.get('error'):
    archive=base64.b64decode(payload['archive_base64'],validate=True)
-   if len(archive)<=24*1024*1024 and hashlib.sha256(archive).hexdigest()==payload['archive_sha256']:(dest/'failed-solver-artifacts.zip').write_bytes(archive)
+   if len(archive)<=36*1024*1024 and hashlib.sha256(archive).hexdigest()==payload['archive_sha256']:(dest/'failed-solver-artifacts.zip').write_bytes(archive)
    raise ValueError('OpenFOAM execution failed; inspect retained solver logs')
   flow,archive=verified_archive(payload,raw,mesh_name,domain_name)
  except Exception as error:

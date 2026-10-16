@@ -342,3 +342,6 @@ both at upright bore 2. These values also do not show a decreasing trend.
 
 The subsequent controlled boundary-distance workflow and its pressure-reference
 policy are documented in [bracket-flow-domain.md](bracket-flow-domain.md).
+
+The combined far-domain spatial study and sensitivity plots are documented in
+[bracket-flow-combined.md](bracket-flow-combined.md).

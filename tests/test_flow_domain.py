@@ -24,7 +24,7 @@ class DomainStudyTests(unittest.TestCase):
    for k,h in enumerate(base['background_spacing_m']):
     self.assertAlmostEqual((spec['domain_max_m'][k]-spec['domain_min_m'][k])/spec['background_cells'][k],h)
     self.assertAlmostEqual((base['domain_min_m'][k]-spec['domain_min_m'][k])/h,steps)
-  for mesh,name in [('fine','far'),('medium','unknown')]:
+  for mesh,name in [('fine','expanded'),('medium','unknown')]:
    with self.assertRaises(ValueError):domain_spec(mesh,name)
  def test_pressure_reference_removes_uniform_gauge_shift(self):
   result=summary(self.studies())

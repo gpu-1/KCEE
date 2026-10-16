@@ -685,3 +685,19 @@ def bracket_flow_domains(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed source cases and artifacts retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_domain_recorded_not_engineering_validated'}
+
+@app.post('/runs/{run_id}/flow-combined',status_code=201)
+def bracket_flow_combined(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Combined verification uses the fixed far-domain mesh sequence')
+    ready()
+    from kcee.flow_combined import run_combined
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        dest=run_combined(ARTIFACTS,run_id,record,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown source design or study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Completed studies remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_combined_recorded_not_engineering_validated'}

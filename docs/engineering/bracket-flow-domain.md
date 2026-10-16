@@ -57,8 +57,9 @@ still apply. Exact OpenFOAM native C fields are not exported.
 
 `POST /runs/{native-parent-id}/flow-domains` accepts an empty body only. It
 uses the fixed three-domain sequence at medium resolution. The internal
-worker permits only named recipes; expanded/far domains reject coarse/fine
-resolution combinations to bound the job size.
+worker permits only named recipes. Expanded domains use medium resolution;
+the far domain also permits the bounded coarse/fine recipes documented in
+[bracket-flow-combined.md](bracket-flow-combined.md).
 
 A compatible saved base case can be reused. Before reuse, its registry record
 and artifact hashes are checked; the current fixed dictionaries and source STL

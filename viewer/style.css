@@ -85,3 +85,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #flow-refinement-probes td:nth-child(4) { white-space: nowrap; }
 
 #domain-probes td:nth-child(2),#domain-probes td:nth-child(3),#domain-probes td:nth-child(4){white-space:nowrap;}
+
+#combined-probes td:nth-child(2),#combined-probes td:nth-child(3),#combined-probes td:nth-child(4){white-space:nowrap;}
