@@ -24,6 +24,9 @@ DOMAIN_STEPS={'base':0,'expanded':4,'far':8,'outer':12}
 FAR_MESHES={'coarse':[36,25,28],'medium':[48,36,38],'fine':[56,40,44]}
 def domain_spec(mesh_name='coarse',domain_name='base'):
  if mesh_name not in MESHES or domain_name not in DOMAIN_STEPS:raise ValueError('Unsupported flow mesh or domain')
+ if domain_name=='outer' and mesh_name=='fine':
+  ref=domain_spec('medium','outer');cells=[65,49,53];lo=ref['domain_min_m'];hi=ref['domain_max_m']
+  return {'domain_min_m':lo,'domain_max_m':hi,'background_cells':cells,'background_spacing_m':[(b-a)/n for a,b,n in zip(lo,hi,cells)]}
  if domain_name!='base' and mesh_name!='medium':
   if domain_name!='far':raise ValueError('Expanded domain uses the fixed medium resolution')
   reference=domain_spec('medium','far');cells=list(FAR_MESHES[mesh_name]);lo=reference['domain_min_m'];hi=reference['domain_max_m']
@@ -36,7 +39,7 @@ LOCAL_PROFILE='wake-below-v1'
 LOCAL_REGIONS=[{'name':'targetWake','min_m':[.065,-.002,.002],'max_m':[.135,.032,.038],'level':3},{'name':'targetBelow','min_m':[.015,.003,-.030],'max_m':[.045,.027,-.010],'level':3}]
 def validate_profile(profile,mesh,domain,bore_level):
  if profile not in ('baseline',LOCAL_PROFILE):raise ValueError('Unsupported local CFD refinement profile')
- if profile==LOCAL_PROFILE and (mesh not in ('medium','fine') or domain not in ('far','outer') or (domain=='outer' and mesh!='medium') or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain or medium outer-domain cases with bore level 4')
+ if profile==LOCAL_PROFILE and (mesh not in ('medium','fine') or domain not in ('far','outer') or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain or medium/fine outer-domain cases with bore level 4')
 
 def make_case(root,raw,mesh_name='coarse',domain_name='base',bore_level=4,local_profile='baseline'):
  validate_profile(local_profile,mesh_name,domain_name,bore_level)
@@ -91,6 +94,8 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
    text=text.replace('geometry {','geometry {'+region['name']+' {type searchableBox;min '+vec(region['min_m'])+';max '+vec(region['max_m'])+';} ',1)
    text=text.replace('refinementRegions {','refinementRegions {'+region['name']+' {mode inside;levels ((1e15 3));} ',1)
   text=text.replace('maxLocalCells 150000','maxLocalCells 250000').replace('maxLocalCells 200000','maxLocalCells 250000').replace('maxGlobalCells 200000','maxGlobalCells 250000');path.write_text(text)
+ if mesh_name=='fine' and domain_name=='outer':
+  path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('maxLocalCells 250000','maxLocalCells 350000').replace('maxLocalCells 150000','maxLocalCells 350000').replace('maxGlobalCells 250000','maxGlobalCells 350000').replace('maxGlobalCells 200000','maxGlobalCells 350000'))
  return metadata
 
 def command(root,name,args=(),timeout=180):
@@ -143,7 +148,7 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
  if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);vectors=field_values(root/'1500/U',True);pressures=field_values(root/'1500/p');from kcee.flow_centres import volume_centres
  centres,vertex_means,position_audit=volume_centres(root/'constant/polyMesh',len(vectors))
- if not 1000<=len(vectors)<=(250000 if bore_level==5 or local_profile==LOCAL_PROFILE else 200000) or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
+ if not 1000<=len(vectors)<=(350000 if mesh_name=='fine' and domain_name=='outer' else 250000 if bore_level==5 or local_profile==LOCAL_PROFILE else 200000) or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
  rows=[dict(zip(('x_m','y_m','z_m','u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2'),[*c,*u,p])) for c,u,p in zip(centres,vectors,pressures)]
  mesh=(root/'checkMesh.log').read_text();surface=(root/'surfaceCheck.log').read_text();log=(root/'simpleFoam.log').read_text()
  residuals={key:[float(x) for x in re.findall(r'Solving for '+key+r', Initial residual = ([^,\s]+)',log)] for key in ('Ux','Uy','Uz','p')}
@@ -202,5 +207,5 @@ def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_
    for path in sorted(root.rglob('*')):
     if path.is_file():archive.write(path,path.relative_to(root).as_posix())
   data=buffer.getvalue()
-  if len(data)>36*1024*1024:raise ValueError('Solver archive exceeds limit')
+  if len(data)>(48 if mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024:raise ValueError('Solver archive exceeds limit')
   return {'result':result,'error':failure,'archive_base64':base64.b64encode(data).decode(),'archive_sha256':hashlib.sha256(data).hexdigest()}

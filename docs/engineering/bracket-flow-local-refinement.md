@@ -105,3 +105,5 @@ passed. The website was checked with the actual saved comparison, including
 Compact v1 labeling, both charts, four source cases, probe selection and exports.
 
 See [pressure contrasts and targeted boundary sensitivity](cfd-pressure-reference.md) for local probe differences, signed reference decomposition and the additional outer-domain comparison.
+
+See [the fine outer-domain extension](cfd-fine-outer.md) for the targeted 2×2 comparison, explicit fine-grid audit and signed interaction.

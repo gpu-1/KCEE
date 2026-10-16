@@ -47,7 +47,7 @@ class ReferenceStudyTests(unittest.TestCase):
   a=domain_spec('medium','far');b=domain_spec('medium','outer')
   self.assertEqual(a['background_spacing_m'],b['background_spacing_m'])
   for lo,outer,h in zip(a['domain_min_m'],b['domain_min_m'],a['background_spacing_m']):self.assertAlmostEqual((lo-outer)/h,4)
-  with self.assertRaises(ValueError):domain_spec('fine','outer')
+  self.assertEqual(domain_spec('fine','outer')['background_cells'],[65,49,53])
   raw=fixtures.bracket_fixtures.BracketFlowTests().surface()
   with tempfile.TemporaryDirectory() as tmp:
    x=Path(tmp)/'a';y=Path(tmp)/'b';make_case(x,raw,'medium','far',4,LOCAL_PROFILE);make_case(y,raw,'medium','outer',4,LOCAL_PROFILE)

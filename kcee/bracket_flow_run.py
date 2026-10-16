@@ -10,10 +10,10 @@ class BracketFlowError(ValueError):
 
 def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_level=4):
  data=base64.b64decode(payload['archive_base64'],validate=True)
- if len(data)>36*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
+ if len(data)>(48 if mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory() as tmp:
   names=z.namelist()
-  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>192*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
+  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>(256 if mesh_name=='fine' and domain_name=='outer' else 192)*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
   runtime=json.loads(z.read('runtime.json'))
   if not runtime['package'].startswith('1912.200626-3') or set(runtime['binaries_sha256'])!={'snappyHexMesh','simpleFoam','checkMesh','surfaceCheck'} or any(len(v)!=64 or any(c not in '0123456789abcdef' for c in v) for v in runtime['binaries_sha256'].values()):raise ValueError('Invalid OpenFOAM runtime record')
   version=flow_version(payload.get('result',{}))
@@ -40,8 +40,9 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
  try:
   request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json'},method='POST')
   with urlopen(request,timeout=1080) as response:
-   encoded=response.read(96*1024*1024+1)
-   if len(encoded)>96*1024*1024:raise ValueError('Flow response exceeds limit')
+   response_limit=(128 if mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
+   encoded=response.read(response_limit+1)
+   if len(encoded)>response_limit:raise ValueError('Flow response exceeds limit')
    payload=json.loads(encoded)
   if payload.get('error'):
    archive=base64.b64decode(payload['archive_base64'],validate=True)

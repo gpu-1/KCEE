@@ -741,3 +741,20 @@ def bracket_flow_reference_study(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}
+
+
+@app.post('/runs/{run_id}/flow-joint-study',status_code=201)
+def bracket_flow_joint_study(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Joint study uses the fixed six-case recipe')
+    ready()
+    from kcee.flow_reference import run_study
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        dest=run_study(ARTIFACTS,run_id,record,registry,include_fine_outer=True);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown source design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Completed studies remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}

@@ -121,3 +121,5 @@ Validation: 216 backend tests, 82 viewer tests and 30 isolated integration check
 passed. Invalid request checks returned 422 without starting solver work. The
 actual website study was checked for charts, source cases, domain comparison
 selection, signed tables and export links.
+
+See [the fine outer-domain extension](cfd-fine-outer.md) for the targeted 2×2 comparison, explicit fine-grid audit and signed interaction.
