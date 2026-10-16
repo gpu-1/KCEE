@@ -127,8 +127,8 @@ clearance everywhere, bore hydraulic resistance or manufacturing acceptance.
 Missing wall faces cannot pass solely because a center ray is open: the outer
 control rays detect unintended widening.
 
-Eight fixed physical probe requests cover upstream, wake, above/below and the
-four bore centers. Each study records the nearest mesh-vertex-average location,
+Historical version 1 comparisons used eight fixed physical probe requests covering upstream, wake, above/below and the
+four bore centers. Those studies record the nearest mesh-vertex-average location,
 its distance from the requested point, velocity vector, speed and kinematic
 pressure. Nearest-cell sampling is not interpolation at an identical point;
 changing sample locations contributes to the measured changes. Reports retain
@@ -146,8 +146,74 @@ samples, probe values, distances and changes. Report Markdown, comparison JSON
 and verification.csv are available together. Open each source row to inspect
 its 3D fields and full solver archive. The comparison retains the common
 physical inputs and original parent manifest; existing studies are unchanged.
-The worker's default single-case route remains backward compatible. Historical
+The worker's single-case request interface remains backward compatible; new cases include the downstream refinement box described below. Historical
 single-case results without bore evidence explicitly show it as unrecorded.
 
 Passing the execution and finite bore gates does not establish mesh/domain
 independence, boundary-layer or force accuracy, or engineering acceptance.
+
+
+## Fixed-location interpolation and downstream refinement (version 2)
+
+New runs add the same downstream searchableBox on all three meshes, from
+(0.06, -0.005, -0.015) m to (0.16, 0.035, 0.065) m at refinement level 2.
+Surface level 3, background sizes, physical domain, fluid, boundary conditions
+remain as above. The controlled budget is now 1,000 SIMPLE iterations on every
+mesh, with unchanged residual and conservation gates. The earlier 500-iteration
+wake-refined trial is retained as an attention result because its fine mesh
+missed the velocity residual gate. These meshes differ from historical
+runs without wake refinement; compare within the new controlled three-mesh batch.
+
+Nine requests now include a far-wake point at (0.12, 0.015, 0.020) m.
+`flow_sampling.py` sorts the nearest 256 saved cell positions, retaining up to
+two wall-visible supports in each coordinate octant. From these up to 16
+supports it chooses the first nondegenerate enclosing tetrahedron in distance
+order. Barycentric weights must be positive (within 1e-10 roundoff tolerance)
+and are normalized after clamping roundoff negatives. Each support-to-request
+segment is checked against actual bracket wall triangles. Unsupported points
+are explicitly unavailable; they never fall back to a nearest-cell value.
+A combined comparison requires all probes on all three meshes to be available.
+Solver completion can still be retained when a probe is unavailable.
+
+This custom interpolation is linear-exact for fields specified at the supplied
+positions and cannot overshoot supporting values. It is not OpenFOAM native
+cellPoint interpolation, a Delaunay mesh, or a volume-centroid reconstruction.
+The supplied positions remain arithmetic mesh-vertex averages; distorted-cell
+position errors and interpolation-stencil changes remain sources of uncertainty.
+The finite wall visibility tests do not prove whole-tetrahedron fluid occupancy.
+No boundary values or gradients are imposed by this interpolation.
+
+Comparison schema `kcee.bracket-flow-refinement.v2` records identical requested
+and evaluated coordinates, cell indices, support coordinates, positive weights,
+maximum support radius in JSON, Markdown and CSV. Individual support distances
+are also retained in JSON and Markdown.
+The website shows support radius; historical v1 comparisons retain their
+nearest-cell offset and are explicitly labeled. Normalizations are unchanged.
+Both the source study manifest and comparison bind the sampling source hash.
+Old studies and their immutable artifacts are preserved.
+
+### Recorded native-bracket example (16 October 2026)
+
+Comparison run: `8175a2cc-2cea-4fc8-9906-9cab5a66b8ae`.
+Source STL SHA-256: `83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385`.
+
+| Mesh | Saved run | Cells |
+|---|---|---|
+| coarse | `0059a936-86ec-4300-82bd-49ea2cdf08c4` | 27157 |
+| medium | `0e56170d-2e60-4812-aa15-63690c11e3ca` | 53379 |
+| fine | `25687282-0dfe-4b02-aca4-605fa141c2af` | 93478 |
+
+All solver execution gates and all finite bore-sampling gates passed. All nine
+fixed-location probes were available on every mesh (27 records). Each mesh
+used 1,000 iterations. The fine-mesh maximum final initial velocity residual
+was 6.09112e-7, below the unchanged 1e-5 gate.
+
+| Pair | Max velocity change / inlet | Max pressure change / inlet dynamic scale |
+|---|---|---|
+| coarse → medium | 3.75709% | 4.13796% |
+| medium → fine | 1.09103% | 7.20483% |
+
+The maximum normalized pressure change increases on the finer pair; these
+results do not establish mesh independence. Passing solver/bore checks does
+not turn these sensitivity measures into analytical error estimates or accepted
+engineering results. Interpolation and source-position limitations above remain.
