@@ -29,6 +29,12 @@ class FlowRefinementTests(unittest.TestCase):
   wake=next(p for p in result['studies'][0]['probes'] if p['name']=='wake');self.assertEqual(wake['distance_m'],0);self.assertEqual(wake['requested_position_m'],wake['sample_position_m'])
   self.assertAlmostEqual(result['successive_changes'][0]['maximum_velocity_change_normalized_by_inlet'],.1);self.assertAlmostEqual(result['successive_changes'][0]['maximum_pressure_change_normalized_by_inlet_dynamic_scale'],.2)
   report=report_markdown(result);self.assertIn('Sample position',report);self.assertIn('not established',report);self.assertIn('b'*64,report)
+ def test_nominal_bore_cell_size_changes_with_mesh_but_recipe_must_match(self):
+  studies=self.studies()
+  for i,s in enumerate(studies):s['flow']['inputs']['bore_refinement']={'level':4,'radius_m':.005,'nominal_cell_m':.001/(i+1)}
+  result=comparison_summary(studies);self.assertNotIn('nominal_cell_m',result['physical_inputs']['bore_refinement'])
+  studies[1]['flow']['inputs']['bore_refinement']['level']=3
+  with self.assertRaises(ValueError):comparison_summary(studies)
  def test_mixed_source_domains_and_mesh_order_are_rejected(self):
   a=self.studies();a[1]['flow']['source']['source_stl_sha256']='c'*64
   with self.assertRaises(ValueError):comparison_summary(a)

@@ -1,6 +1,6 @@
 """Positive-weight, wall-visible tetrahedral interpolation of saved cell fields.
 
-Uses mesh-vertex-average field locations (not OpenFOAM volume centroids).
+Position basis is supplied by the caller; it is recorded for every probe.
 No nearest-cell fallback and no extrapolation outside a supporting tetrahedron.
 """
 import itertools, math
@@ -47,13 +47,13 @@ def interpolate(field,point,triangles=()):
   w=[max(0.,v) for v in w];total=sum(w);w=[v/total for v in w]
   values=[sum(v*s[1][key] for v,s in zip(w,support)) for key in VALUES]
   if not all(math.isfinite(v) for v in values):raise ValueError('Nonfinite interpolated probe')
-  return {'available':True,'requested_position_m':list(point),'sample_position_m':list(point),'distance_m':0.,'method':'wall-visible positive tetrahedral interpolation at mesh-vertex-average field locations','support_cell_indices':[s[0] for s in support],'support_positions_m':[list(s[2]) for s in support],'weights':w,'support_distances_m':[math.dist(point,s[2]) for s in support],'maximum_support_distance_m':max(math.dist(point,s[2]) for s in support),'velocity_m_s':values[:3],'speed_m_s':math.sqrt(sum(v*v for v in values[:3])),'kinematic_pressure_m2_s2':values[3]}
+  return {'available':True,'requested_position_m':list(point),'sample_position_m':list(point),'distance_m':0.,'method':'wall-visible positive tetrahedral interpolation','support_cell_indices':[s[0] for s in support],'support_positions_m':[list(s[2]) for s in support],'weights':w,'support_distances_m':[math.dist(point,s[2]) for s in support],'maximum_support_distance_m':max(math.dist(point,s[2]) for s in support),'velocity_m_s':values[:3],'speed_m_s':math.sqrt(sum(v*v for v in values[:3])),'kinematic_pressure_m2_s2':values[3]}
  raise ValueError('No enclosing wall-visible tetrahedron for fixed probe '+str(point))
 
-def sample_probes(field,mesh_root):
+def sample_probes(field,mesh_root,position_basis="mesh_vertex_averages"):
  triangles=[(t,tuple(min(p[k] for p in t) for k in range(3)),tuple(max(p[k] for p in t) for k in range(3))) for t in wall_triangles(mesh_root)]
  rows=[]
  for name,point in PROBES:
-  try:rows.append(dict(interpolate(field,point,triangles),name=name))
+  try:rows.append(dict(interpolate(field,point,triangles),name=name,position_basis=position_basis))
   except ValueError as error:rows.append({'name':name,'requested_position_m':list(point),'available':False,'reason':str(error)})
  return rows

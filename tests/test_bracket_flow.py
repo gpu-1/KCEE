@@ -1,4 +1,4 @@
-import unittest,struct,hashlib,tempfile
+import unittest,struct,hashlib,tempfile,re
 from pathlib import Path
 from kcee.bracket_flow import prepare_surface,make_case,boundary_flux,cell_positions
 class BracketFlowTests(unittest.TestCase):
@@ -9,9 +9,15 @@ class BracketFlowTests(unittest.TestCase):
   raw=self.surface();converted,meta=prepare_surface(raw);self.assertIn(b'vertex 0.06 0.03 0.04',converted);self.assertEqual(meta['source_stl_sha256'],hashlib.sha256(raw).hexdigest());self.assertEqual(meta['converted_surface_sha256'],hashlib.sha256(converted).hexdigest());self.assertEqual(meta['triangles'],12)
   for bad in [b'bad',raw[:-1],raw[:84]+raw[84:].replace(struct.pack('<f',60),struct.pack('<f',float('nan')),1)]:
    with self.assertRaises(ValueError):prepare_surface(bad)
+ def test_openfoam_volume_number_with_sentence_punctuation(self):
+  from kcee.bracket_flow import mesh_total_volume
+  self.assertAlmostEqual(mesh_total_volume('Total volume = 0.018134128768178.  Cell volumes OK.'),.018134128768178)
+  self.assertAlmostEqual(mesh_total_volume('Total volume = 1.8e-2.'),.018)
+  for text in ('Total volume = nan','Total volume = -1.','Total volume = 0.','missing'):
+   with self.assertRaises(ValueError):mesh_total_volume(text)
  def test_fixed_boundary_and_mesh_configuration(self):
   with tempfile.TemporaryDirectory() as tmp:
-   make_case(tmp,self.surface());root=Path(tmp);self.assertIn('level (3 3)',(root/'system/snappyHexMeshDict').read_text());self.assertIn('addLayers false',(root/'system/snappyHexMeshDict').read_text());self.assertIn('simulationType laminar',(root/'constant/turbulenceProperties').read_text());self.assertIn('sides {type slip;}',(root/'0/U').read_text());self.assertIn('outlet {type fixedValue;value uniform 0;}',(root/'0/p').read_text())
+   make_case(tmp,self.surface());root=Path(tmp);self.assertIn('level (3 3)',(root/'system/snappyHexMeshDict').read_text());self.assertIn('bore4 {type searchableSphere;centre (0.00175 0.015 0.030);radius 0.005;}',(root/'system/snappyHexMeshDict').read_text());self.assertIn('nSmoothPatch 5',(root/'system/snappyHexMeshDict').read_text());self.assertIn('nSmoothScale 8',(root/'system/snappyHexMeshDict').read_text());self.assertIn('endTime 1500',(root/'system/controlDict').read_text());self.assertIn('addLayers false',(root/'system/snappyHexMeshDict').read_text());self.assertIn('simulationType laminar',(root/'constant/turbulenceProperties').read_text());self.assertIn('sides {type slip;}',(root/'0/U').read_text());self.assertIn('outlet {type fixedValue;value uniform 0;}',(root/'0/p').read_text())
  def test_signed_boundary_flow_sum_and_bad_field_rejection(self):
   self.assertAlmostEqual(boundary_flux('inlet {type calculated;value nonuniform List<scalar> 3 (-1 -2 -3);}','inlet'),-6)
   self.assertEqual(boundary_flux('bracket {type calculated;value uniform 0;}','bracket'),0)

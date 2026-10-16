@@ -217,3 +217,125 @@ The maximum normalized pressure change increases on the finer pair; these
 results do not establish mesh independence. Passing solver/bore checks does
 not turn these sensitivity measures into analytical error estimates or accepted
 engineering results. Interpolation and source-position limitations above remain.
+
+## Pressure verification and cell-center audit (version 3)
+
+New studies use independently reconstructed volume centroids of triangulated
+saved polyhedral cells. `flow_centres.py` triangulates each polygon face from
+its vertex mean, forms signed tetrahedra about a cell-local reference, and
+integrates signed volume and first moments. The owner uses the stored face
+orientation; the neighbour reverses it. Negative tetrahedron contributions are
+preserved for concave geometry. Nonpositive or nonfinite total cell volumes
+are rejected. Local references avoid cancellation when coordinates are large.
+Analytical tests cover a skew pyramid whose vertex average differs from its
+volume centroid, coordinate translation, shared-face orientation and reversed
+cell faces.
+
+The independently integrated total fluid volume is compared with the saved
+OpenFOAM checkMesh total. The new execution gate requires relative agreement
+within 1e-6. This global check does not prove individual center accuracy.
+On the previous 93,478-cell native-bracket mesh the relative difference was
+3.84e-9; the RMS vertex-mean/volume-centroid shift was 0.22464 mm and the
+maximum shift 1.74727 mm. These global shifts include transition cells and
+must not be interpreted as bore-specific errors.
+
+Each new solved field is sampled twice at the same nine physical requests:
+once using the new volume-centroid positions and once using vertex averages.
+The cell field values and actual wall triangles are identical in these two
+calculations. `sampling_audit` records the historical-position probe supports,
+availability and signed pressure differences (centroid minus vertex-average
+basis), with absolute differences normalized by 0.5 U_inlet².
+This isolates sensitivity to the position basis, including resulting support
+selection and weight changes. It is not an analytical interpolation-error
+estimate. Unavailable legacy samples are explicit, not replaced with zeros.
+
+The new mesh recipe adds four searchable spheres of radius 5 mm centered on
+(0.033, 0.015, 0.00175), (0.048, 0.015, 0.00175),
+(0.00175, 0.015, 0.016) and (0.00175, 0.015, 0.030) metres.
+Each uses inside refinement level 4; the downstream box remains level 2 and
+ordinary surface refinement remains level 3. The nominal level-4 bore-region
+sizes are 0.9375, 0.703125 and 0.5625 mm for coarse, medium and fine backgrounds.
+Nominal bore size varies with the background grid and is retained per study;
+controlled comparisons require the same sphere centers, radius and level.
+Actual mesh counts, quality, bore ray intersections and solver residuals must
+still be inspected. No prism layers are added.
+
+All three cases now use the same 1,500 SIMPLE iterations, with unchanged
+residual/conservation tolerances, physical domain, boundary conditions,
+source geometry, viscosity and inlet speed. This batch must not be mixed
+with historical recipes in a controlled three-mesh comparison. Comparison
+schema `kcee.bracket-flow-refinement.v3` includes each source study's position
+and same-field sampling audits. JSON and Markdown retain their details; the
+CSV contains the new centroid-based probe values and interpolation supports.
+The website exposes the position-basis audit and keeps older comparisons
+clearly labeled. Both child and comparison manifests bind the centroid code.
+
+Centroids describe the chosen triangulated saved polyhedron. Warped-face
+triangulation may differ from OpenFOAM native face moments; this is not a
+solver-exported C field. Custom positive tetrahedral probe interpolation and
+finite wall-visibility checks retain the limitations described above.
+Passing the new volume gate does not establish bore pressure accuracy, mesh
+or domain independence, force convergence or engineering acceptance.
+
+A comparison can also be rebuilt from already completed, registry-verified
+current source studies using `scripts/rebuild_flow_comparison.py --parent
+PARENT_UUID --studies COARSE_UUID MEDIUM_UUID FINE_UUID` inside the API
+environment. It verifies each source's parent identity and manifest before
+creating a new comparison. This avoids repeating CFD solves for a reporting
+change and never modifies historical source studies or comparisons.
+
+
+The initial bore-refined medium trial had one checkMesh skewness failure
+(maximum 4.19005 against limit 4). A mesh-only native-geometry test using
+`nSmoothPatch 5` and `nSmoothScale 8` reduced its maximum skewness to 3.71821.
+The final controlled recipe uses these smoothing settings on every background
+mesh, recorded under `inputs.mesh_smoothing`. Earlier attention studies remain
+available; no quality threshold was relaxed. The nominal-size normalization in
+comparison checks removes only the derived bore cell size, while sphere centers,
+radius, refinement level, smoothing and iteration budget must all agree.
+
+### Recorded pressure-verification batch (16 October 2026)
+
+Comparison run: `2d0684c2-775d-463f-90e5-8297bb29fcbe`.
+Source STL SHA-256: `83b470851e2d35844eb62b3c485c0772fc502d4716ef0b77d47daad15427c385`.
+
+| Mesh | Run ID | Cells | Max skewness |
+|---|---|---|---|
+| coarse | `d8736786-4488-49c3-a664-324005833472` | 31949 | 3.75734 |
+| medium | `3c2b1a4e-a687-4617-8116-890f3f6a6112` | 62081 | 3.71821 |
+| fine | `96e006be-8b70-4b17-b1a1-9318daf4bf77` | 107699 | 2.52123 |
+
+All solver execution gates, volume-agreement gates and finite bore-sampling
+gates passed. All nine centroid-based physical probes were available on every
+mesh, and all 27 records were verified against their source field values,
+support coordinates and positive interpolation weights. Source and comparison
+artifact hashes were verified.
+
+| Pair | Max velocity change / inlet | Max pressure change / inlet dynamic scale |
+|---|---|---|
+| coarse → medium | 1.12882% | 2.40437% |
+| medium → fine | 1.54391% | 2.53375% |
+
+The final pressure differences are smaller than in the prior version-2 batch
+but do not decrease monotonically across these refinements. Neither the
+velocity nor pressure comparison establishes an asymptotic convergence trend.
+Recipe, iteration budget and position basis changed between batches; this is
+not a single-variable estimate of the benefit from bore refinement.
+
+| Mesh | Global max position-basis pressure change / inlet dynamic scale | RMS center shift (mm) |
+|---|---|---|
+| coarse | 4.28509% | 0.42829 |
+| medium | 4.22618% | 0.28024 |
+| fine | 1.83549% | 0.20957 |
+
+Position-basis changes are computed on identical fields within each study;
+the maximum above includes all nine requests and is not a bore-only metric.
+Mesh/domain independence, force accuracy and engineering acceptance remain
+unestablished. Final implementation checks: 176 backend tests, 66 viewer unit
+tests and 30 isolated end-to-end checks passed. Browser visual verification
+was unavailable because automatic approval review reached a usage limit.
+
+In the final batch, the largest pressure change is at the upstream probe on
+both mesh pairs. Considering only the four bore probes, the largest normalized
+pressure changes are 1.26975% (coarse to medium) and 1.39981% (medium to fine),
+both at upright bore 2. These values also do not show a decreasing trend.
