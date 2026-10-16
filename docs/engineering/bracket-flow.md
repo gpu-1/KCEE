@@ -339,3 +339,6 @@ In the final batch, the largest pressure change is at the upstream probe on
 both mesh pairs. Considering only the four bore probes, the largest normalized
 pressure changes are 1.26975% (coarse to medium) and 1.39981% (medium to fine),
 both at upright bore 2. These values also do not show a decreasing trend.
+
+The subsequent controlled boundary-distance workflow and its pressure-reference
+policy are documented in [bracket-flow-domain.md](bracket-flow-domain.md).

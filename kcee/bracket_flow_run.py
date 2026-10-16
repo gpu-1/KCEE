@@ -7,7 +7,7 @@ from kcee.bracket_flow import make_case,evaluate_case
 class BracketFlowError(ValueError):
  def __init__(self,message,run_id):super().__init__(message);self.run_id=run_id
 
-def verified_archive(payload,raw,mesh_name='coarse'):
+def verified_archive(payload,raw,mesh_name='coarse',domain_name='base'):
  data=base64.b64decode(payload['archive_base64'],validate=True)
  if len(data)>24*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory() as tmp:
@@ -15,24 +15,24 @@ def verified_archive(payload,raw,mesh_name='coarse'):
   if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>128*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
   runtime=json.loads(z.read('runtime.json'))
   if not runtime['package'].startswith('1912.200626-3') or set(runtime['binaries_sha256'])!={'snappyHexMesh','simpleFoam','checkMesh','surfaceCheck'} or any(len(v)!=64 or any(c not in '0123456789abcdef' for c in v) for v in runtime['binaries_sha256'].values()):raise ValueError('Invalid OpenFOAM runtime record')
-  expected=Path(tmp)/'expected';metadata=make_case(expected,raw,mesh_name)
+  expected=Path(tmp)/'expected';metadata=make_case(expected,raw,mesh_name,domain_name)
   for p in expected.rglob('*'):
    if p.is_file() and z.read(p.relative_to(expected).as_posix())!=p.read_bytes():raise ValueError('Flow case/source surface differs from fixed configuration')
   root=Path(tmp)/'output'
   needed=['1500/U','1500/p','1500/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
   for name in needed:
    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(z.read(name))
-  result=evaluate_case(root,metadata,mesh_name,raw)
+  result=evaluate_case(root,metadata,mesh_name,raw,domain_name)
   if result!=payload['result']:raise ValueError('Flow diagnostics differ from raw solver evidence')
  return result,data
 
-def run_bracket_flow(root,parent_id,record,mesh_name='coarse'):
+def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'):
  source=Path(root)/str(parent_id);settings=json.loads((source/'geometry-request.json').read_text())
  if settings.get('geometry_mm')!={'length':60,'width':30,'height':40,'thickness':3.5} or not settings.get('mounting_holes'):raise ValueError('Select the default native 60×30×40 mm bracket with bores')
  raw=(source/'bracket.stl').read_bytes();dest=Path(root)/str(uuid.uuid4());dest.mkdir()
  for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(source/name,dest/name)
  try:
-  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name}).encode(),headers={'Content-Type':'application/json'},method='POST')
+  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name}).encode(),headers={'Content-Type':'application/json'},method='POST')
   with urlopen(request,timeout=660) as response:
    encoded=response.read(64*1024*1024+1)
    if len(encoded)>64*1024*1024:raise ValueError('Flow response exceeds limit')
@@ -41,7 +41,7 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse'):
    archive=base64.b64decode(payload['archive_base64'],validate=True)
    if len(archive)<=24*1024*1024 and hashlib.sha256(archive).hexdigest()==payload['archive_sha256']:(dest/'failed-solver-artifacts.zip').write_bytes(archive)
    raise ValueError('OpenFOAM execution failed; inspect retained solver logs')
-  flow,archive=verified_archive(payload,raw,mesh_name)
+  flow,archive=verified_archive(payload,raw,mesh_name,domain_name)
  except Exception as error:
   (dest/'failure.json').write_text(json.dumps({'run_id':dest.name,'parent_design_id':str(parent_id),'stage':'bracket_flow','status':'failed','message':str(error)[:2000]},indent=2));raise BracketFlowError('Bracket flow failed; retained diagnostics are available.',dest.name) from error
  result={'kind':'bracket_flow','geometry_backend':'PicoGK source / OpenFOAM external fluid mesh','validation_status':flow['validation_status'],'flow':flow,'assumptions':flow['limits']}

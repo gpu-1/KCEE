@@ -668,3 +668,20 @@ def bracket_flow_refinement(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies and artifacts retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_refinement_recorded_not_engineering_validated'}
+
+@app.post('/runs/{run_id}/flow-domains',status_code=201)
+def bracket_flow_domains(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Domain study uses fixed base, expanded and far domains at medium resolution')
+    ready()
+    from kcee.flow_domain import run_domains
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
+        dest=run_domains(ARTIFACTS,run_id,record,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown parent design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Earlier completed domain cases remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed source cases and artifacts retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_domain_recorded_not_engineering_validated'}
