@@ -1,5 +1,5 @@
 export function samplingLabel(result){
- const data=result.flow??result.flow_refinement??result.domain_study??result.combined_flow??result.local_refinement;
+ const data=result.flow??result.flow_refinement??result.domain_study??result.combined_flow??result.local_refinement??result.reference_study;
  if(!data)return '';
  if(!data.sampling)return 'Historical sampling: see the saved report for the recorded method. Original probe values are preserved.';
  const version=data.sampling.version;

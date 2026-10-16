@@ -128,3 +128,5 @@ New requests now use versioned **Compact v1** sampling. Historical recorded
 results above keep their original method. See [sampling versions and the
 recomputed comparisons](cfd-sampling-versions.md) for current defaults, source
 lineage, schema compatibility and pressure-reference policy.
+
+See [pressure contrasts and targeted boundary sensitivity](cfd-pressure-reference.md) for local probe differences, signed reference decomposition and the additional outer-domain comparison.

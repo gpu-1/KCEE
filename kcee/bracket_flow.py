@@ -20,7 +20,7 @@ def prepare_surface(raw):
  return converted,{'source_stl_sha256':hashlib.sha256(raw).hexdigest(),'converted_surface_sha256':hashlib.sha256(converted).hexdigest(),'triangles':count,'bounds_mm':bounds,'unit_conversion':'mm to m, factor 0.001; no geometry smoothing or repair'}
 
 MESHES={'coarse':[24,14,16],'medium':[32,20,22],'fine':[40,24,28]}
-DOMAIN_STEPS={'base':0,'expanded':4,'far':8}
+DOMAIN_STEPS={'base':0,'expanded':4,'far':8,'outer':12}
 FAR_MESHES={'coarse':[36,25,28],'medium':[48,36,38],'fine':[56,40,44]}
 def domain_spec(mesh_name='coarse',domain_name='base'):
  if mesh_name not in MESHES or domain_name not in DOMAIN_STEPS:raise ValueError('Unsupported flow mesh or domain')
@@ -36,7 +36,7 @@ LOCAL_PROFILE='wake-below-v1'
 LOCAL_REGIONS=[{'name':'targetWake','min_m':[.065,-.002,.002],'max_m':[.135,.032,.038],'level':3},{'name':'targetBelow','min_m':[.015,.003,-.030],'max_m':[.045,.027,-.010],'level':3}]
 def validate_profile(profile,mesh,domain,bore_level):
  if profile not in ('baseline',LOCAL_PROFILE):raise ValueError('Unsupported local CFD refinement profile')
- if profile==LOCAL_PROFILE and (mesh not in ('medium','fine') or domain!='far' or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain cases with bore level 4')
+ if profile==LOCAL_PROFILE and (mesh not in ('medium','fine') or domain not in ('far','outer') or (domain=='outer' and mesh!='medium') or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain or medium outer-domain cases with bore level 4')
 
 def make_case(root,raw,mesh_name='coarse',domain_name='base',bore_level=4,local_profile='baseline'):
  validate_profile(local_profile,mesh_name,domain_name,bore_level)

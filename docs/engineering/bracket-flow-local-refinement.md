@@ -103,3 +103,5 @@ are under `runs/6a43a100-1369-42e1-9c13-a1130be72344/`.
 Validation: 211 backend tests, 79 viewer tests and 30 isolated integration checks
 passed. The website was checked with the actual saved comparison, including
 Compact v1 labeling, both charts, four source cases, probe selection and exports.
+
+See [pressure contrasts and targeted boundary sensitivity](cfd-pressure-reference.md) for local probe differences, signed reference decomposition and the additional outer-domain comparison.

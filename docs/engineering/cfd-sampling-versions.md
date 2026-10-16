@@ -155,3 +155,5 @@ layout fix remains in place. Select **CFD verification 7bbe2b82** to review the
 new combined result; its CSV, JSON and Markdown report are available there.
 
 See [wake and below-bracket refinement](bracket-flow-local-refinement.md) for the matched four-case targeted refinement workflow and its limits.
+
+See [pressure contrasts and targeted boundary sensitivity](cfd-pressure-reference.md) for local probe differences, signed reference decomposition and the additional outer-domain comparison.

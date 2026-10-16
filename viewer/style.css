@@ -94,3 +94,5 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overflow-wrap:anywhere}.sidebar-shortcuts{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:18px}.sidebar-shortcuts button{width:100%}.saved-runs-heading{align-items:center;flex-wrap:wrap;margin-bottom:16px}.saved-runs-heading h2{margin:0}aside>button{display:block;width:100%;margin:8px 0}.service-heading{flex-wrap:wrap}aside nav{flex-wrap:wrap}
 
 #flow-local-results svg{display:block;width:100%;height:auto}#flow-local-results td{white-space:nowrap}#local-probe{display:block;width:100%;padding:8px;margin:8px 0;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}
+
+#flow-reference-results svg{display:block;width:100%;height:auto}#reference-comparison{display:block;width:100%;padding:8px;margin:8px 0;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}#flow-reference-results .table-scroll{overflow-x:auto;max-width:100%}#reference-cases td:first-child{min-width:100px}#reference-decomposition td{white-space:nowrap}

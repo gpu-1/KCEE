@@ -635,7 +635,7 @@ def cfd_vortex(body: dict | None=None):
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
     from kcee.bracket_flow import MESHES
-    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
+    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far','outer') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
     mesh_name=(body or {}).get('mesh_name','coarse')
     from kcee.bracket_flow import domain_spec,validate_profile
     try:
@@ -724,3 +724,20 @@ def bracket_flow_local_refinement(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_local_recorded_not_engineering_validated'}
+
+
+@app.post('/runs/{run_id}/flow-reference-study',status_code=201)
+def bracket_flow_reference_study(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Reference study uses fixed probe pairs and a medium outer domain')
+    ready()
+    from kcee.flow_reference import run_study
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        dest=run_study(ARTIFACTS,run_id,record,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown source design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Completed studies remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}

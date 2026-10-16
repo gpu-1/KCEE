@@ -1,0 +1,20 @@
+export function referenceSeries(data){
+ if(data?.schema!=='kcee.bracket-flow-reference.v1')throw Error('Invalid reference evidence');
+ return data.comparisons.map(c=>{const values=['maximum_upstream_referenced_change_normalized','maximum_local_anchor_change_normalized','maximum_local_pair_change_normalized'].map(k=>c[k]*100);if(!values.every(v=>Number.isFinite(v)&&v>=0))throw Error('Invalid pressure contrast');return {label:c.label,values};});
+}
+export function decompositionRows(comparison){
+ return comparison.probes.map(p=>{const values=[p.upstream_referenced_change_m2_s2,p.local_anchor_change_m2_s2,p.anchor_upstream_change_m2_s2,p.closure_residual_m2_s2];if(!values.every(Number.isFinite)||Math.abs(values[0]-values[1]-values[2])>1e-12)throw Error('Invalid decomposition');return {name:p.name,values:values.map(v=>v/.00005*100)};});
+}
+export function mountReference(data,openRun){
+ const $=id=>document.getElementById(id),series=referenceSeries(data),ns='http://www.w3.org/2000/svg',node=(tag,attrs={},text)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n;};
+ const maximum=Math.max(...series.flatMap(s=>s.values),0)||1,colors=['#f4bd75','#79dcc8','#bda6ff'];
+ const svg=node('svg',{viewBox:'0 0 360 420',role:'img','aria-label':'Pressure sensitivity: upstream reference, above reference and local probe pairs; linear percent scale'});
+ svg.append(node('text',{x:10,y:18,fill:'#dfe9f1','font-size':12},'Pressure changes / ½U² (%)'));
+ series.forEach((s,i)=>{const y=48+i*95;svg.append(node('text',{x:10,y,fill:'#dfe9f1','font-size':11},s.label));s.values.forEach((v,j)=>{const bar=node('rect',{x:10,y:y+8+j*20,width:v/maximum*270,height:13,fill:colors[j]});bar.append(node('title',{},s.label+': '+v.toFixed(5)+'%'));svg.append(bar,node('text',{x:290,y:y+19+j*20,fill:'#dfe9f1','font-size':10},v.toFixed(3)));});});
+ ['Upstream-reference maximum','Above-reference maximum (excludes upstream)','Selected local-pair maximum'].forEach((s,j)=>svg.append(node('text',{x:10,y:354+j*20,fill:colors[j],'font-size':10},s)));$('reference-chart').append(svg);
+ const cell=(tr,value)=>{const n=document.createElement('td');n.textContent=String(value);tr.append(n);return n;};
+ for(const s of data.studies){const tr=document.createElement('tr');for(const v of [s.mesh_name+' / '+(s.local_profile==='baseline'?'baseline':'targeted')+' / '+s.domain_name,s.cells,Object.values(s.solver_checks).every(Boolean)&&s.bore_verification.all_pass?'Pass':'Attention'])cell(tr,v);const b=document.createElement('button');b.textContent='Open';b.onclick=()=>openRun(s.run_id);cell(tr,'').append(b);$('reference-cases').append(tr);}
+ for(const [key,v] of Object.entries(data.checks)){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=key.replaceAll('_',' ');dd.textContent=v?'Pass':'Attention';$('reference-checks').append(dt,dd);}
+ for(const [i,c] of data.comparisons.entries()){const option=document.createElement('option');option.value=String(i);option.textContent=c.label;$('reference-comparison').append(option);}
+ const show=()=>{const c=data.comparisons[Number($('reference-comparison').value)];$('reference-decomposition').replaceChildren();$('reference-pairs').replaceChildren();for(const p of decompositionRows(c)){const tr=document.createElement('tr');for(const v of [p.name,...p.values.slice(0,3).map(v=>v.toFixed(5))])cell(tr,v);$('reference-decomposition').append(tr);}for(const p of c.local_pressure_pairs){const tr=document.createElement('tr');for(const v of [p.first_probe+' − '+p.second_probe,(p.change_m2_s2/.00005*100).toFixed(5)+'%'])cell(tr,v);$('reference-pairs').append(tr);}$('reference-velocity').textContent='Maximum velocity-vector change / inlet: '+(c.maximum_velocity_change_normalized*100).toFixed(5)+'%';};$('reference-comparison').onchange=show;show();
+}
