@@ -3,7 +3,7 @@ import base64,hashlib,io,json,math,re,struct,subprocess,tempfile,zipfile
 from pathlib import Path
 from kcee.openfoam_vortex import header,field_values
 INPUTS={'inlet_velocity_m_s':.01,'kinematic_viscosity_m2_s':.0001,'density_kg_m3':1.,'domain_min_m':[-.12,-.09,-.10],'domain_max_m':[.24,.12,.14],'background_cells':[24,14,16],'surface_refinement_level':3,'maximum_iterations':500}
-LIMITS=['Exploratory steady laminar external flow at Reynolds number 6 based on 60 mm and inlet speed; not realistic service conditions.','Single coarse mesh, no prism layers; thin walls, bores and root details may be under-resolved. No mesh/domain convergence or force acceptance.','Uniform +x inlet, zero kinematic pressure outlet, slip far-field sides and no-slip bracket. No mounting wall, bolts, contact, turbulence or thermal coupling.','OpenFOAM p is kinematic pressure in m²/s² at the outlet reference, not pressure in Pa.','Velocity and pressure are cell fields. Viewer point positions are arithmetic means of each cell’s unique mesh vertices, not interpolated fields or exact volume centroids. Engineering validation remains pending.']
+LIMITS=['Exploratory steady laminar external flow at Reynolds number 6 based on 60 mm and inlet speed; not realistic service conditions.','Single mesh, no prism layers; thin walls, bores and root details may be under-resolved. No mesh/domain convergence or force acceptance.','Uniform +x inlet, zero kinematic pressure outlet, slip far-field sides and no-slip bracket. No mounting wall, bolts, contact, turbulence or thermal coupling.','OpenFOAM p is kinematic pressure in m²/s² at the outlet reference, not pressure in Pa.','Velocity and pressure are cell fields. Viewer point positions are arithmetic means of each cell’s unique mesh vertices, not interpolated fields or exact volume centroids. Engineering validation remains pending.']
 def prepare_surface(raw):
  if len(raw)<84 or len(raw)>12*1024*1024:raise ValueError('Use bounded binary PicoGK STL')
  count=struct.unpack_from('<I',raw,80)[0]
@@ -18,7 +18,9 @@ def prepare_surface(raw):
  converted=('\n'.join(lines+['endsolid bracket'])+'\n').encode()
  return converted,{'source_stl_sha256':hashlib.sha256(raw).hexdigest(),'converted_surface_sha256':hashlib.sha256(converted).hexdigest(),'triangles':count,'bounds_mm':bounds,'unit_conversion':'mm to m, factor 0.001; no geometry smoothing or repair'}
 
-def make_case(root,raw):
+MESHES={'coarse':[24,14,16],'medium':[32,20,22],'fine':[40,24,28]}
+def make_case(root,raw,mesh_name='coarse'):
+ if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);surface,metadata=prepare_surface(raw)
  def write(name,data):
   p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data if isinstance(data,bytes) else data.encode())
@@ -50,6 +52,8 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
 ''')
  write('0/p',header('p','volScalarField')+'''dimensions [0 2 -2 0 0 0 0];internalField uniform 0;boundaryField {inlet {type zeroGradient;}outlet {type fixedValue;value uniform 0;}sides {type zeroGradient;}bracket {type zeroGradient;}}
 ''')
+ if mesh_name!='coarse':
+  path=root/'system/blockMeshDict';path.write_text(path.read_text().replace('(24 14 16)', '('+' '.join(map(str,MESHES[mesh_name]))+')'))
  return metadata
 
 def command(root,name,args=(),timeout=180):
@@ -89,7 +93,8 @@ def boundary_flux(text,patch):
  if uniform and float(uniform[1])==0:return 0.
  raise ValueError('Unsupported boundary flux')
 
-def evaluate_case(root,metadata):
+def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None):
+ if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);vectors=field_values(root/'500/U',True);pressures=field_values(root/'500/p');centres=cell_positions(root/'constant/polyMesh',len(vectors))
  if not 1000<=len(vectors)<=200000 or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
  rows=[dict(zip(('x_m','y_m','z_m','u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2'),[*c,*u,p])) for c,u,p in zip(centres,vectors,pressures)]
@@ -101,15 +106,20 @@ def evaluate_case(root,metadata):
  phi=(root/'500/phi').read_text();flux={name:boundary_flux(phi,name) for name in ('inlet','outlet','sides','bracket')};imbalance=abs(sum(flux.values()))/abs(flux['inlet'])
  max_nonorth=re.search(r'Mesh non-orthogonality Max:\s*([\d.eE+-]+)',mesh);max_skew=re.search(r'Max skewness\s*=\s*([\d.eE+-]+)',mesh)
  checks={'surface_closed':'Surface is closed' in surface,'mesh_quality':'Mesh OK.' in mesh,'finite_fields':all(math.isfinite(v) for r in rows for v in r.values()),'velocity_residual':max(last[k] for k in ('Ux','Uy','Uz'))<1e-5,'pressure_residual':last['p']<1e-4,'boundary_mass_balance':imbalance<1e-5,'final_local_continuity':bool(continuity) and continuity[-1]<1e-6}
- return {'kind':'bracket_flow','validation_status':'exploratory_bracket_flow_checks_passed_not_engineering_validated' if all(checks.values()) else 'exploratory_bracket_flow_checks_need_attention','backend':'OpenFOAM 1912 · snappyHexMesh / simpleFoam · laminar SIMPLE','inputs':INPUTS,'source':metadata,'cells':len(rows),'reynolds_length_60mm':6.,'mesh':{'maximum_nonorthogonality_degrees':float(max_nonorth[1]) if max_nonorth else None,'maximum_skewness':float(max_skew[1]) if max_skew else None,'surface_refinement_level':3,'near_surface_nominal_cell_m':.015/8,'prism_layers':False},'residuals':last,'residual_history':history,'boundary_flux_m3_s':flux,'relative_boundary_mass_imbalance':imbalance,'final_local_continuity_error':continuity[-1] if continuity else None,'checks':checks,'tolerances':{'velocity_initial_residual':1e-5,'pressure_initial_residual':1e-4,'relative_boundary_mass_imbalance':1e-5,'final_local_continuity_error':1e-6},'field':rows,'limits':LIMITS}
+ result={'mesh_name':mesh_name,'kind':'bracket_flow','validation_status':'exploratory_bracket_flow_checks_passed_not_engineering_validated' if all(checks.values()) else 'exploratory_bracket_flow_checks_need_attention','backend':'OpenFOAM 1912 · snappyHexMesh / simpleFoam · laminar SIMPLE','inputs':dict(INPUTS,background_cells=MESHES[mesh_name]),'source':metadata,'cells':len(rows),'reynolds_length_60mm':6.,'mesh':{'maximum_nonorthogonality_degrees':float(max_nonorth[1]) if max_nonorth else None,'maximum_skewness':float(max_skew[1]) if max_skew else None,'surface_refinement_level':3,'near_surface_nominal_cell_m':max(.36/MESHES[mesh_name][0],.21/MESHES[mesh_name][1],.24/MESHES[mesh_name][2])/8,'prism_layers':False},'residuals':last,'residual_history':history,'boundary_flux_m3_s':flux,'relative_boundary_mass_imbalance':imbalance,'final_local_continuity_error':continuity[-1] if continuity else None,'checks':checks,'tolerances':{'velocity_initial_residual':1e-5,'pressure_initial_residual':1e-4,'relative_boundary_mass_imbalance':1e-5,'final_local_continuity_error':1e-6},'field':rows,'limits':LIMITS}
 
-def run_payload(raw):
+ if source_raw is not None:
+  from kcee.flow_bores import bore_checks
+  result['bore_verification']=bore_checks(source_raw,root/'constant/polyMesh')
+ return result
+
+def run_payload(raw,mesh_name='coarse'):
  import shutil
  with tempfile.TemporaryDirectory(prefix='kcee-bracket-flow-') as tmp:
-  root=Path(tmp);metadata=make_case(root,raw);failure=None
+  root=Path(tmp);metadata=make_case(root,raw,mesh_name);failure=None
   (root/'runtime.json').write_text(json.dumps({'package':subprocess.check_output(['dpkg-query','-W','-f=${Version}','openfoam'],text=True),'binaries_sha256':{name:hashlib.sha256(Path(shutil.which(name)).read_bytes()).hexdigest() for name in ('snappyHexMesh','simpleFoam','checkMesh','surfaceCheck')}}))
   try:
-   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=240);result=evaluate_case(root,metadata)
+   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=240);result=evaluate_case(root,metadata,mesh_name,raw)
   except Exception as error:
    failure=str(error)[:2000];result=None;(root/'job.log').write_text(failure+'\n')
   buffer=io.BytesIO()

@@ -634,13 +634,15 @@ def cfd_vortex(body: dict | None=None):
 @app.post('/runs/{run_id}/flow',status_code=201)
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
-    if body:raise HTTPException(422,'Bracket flow currently uses fixed exploratory inputs')
+    from kcee.bracket_flow import MESHES
+    if body and (set(body)!={'mesh_name'} or not isinstance(body['mesh_name'],str) or body['mesh_name'] not in MESHES):raise HTTPException(422,'Choose coarse, medium or fine mesh; other flow inputs are fixed')
+    mesh_name=(body or {}).get('mesh_name','coarse')
     ready()
     from kcee.bracket_flow_run import run_bracket_flow,BracketFlowError
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
-        dest=run_bracket_flow(ARTIFACTS,run_id,record)
+        dest=run_bracket_flow(ARTIFACTS,run_id,record,mesh_name)
     except KeyError:raise HTTPException(404,'Unknown parent design')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except BracketFlowError as error:raise HTTPException(503,{'message':str(error),'run_id':error.run_id})
@@ -649,3 +651,20 @@ def bracket_external_flow(run_id: UUID,body: dict | None=None):
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Bracket-flow artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'validation_status':json.loads((dest/'result.json').read_text())['validation_status']}
+
+@app.post('/runs/{run_id}/flow-refinement',status_code=201)
+def bracket_flow_refinement(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Refinement uses a fixed three-mesh sequence')
+    ready()
+    from kcee.flow_refinement import run_refinement
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
+        dest=run_refinement(ARTIFACTS,run_id,record,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown parent design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Earlier completed mesh studies remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies and artifacts retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_refinement_recorded_not_engineering_validated'}

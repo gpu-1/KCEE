@@ -91,3 +91,63 @@ Regression coverage uses an explicitly synthetic, hole-free L fixture to test
 the worker/transport and raw evidence reconstruction. That fixture is not
 represented as PicoGK or as physical validation. The local end-to-end check
 uses the real saved PicoGK bracket with its bores and parent provenance.
+
+## Three-mesh verification and bore preservation
+
+Choose **Verify bracket flow · 3 meshes** on a native source or a saved flow
+case. Three immutable source studies are saved before a derived comparison:
+
+| Mesh | Background cells | Nominal maximum near-surface cell |
+|---|---|---|
+| Coarse | 24×14×16 | 1.875 mm |
+| Medium | 32×20×22 | 1.40625 mm |
+| Fine | 40×24×28 | 1.125 mm |
+
+The fixed physical domain, source surface, laminar inputs, relaxation factors,
+500 iterations and surface refinement level 3 remain the same. Each actual
+mesh, final field, quality/residual log and runtime fingerprint is retained in
+its own source study. All cases undergo raw-evidence reconstruction in the API.
+If a later mesh fails, earlier completed studies remain saved.
+
+Bore preservation uses actual triangulated bracket wall faces from the fluid
+mesh, compared with the original STL. For each of the four nominal holes,
+69 axial rays sample a 0.5 mm grid inside radius 2.25 mm. Another 16 rays form
+an outer control ring of radius 3 mm. Axial segments run from -1 mm to 4.5 mm
+through the 3.5 mm base/upright plate. A triangle intersection blocks that ray;
+edge hits count as blocked. This checks through-opening continuity at sampled
+locations rather than inferring an open hole from nearby cell positions.
+
+The descriptive sampling gate requires an open source/mesh center, at most
+5% of source-open rays blocked by the mesh, and at most 5% of source-blocked
+rays unexpectedly open. Source and mesh open counts, blocked rays and
+unexpected open rays are retained separately for each hole and mesh.
+The mix of core/ring samples must not be interpreted as an area quadrature.
+Finite samples do not establish minimum diameter, exact open area, continuous
+clearance everywhere, bore hydraulic resistance or manufacturing acceptance.
+Missing wall faces cannot pass solely because a center ray is open: the outer
+control rays detect unintended widening.
+
+Eight fixed physical probe requests cover upstream, wake, above/below and the
+four bore centers. Each study records the nearest mesh-vertex-average location,
+its distance from the requested point, velocity vector, speed and kinematic
+pressure. Nearest-cell sampling is not interpolation at an identical point;
+changing sample locations contributes to the measured changes. Reports retain
+both requested and actual coordinates so this limitation is reviewable.
+
+Successive velocity vector changes are normalized by inlet speed 0.01 m/s.
+Successive pressure changes are normalized by the inlet kinematic dynamic
+scale 0.5 U² = 0.00005 m²/s². These quantities are sensitivity measures, not
+analytical errors or force convergence. No asymptotic order, Richardson
+extrapolation or mesh-independent solution is asserted.
+
+The derived comparison is a separate registered run. It binds all three
+source run IDs and manifest hashes, source STL hash, mesh/solver checks, bore
+samples, probe values, distances and changes. Report Markdown, comparison JSON
+and verification.csv are available together. Open each source row to inspect
+its 3D fields and full solver archive. The comparison retains the common
+physical inputs and original parent manifest; existing studies are unchanged.
+The worker's default single-case route remains backward compatible. Historical
+single-case results without bore evidence explicitly show it as unrecorded.
+
+Passing the execution and finite bore gates does not establish mesh/domain
+independence, boundary-layer or force accuracy, or engineering acceptance.
