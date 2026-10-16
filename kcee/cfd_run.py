@@ -5,9 +5,10 @@ from datetime import datetime,timezone
 from urllib.request import Request,urlopen
 from kcee.cfd import benchmark,case_inputs
 
-def cfd_available():
+def cfd_available(vortex=False):
  try:
-  with urlopen(os.environ.get('CFD_URL','http://cfd:8007')+'/health',timeout=2) as response:return json.load(response)['status']=='ready'
+  with urlopen(os.environ.get('CFD_URL','http://cfd:8007')+'/health',timeout=2) as response:
+   health=json.load(response);return health['status']=='ready' and (not vortex or health.get('openfoam_vortex') is True)
  except Exception:return False
 
 def run_cfd(root,inputs=None):

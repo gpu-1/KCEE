@@ -470,6 +470,21 @@ class RegistryIntegration(unittest.TestCase):
         with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
         self.assertEqual(error.exception.code,422)
 
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'OpenFOAM profile not requested')
+    def test_openfoam_vortex_fields_archive_and_verification(self):
+        self.assertTrue(request('/capabilities')[1]['cfd']['openfoam_vortex'])
+        with urlopen(Request(BASE+'/runs/cfd-vortex',data=b'',method='POST'),timeout=180) as response:
+            self.assertEqual(response.status,201);run_id=json.load(response)['run_id']
+        self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+        directory=Path('/data/runs')/run_id;result=json.loads((directory/'result.json').read_text());flow=result['vortex']
+        self.assertEqual(result['kind'],'cfd_vortex');self.assertTrue(all(flow['checks'].values()));self.assertEqual([m['cells'] for m in flow['mesh_study']],[256,1024,4096]);self.assertEqual(len((directory/'field.csv').read_text().splitlines()),4097)
+        self.assertLess(flow['mesh_study'][-1]['relative_velocity_l2_error'],.02);self.assertLess(flow['mesh_study'][-1]['relative_pressure_l2_error'],.05)
+        import zipfile
+        with zipfile.ZipFile(directory/'cfd-artifacts.zip') as archive:
+            self.assertIn('64/constant/polyMesh/points',archive.namelist());self.assertIn('64/0.5/U',archive.namelist());self.assertIn('runtime.json',archive.namelist())
+        with self.assertRaises(HTTPError) as error:urlopen(Request(BASE+'/runs/cfd-vortex',data=b'{"cells":8}',method='POST',headers={'Content-Type':'application/json'}),timeout=15)
+        self.assertEqual(error.exception.code,422)
+
     @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Structural profile not requested')
     def test_structural_benchmark_provenance(self):
         self.assertTrue(request('/capabilities')[1]['structural']['calculix'])

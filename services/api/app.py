@@ -44,7 +44,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available()},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available(),'openfoam_vortex':cfd_available(True)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -619,3 +619,14 @@ def cfd_benchmark(body: dict | None=None):
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'CFD artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'validation_status':'cfd_numerical_checks_passed_not_engineering_validated'}
+
+@app.post('/runs/cfd-vortex',status_code=201)
+def cfd_vortex(body: dict | None=None):
+    if body:raise HTTPException(422,'OpenFOAM vortex uses a fixed reference case')
+    ready()
+    from kcee.vortex_run import run_vortex
+    try:dest=run_vortex(ARTIFACTS)
+    except Exception:raise HTTPException(503,'OpenFOAM worker unavailable or vortex verification failed')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Vortex artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'validation_status':'cfd_vortex_numerical_checks_passed_not_engineering_validated'}

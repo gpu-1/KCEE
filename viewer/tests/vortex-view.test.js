@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {vortexGrid} from '../vortex-view.js';
+const mesh=()=>({cells_per_axis:2,field:[0,1,2,3].map(i=>({x_m:i%2,y_m:Math.floor(i/2),u_m_s:3,v_m_s:4,p_kinematic_m2_s2:i-1.5,exact_u_m_s:0,exact_v_m_s:0,exact_p_kinematic_m2_s2:0}))});
+test('vortex maps preserve computed velocity and signed pressure with correct units',()=>{assert.deepEqual(vortexGrid(mesh(),'speed').values,[5,5,5,5]);assert.equal(vortexGrid(mesh(),'pressure').min,-1.5);assert.equal(vortexGrid(mesh(),'pressure_error').units,'m²/s²');assert.equal(vortexGrid(mesh(),'velocity_error').units,'m/s');});
+test('vortex maps reject missing or nonfinite fields and invalid selectors',()=>{assert.throws(()=>vortexGrid(mesh(),'stress'));const m=mesh();m.field[0].u_m_s=NaN;assert.throws(()=>vortexGrid(m));assert.throws(()=>vortexGrid({cells_per_axis:16,field:[]}));});

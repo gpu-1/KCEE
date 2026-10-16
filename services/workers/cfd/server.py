@@ -1,11 +1,21 @@
-import json,threading,signal
+import json,threading,signal,shutil
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from kcee.cfd import benchmark
+vortex_lock=threading.Lock()
 class Handler(BaseHTTPRequestHandler):
  def send(self,status,data):
   raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
- def do_GET(self):self.send(200,{'status':'ready','scope':'fully_developed_plane_poiseuille_verification'}) if self.path=='/health' else self.send(404,{'error':'Not found'})
+ def do_GET(self):self.send(200,{'status':'ready','scope':'channel_and_periodic_vortex_verification','openfoam_vortex':all(shutil.which(n) for n in ('blockMesh','checkMesh','icoFoam'))}) if self.path=='/health' else self.send(404,{'error':'Not found'})
  def do_POST(self):
+  if self.path=='/vortex':
+   if self.headers.get('Content-Length','0')!='0':self.send(422,{'error':'Fixed vortex case accepts no parameters'});return
+   if not vortex_lock.acquire(blocking=False):self.send(409,{'error':'Vortex worker busy'});return
+   try:
+    from kcee.openfoam_vortex import execute
+    self.send(200,execute())
+   except Exception:self.send(503,{'error':'OpenFOAM vortex execution failed'})
+   finally:vortex_lock.release()
+   return
   if self.path!='/benchmark':self.send(404,{'error':'Not found'});return
   try:
    length=int(self.headers.get('Content-Length','0'))
