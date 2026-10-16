@@ -460,6 +460,12 @@ class RegistryIntegration(unittest.TestCase):
         run_id=data['run_id'];record=request('/runs/'+run_id)[1];self.assertEqual(record['manifest']['kind'],'cfd_benchmark');self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
         directory=Path('/data/runs')/run_id;flow=json.loads((directory/'result.json').read_text())['cfd'];self.assertTrue(all(flow['checks'].values()));self.assertEqual(len((directory/'velocity.csv').read_text().splitlines()),129)
         self.assertAlmostEqual(flow['mesh_study'][-1]['relative_flow_error'],2/128**2,places=10)
+        custom=Request(BASE+'/runs/cfd-benchmark',data=json.dumps({'pressure_gradient_Pa_m':.2,'display_length_m':.4}).encode(),method='POST',headers={'Content-Type':'application/json'})
+        with urlopen(custom,timeout=30) as response:custom_id=json.load(response)['run_id']
+        custom_flow=json.loads((Path('/data/runs')/custom_id/'result.json').read_text())['cfd']
+        self.assertEqual(custom_flow['inputs']['pressure_gradient_Pa_m'],.2);self.assertEqual(custom_flow['inputs']['display_length_m'],.4)
+        self.assertAlmostEqual(custom_flow['mesh_study'][-1]['flow_per_span_m2_s']/flow['mesh_study'][-1]['flow_per_span_m2_s'],2,places=9)
+        self.assertEqual(request('/runs/'+custom_id+'/verify')[1]['integrity'],'verified')
         req=Request(BASE+'/runs/cfd-benchmark',data=b'{"cells":8}',method='POST',headers={'Content-Type':'application/json'})
         with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
         self.assertEqual(error.exception.code,422)

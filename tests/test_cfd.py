@@ -30,3 +30,23 @@ class CFDTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp,patch('kcee.cfd_run.urlopen',return_value=response):
    dest=run_cfd(tmp);(dest/'velocity.csv').write_text('changed')
    with self.assertRaises(IntegrityError):verify_directory(dest)
+ def test_configurable_cases_scaling_and_laminar_envelope(self):
+  base=benchmark();fine=base['mesh_study'][-1]
+  for inputs,ratio in [({'pressure_gradient_Pa_m':.2},2),({'gap_m':.02},8),({'dynamic_viscosity_Pa_s':.002},.5),({'density_kg_m3':500},1),({'display_length_m':.5},1)]:
+   result=benchmark(inputs);self.assertTrue(all(result['checks'].values()));self.assertAlmostEqual(result['mesh_study'][-1]['flow_per_span_m2_s']/fine['flow_per_span_m2_s'],ratio,places=9)
+  self.assertEqual(base['inputs'],INPUTS)
+  for bad in [{'gap_m':True},{'gap_m':float('nan')},{'gap_m':1},{'cells':32},{'density_kg_m3':None},{'pressure_gradient_Pa_m':10,'gap_m':.05},[],{'gap_m':float('inf')}]:
+   with self.assertRaises(ValueError):benchmark(bad)
+ def test_custom_worker_artifacts_preserve_inputs_and_envelope(self):
+  inputs=dict(INPUTS,gap_m=.02,pressure_gradient_Pa_m=.2,display_length_m=.4)
+  response=MagicMock();response.__enter__.return_value.read.return_value=json.dumps(benchmark(inputs)).encode()
+  with tempfile.TemporaryDirectory() as tmp,patch('kcee.cfd_run.urlopen',return_value=response):
+   dest=run_cfd(tmp,inputs);verify_directory(dest);self.assertEqual(json.loads((dest/'requirements.json').read_text()),inputs);self.assertIn('400.0',(dest/'bracket.stl').read_text());self.assertIn('20.0',(dest/'bracket.stl').read_text())
+ def test_cfd_assistant_evidence_is_bounded_and_uses_saved_case(self):
+  from kcee.study_assistant import study_evidence
+  from kcee.geometry_queue import encoded
+  inputs=dict(INPUTS,pressure_gradient_Pa_m=.2);flow=benchmark(inputs);rid='1dbeef00-0000-4000-8000-000000000000';status=flow['validation_status']
+  record={'id':rid,'validation_status':status,'manifest_sha256':'a'*64,'manifest':{'run_id':rid,'kind':'cfd_benchmark','artifacts':{k:'b'*64 for k in ['result.json','cfd.json','velocity.csv']}}}
+  evidence,digest=study_evidence(record,{'kind':'cfd_benchmark','validation_status':status,'cfd':flow},{},{'items':[]})
+  import hashlib
+  self.assertEqual(digest,hashlib.sha256(encoded(evidence)).hexdigest());self.assertEqual(evidence['assumptions']['inputs'],inputs);self.assertEqual(evidence['selected_study_result']['cells'],128);self.assertNotIn('profile',evidence['mesh_results'][0]);self.assertLess(len(encoded(evidence)),20000)

@@ -1,0 +1,18 @@
+const status='cfd_numerical_checks_passed_not_engineering_validated';
+function source(study){
+ const {record,result}=study,flow=result.cfd;
+ if(result.kind!=='cfd_benchmark'||record.id!==record.manifest?.run_id||record.validation_status!==status||result.validation_status!==status||record.manifest.kind!=='cfd_benchmark'||!flow||!Object.keys(flow.checks).length||!Object.values(flow.checks).every(v=>v===true))throw new Error('Compare two verified CFD channel cases');
+ const hashes={manifest_sha256:record.manifest_sha256,result_sha256:record.manifest.artifacts['result.json'],cfd_sha256:record.manifest.artifacts['cfd.json'],velocity_csv_sha256:record.manifest.artifacts['velocity.csv'],solver_source_sha256:record.manifest.solver_source_sha256};
+ if(!Object.values(hashes).every(v=>/^[a-f0-9]{64}$/.test(v||'')))throw new Error('Missing CFD comparison provenance');
+ return {run_id:record.id,...hashes,validation_status:status,inputs:flow.inputs,method:flow.method,checks:flow.checks,tolerances:flow.tolerances,observed_orders:flow.observed_orders,limits:flow.limits};
+}
+export async function cfdComparison(reference,selected){
+ const a=source(reference),b=source(selected);
+ if(a.run_id===b.run_id)throw new Error('Choose two different channel cases');
+ const fine=s=>s.result.cfd.mesh_study.reduce((a,b)=>a.cells>b.cells?a:b),ar=fine(reference),br=fine(selected);
+ const measures=[...Object.keys(a.inputs).map(key=>({measure:({gap_m:'Gap (m)',pressure_gradient_Pa_m:'Driving gradient (Pa/m)',dynamic_viscosity_Pa_s:'Viscosity (Pa·s)',density_kg_m3:'Density (kg/m³)',display_length_m:'Illustrative length (m)'})[key]||key,reference:a.inputs[key],selected:b.inputs[key]})),...Object.entries({cells:'Fine cells',flow_per_span_m2_s:'Flow per unit span (m²/s)',mean_velocity_m_s:'Mean velocity (m/s)',wall_shear_lower_Pa:'Lower-wall shear magnitude (Pa)',reynolds_hydraulic_diameter:'Reynolds number (analytical mean, 2H)',relative_flow_error:'Relative flow error'}).map(([key,measure])=>({measure,reference:ar[key],selected:br[key]}))];
+ if(!measures.every(r=>Number.isFinite(r.reference)&&Number.isFinite(r.selected))||ar.flow_per_span_m2_s<=0)throw new Error('Invalid channel comparison values');
+ const report={schema:'kcee.cfd-comparison.v1',exported_at:new Date().toISOString(),reference:a,selected:b,measures,flow_change_percent:100*(br.flow_per_span_m2_s/ar.flow_per_span_m2_s-1),limitations:['Derived comparison of saved cases; no new solver run.','Multiple changed inputs confound attribution. For this model, q per span scales as G H³ / (12 μ); density affects Reynolds number, not velocity, and display length affects only the envelope.','Infinite-span, fully developed laminar momentum model; no entry effects, finite-width walls, general pressure-velocity coupling, turbulence or engineering acceptance.']};
+ report.snapshot_sha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(report))))).map(x=>x.toString(16).padStart(2,'0')).join('');return report;
+}
+export function cfdComparisonMarkdown(r){return ['# KCEE channel case comparison','',r.exported_at,'','| Measure | Reference | Selected |','|---|---|---|',...r.measures.map(m=>`| ${m.measure} | ${m.reference} | ${m.selected} |`),'',`Flow change: ${r.flow_change_percent}%`,'',...['reference','selected'].flatMap(key=>[`${key} run: ${r[key].run_id}`,...Object.entries(r[key]).filter(([k])=>k.endsWith('sha256')).map(([k,v])=>`${k}: ${v}`),'Inputs: '+JSON.stringify(r[key].inputs),'Checks: '+JSON.stringify(r[key].checks),'Tolerances: '+JSON.stringify(r[key].tolerances),'']),...r.limitations.map(x=>'- '+x),'','Snapshot SHA-256 (JSON.stringify, excluding this hash): '+r.snapshot_sha256,''].join('\n');}

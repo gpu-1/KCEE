@@ -3,19 +3,21 @@ import hashlib,json,os,uuid
 from pathlib import Path
 from datetime import datetime,timezone
 from urllib.request import Request,urlopen
-from kcee.cfd import benchmark
+from kcee.cfd import benchmark,case_inputs
 
 def cfd_available():
  try:
   with urlopen(os.environ.get('CFD_URL','http://cfd:8007')+'/health',timeout=2) as response:return json.load(response)['status']=='ready'
  except Exception:return False
 
-def run_cfd(root):
- with urlopen(Request(os.environ.get('CFD_URL','http://cfd:8007')+'/benchmark',data=b'',method='POST'),timeout=15) as response:flow=json.load(response)
- if flow!=benchmark() or not all(flow['checks'].values()):raise ValueError('CFD worker result reproduction failed')
+def run_cfd(root,inputs=None):
+ inputs=case_inputs(inputs)
+ with urlopen(Request(os.environ.get('CFD_URL','http://cfd:8007')+'/benchmark',data=json.dumps(inputs).encode(),headers={'Content-Type':'application/json'},method='POST'),timeout=15) as response:flow=json.load(response)
+ if flow!=benchmark(inputs) or not all(flow['checks'].values()):raise ValueError('CFD worker result reproduction failed')
  dest=Path(root)/str(uuid.uuid4());dest.mkdir(parents=True,exist_ok=False)
  result={'kind':'cfd_benchmark','validation_status':flow['validation_status'],'geometry_backend':'Illustrative channel envelope, not a 3D flow mesh','cfd':flow,'assumptions':flow['limits']}
- vertices=[(0,0,0),(200,0,0),(200,20,0),(0,20,0),(0,0,10),(200,0,10),(200,20,10),(0,20,10)];faces=[(0,2,1),(0,3,2),(4,5,6),(4,6,7),(0,1,5),(0,5,4),(1,2,6),(1,6,5),(2,3,7),(2,7,6),(3,0,4),(3,4,7)];lines=['solid channel_envelope']
+ length=inputs['display_length_m']*1000;gap=inputs['gap_m']*1000
+ vertices=[(0,0,0),(length,0,0),(length,20,0),(0,20,0),(0,0,gap),(length,0,gap),(length,20,gap),(0,20,gap)];faces=[(0,2,1),(0,3,2),(4,5,6),(4,6,7),(0,1,5),(0,5,4),(1,2,6),(1,6,5),(2,3,7),(2,7,6),(3,0,4),(3,4,7)];lines=['solid channel_envelope']
  for face in faces:lines+=['facet normal 0 0 0','outer loop']+['vertex '+' '.join(map(str,vertices[i])) for i in face]+['endloop','endfacet']
  (dest/'bracket.stl').write_text('\n'.join(lines+['endsolid channel_envelope']))
  for name,data in [('result.json',result),('requirements.json',flow['inputs']),('cfd.json',flow),('voice-summary.json',{'text':'Channel flow numerical verification complete. General CFD and engineering validation remain pending.','delivery':'artifact_only'})]:(dest/name).write_text(json.dumps(data,indent=2))

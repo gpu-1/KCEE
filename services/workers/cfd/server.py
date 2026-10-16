@@ -7,8 +7,14 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):self.send(200,{'status':'ready','scope':'fully_developed_plane_poiseuille_verification'}) if self.path=='/health' else self.send(404,{'error':'Not found'})
  def do_POST(self):
   if self.path!='/benchmark':self.send(404,{'error':'Not found'});return
-  if int(self.headers.get('Content-Length','0'))!=0:self.send(422,{'error':'Benchmark accepts no parameters'});return
-  self.send(200,benchmark())
+  try:
+   length=int(self.headers.get('Content-Length','0'))
+   if not 0<=length<=2048:raise ValueError('Input too large')
+   inputs=json.loads(self.rfile.read(length)) if length else None
+   if inputs is not None and not isinstance(inputs,dict):raise ValueError('Use a channel input object')
+   result=benchmark(inputs)
+  except (ValueError,TypeError):self.send(422,{'error':'Invalid channel inputs'});return
+  self.send(200,result)
 server=ThreadingHTTPServer(('0.0.0.0',8007),Handler)
 def stop(*_):threading.Thread(target=server.shutdown,daemon=True).start()
 signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)

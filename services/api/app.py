@@ -306,7 +306,7 @@ def ask_study(run_id: UUID,body: StudyQuestion,request: Request):
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         kind=record['manifest'].get('kind')
-        if kind not in ('bracket_structural','bracket_thermal','thermal_benchmark'):raise HTTPException(422,'Study AI supports verified structural and thermal studies')
+        if kind not in ('bracket_structural','bracket_thermal','thermal_benchmark','cfd_benchmark'):raise HTTPException(422,'Study AI supports verified structural, thermal and channel studies')
         result=json.loads((ARTIFACTS/str(run_id)/'result.json').read_text())
         evidence,digest=study_evidence(record,result,stress_diagnostics(run_id) if kind=='bracket_structural' else {},refinement_explorations(run_id) if kind=='bracket_structural' else {'items':[]})
         if body.include_documents:
@@ -610,9 +610,11 @@ def get_transfer_readiness():
 
 @app.post('/runs/cfd-benchmark',status_code=201)
 def cfd_benchmark(body: dict | None=None):
-    if body:raise HTTPException(422,'CFD benchmark uses a fixed preset and accepts no input parameters')
+    from kcee.cfd import case_inputs
+    try:inputs=case_inputs(body)
+    except ValueError as error:raise HTTPException(422,str(error))
     ready()
-    try:dest=run_cfd(ARTIFACTS)
+    try:dest=run_cfd(ARTIFACTS,inputs)
     except Exception:raise HTTPException(503,'CFD worker unavailable or numerical reproduction failed')
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'CFD artifacts retained; registration failed','run_id':dest.name})

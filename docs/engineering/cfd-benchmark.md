@@ -27,3 +27,51 @@ Start engineering services, select Run CFD channel benchmark, and inspect the re
 `POST /runs/cfd-benchmark` accepts an empty body or empty JSON object; parameters are rejected. The API reproduces the worker result and requires all checks before registration. This transport reproduction uses the same numerical implementation, while verification uses the analytical reference and refinement/conservation identities. Artifacts include result, fixed requirements, CFD details, velocity CSV, readable report, a provenance-only voice-summary artifact and the display STL. The manifest records adapter/solver-source and every artifact hash. Altered worker results or stored CSV files fail verification.
 
 The CFD Compose service is internal-only, read-only, CPU/memory bounded and included in engineering start/stop controls. No model inference or network service is used by the numerical solve. General 2D/3D flow, turbulence, arbitrary geometry, entry conditions, thermal-fluid coupling and engineering acceptance remain future work.
+
+## Configurable channel cases and comparisons
+
+The website's **CFD channel inputs** controls and `POST /runs/cfd-benchmark`
+accept an optional partial object of SI inputs. Omitted fields use the original
+preset; unknown fields, booleans, nonfinite numbers and out-of-range values are
+rejected before solving or saving:
+
+| Field | Units | Default | Inclusive range |
+|---|---|---|---|
+| gap_m | m | 0.01 | 0.001–0.05 |
+| pressure_gradient_Pa_m | Pa/m | 0.1 | 0.001–10 |
+| dynamic_viscosity_Pa_s | Pa·s | 0.001 | 0.0001–1 |
+| density_kg_m3 | kg/m³ | 1000 | 1–2000 |
+| display_length_m | m | 0.2 | 0.05–2 |
+
+The analytical hydraulic Reynolds number must also be at most 500. This is a
+conservative demonstration envelope, **not a predicted transition criterion**.
+Each accepted case solves the same four grids. The absolute momentum-residual
+threshold scales with the driving gradient (1e-7 × G Pa/m), equivalent to a
+relative threshold of 1e-7. Other normalized tolerances remain unchanged.
+The API reproduces the worker result before registration; both use the same
+solver implementation, so this transport check is not independent verification.
+
+Each saved case preserves its resolved inputs, velocity CSV, four-grid results,
+checks, source fingerprints, report and artifact hashes. The envelope uses the
+saved gap and display length in millimetres, with an illustrative 20 mm width.
+The infinite-span solution does not account for those displayed side walls.
+Historical fixed-preset cases remain usable.
+
+Select one saved CFD case, choose **Use as comparison reference**, and select a
+second CFD case. Comparisons include all five inputs, finest-grid flow, mean
+velocity, wall shear, Reynolds number and flow error. Download JSON or Markdown
+with both run IDs and artifact/source hashes. The JSON snapshot hash covers
+`JSON.stringify(report)` before adding `snapshot_sha256`; it establishes snapshot
+consistency, not authorship. Changing either selection clears previous exports.
+Mixing structural and CFD cases is rejected.
+
+For this model, flow per span scales with G H³ / (12 μ). Density changes Reynolds
+number without changing velocity; display length changes only the illustrative
+envelope. A comparison with several changed inputs cannot isolate one cause.
+
+**Ask local AI** now supports each verified CFD case. Bounded evidence includes
+its resolved inputs, four-grid scalar results, finest-grid selection, analytical
+formula, checks, tolerances and source hashes. Full profiles are omitted from
+the prompt. Existing document scopes and canonical evidence exports apply.
+Answers are drafts, explain one selected case, and do not run a new solve or
+establish engineering acceptance.
