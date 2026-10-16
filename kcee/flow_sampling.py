@@ -29,7 +29,7 @@ def blocked(point,end,triangles):
   if v>=-1e-9 and u+v<=1+1e-9 and 1e-8<t<1-1e-8:return True
  return False
 
-def interpolate(field,point,triangles=()):
+def interpolate(field,point,triangles=(),compact=False):
  if not field or not all(math.isfinite(v) for v in point):raise ValueError('Invalid probe field or point')
  ordered=sorted(enumerate(field),key=lambda item:sum((item[1][k]-v)**2 for k,v in zip(POSITION,point)))[:256]
  candidates=[];octants={}
@@ -40,20 +40,22 @@ def interpolate(field,point,triangles=()):
   if not blocked(point,pos,triangles):
    candidates.append((index,row,pos));octants[octant]=octants.get(octant,0)+1
   if len(candidates)==16:break
- for support in itertools.combinations(candidates,4):
+ supports=itertools.combinations(candidates,4)
+ if compact:supports=sorted(supports,key=lambda ss:(max(math.dist(point,s[2]) for s in ss),sum(math.dist(point,s[2]) for s in ss),tuple(s[0] for s in ss)))
+ for support in supports:
   w=weights(point,[s[2] for s in support])
   if w is None:continue
   # Remove tiny round-off negatives; positive normalized weights prevent overshoot.
   w=[max(0.,v) for v in w];total=sum(w);w=[v/total for v in w]
   values=[sum(v*s[1][key] for v,s in zip(w,support)) for key in VALUES]
   if not all(math.isfinite(v) for v in values):raise ValueError('Nonfinite interpolated probe')
-  return {'available':True,'requested_position_m':list(point),'sample_position_m':list(point),'distance_m':0.,'method':'wall-visible positive tetrahedral interpolation','support_cell_indices':[s[0] for s in support],'support_positions_m':[list(s[2]) for s in support],'weights':w,'support_distances_m':[math.dist(point,s[2]) for s in support],'maximum_support_distance_m':max(math.dist(point,s[2]) for s in support),'velocity_m_s':values[:3],'speed_m_s':math.sqrt(sum(v*v for v in values[:3])),'kinematic_pressure_m2_s2':values[3]}
+  return {'available':True,'requested_position_m':list(point),'sample_position_m':list(point),'distance_m':0.,'method':('compact wall-visible positive tetrahedral interpolation' if compact else 'wall-visible positive tetrahedral interpolation'),'support_cell_indices':[s[0] for s in support],'support_positions_m':[list(s[2]) for s in support],'weights':w,'support_distances_m':[math.dist(point,s[2]) for s in support],'maximum_support_distance_m':max(math.dist(point,s[2]) for s in support),'velocity_m_s':values[:3],'speed_m_s':math.sqrt(sum(v*v for v in values[:3])),'kinematic_pressure_m2_s2':values[3]}
  raise ValueError('No enclosing wall-visible tetrahedron for fixed probe '+str(point))
 
-def sample_probes(field,mesh_root,position_basis="mesh_vertex_averages"):
+def sample_probes(field,mesh_root,position_basis="mesh_vertex_averages",compact=False):
  triangles=[(t,tuple(min(p[k] for p in t) for k in range(3)),tuple(max(p[k] for p in t) for k in range(3))) for t in wall_triangles(mesh_root)]
  rows=[]
  for name,point in PROBES:
-  try:rows.append(dict(interpolate(field,point,triangles),name=name,position_basis=position_basis))
+  try:rows.append(dict(interpolate(field,point,triangles,compact),name=name,position_basis=position_basis))
   except ValueError as error:rows.append({'name':name,'requested_position_m':list(point),'available':False,'reason':str(error)})
  return rows

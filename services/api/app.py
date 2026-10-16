@@ -635,14 +635,17 @@ def cfd_vortex(body: dict | None=None):
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
     from kcee.bracket_flow import MESHES
-    if body and (set(body)!={'mesh_name'} or not isinstance(body['mesh_name'],str) or body['mesh_name'] not in MESHES):raise HTTPException(422,'Choose coarse, medium or fine mesh; other flow inputs are fixed')
+    if body and (set(body)-{'mesh_name','domain_name','bore_level'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
     mesh_name=(body or {}).get('mesh_name','coarse')
+    from kcee.bracket_flow import domain_spec
+    try:domain_spec(mesh_name,(body or {}).get('domain_name','base'))
+    except ValueError as error:raise HTTPException(422,str(error))
     ready()
     from kcee.bracket_flow_run import run_bracket_flow,BracketFlowError
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
-        dest=run_bracket_flow(ARTIFACTS,run_id,record,mesh_name)
+        dest=run_bracket_flow(ARTIFACTS,run_id,record,mesh_name,(body or {}).get('domain_name','base'),(body or {}).get('bore_level',4))
     except KeyError:raise HTTPException(404,'Unknown parent design')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except BracketFlowError as error:raise HTTPException(503,{'message':str(error),'run_id':error.run_id})

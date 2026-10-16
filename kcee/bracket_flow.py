@@ -31,7 +31,8 @@ def domain_spec(mesh_name='coarse',domain_name='base'):
  spacing=[(b-a)/n for a,b,n in zip(lo,hi,cells)]
  return {'domain_min_m':[a-steps*h for a,h in zip(lo,spacing)],'domain_max_m':[b+steps*h for b,h in zip(hi,spacing)],'background_cells':[n+2*steps for n in cells],'background_spacing_m':spacing}
 
-def make_case(root,raw,mesh_name='coarse',domain_name='base'):
+def make_case(root,raw,mesh_name='coarse',domain_name='base',bore_level=4):
+ if type(bore_level) is not int or bore_level not in (4,5):raise ValueError('Bore level must be 4 or 5')
  spec=domain_spec(mesh_name,domain_name)
  if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);surface,metadata=prepare_surface(raw)
@@ -73,6 +74,8 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
   text=text.replace('('+' '.join(map(str,MESHES[mesh_name]))+')','('+' '.join(map(str,spec['background_cells']))+')');path.write_text(text)
  if domain_name=='far' and mesh_name=='fine':
   path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('maxLocalCells 150000','maxLocalCells 200000'))
+ if bore_level==5:
+  path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('levels ((1e15 4))','levels ((1e15 5))').replace('maxLocalCells 150000','maxLocalCells 250000').replace('maxLocalCells 200000','maxLocalCells 250000').replace('maxGlobalCells 200000','maxGlobalCells 250000'))
  return metadata
 
 def command(root,name,args=(),timeout=180):
@@ -117,12 +120,13 @@ def mesh_total_volume(log):
  if not match or not math.isfinite(float(match[1])) or float(match[1])<=0:raise ValueError('Missing positive OpenFOAM total volume')
  return float(match[1])
 
-def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='base'):
+def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='base',bore_level=4):
+ if type(bore_level) is not int or bore_level not in (4,5):raise ValueError('Bore level must be 4 or 5')
  spec=domain_spec(mesh_name,domain_name)
  if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);vectors=field_values(root/'1500/U',True);pressures=field_values(root/'1500/p');from kcee.flow_centres import volume_centres
  centres,vertex_means,position_audit=volume_centres(root/'constant/polyMesh',len(vectors))
- if not 1000<=len(vectors)<=200000 or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
+ if not 1000<=len(vectors)<=(250000 if bore_level==5 else 200000) or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
  rows=[dict(zip(('x_m','y_m','z_m','u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2'),[*c,*u,p])) for c,u,p in zip(centres,vectors,pressures)]
  mesh=(root/'checkMesh.log').read_text();surface=(root/'surfaceCheck.log').read_text();log=(root/'simpleFoam.log').read_text()
  residuals={key:[float(x) for x in re.findall(r'Solving for '+key+r', Initial residual = ([^,\s]+)',log)] for key in ('Ux','Uy','Uz','p')}
@@ -148,18 +152,18 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
   result['sampling_audit']={'method':'Same solved fields and wall mesh; only field-location basis changes. This isolates sampling-position sensitivity from mesh/solver changes.','legacy_probes':legacy_probes,'probe_changes':[{"name":a['name'],"available":a['available'] and b['available'],**({'pressure_change_m2_s2':a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'],'pressure_change_normalized_by_inlet_dynamic_scale':abs(a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'])/.00005} if a['available'] and b['available'] else {})} for a,b in zip(result['fixed_probes'],legacy_probes)]}
   result['mesh']['wake_refinement']={'min_m':[.06,-.005,-.015],'max_m':[.16,.035,.065],'level':2}
   result['inputs']['wake_refinement']=result['mesh']['wake_refinement']
-  result['mesh']['bore_refinement']={'centres_m':[[.033,.015,.00175],[.048,.015,.00175],[.00175,.015,.016],[.00175,.015,.030]],'radius_m':.005,'level':4,'nominal_cell_m':max(spec['background_spacing_m'])/16}
+  result['mesh']['bore_refinement']={'centres_m':[[.033,.015,.00175],[.048,.015,.00175],[.00175,.015,.016],[.00175,.015,.030]],'radius_m':.005,'level':bore_level,'nominal_cell_m':max(spec['background_spacing_m'])/(2**bore_level)}
   result['inputs']['bore_refinement']=result['mesh']['bore_refinement']
  if domain_name!='base':result['domain_name']=domain_name
  return result
 
-def run_payload(raw,mesh_name='coarse',domain_name='base'):
+def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4):
  import shutil
  with tempfile.TemporaryDirectory(prefix='kcee-bracket-flow-') as tmp:
-  root=Path(tmp);metadata=make_case(root,raw,mesh_name,domain_name);failure=None
+  root=Path(tmp);metadata=make_case(root,raw,mesh_name,domain_name,bore_level);failure=None
   (root/'runtime.json').write_text(json.dumps({'package':subprocess.check_output(['dpkg-query','-W','-f=${Version}','openfoam'],text=True),'binaries_sha256':{name:hashlib.sha256(Path(shutil.which(name)).read_bytes()).hexdigest() for name in ('snappyHexMesh','simpleFoam','checkMesh','surfaceCheck')}}))
   try:
-   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);result=evaluate_case(root,metadata,mesh_name,raw,domain_name)
+   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level)
   except Exception as error:
    failure=str(error)[:2000];result=None;(root/'job.log').write_text(failure+'\n')
   buffer=io.BytesIO()

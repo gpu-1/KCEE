@@ -119,3 +119,7 @@ was not repeated after the earlier automatic approval-review usage-limit
 failure. SVG chart arithmetic and zero/nonfinite handling were unit-tested.
 Mesh, domain and joint independence and engineering acceptance remain
 unestablished.
+
+The follow-up [matched bore pressure study](bracket-flow-pressure.md) retains
+these medium/far and fine/far sources and compares level-5 bore regions without
+overwriting this original combined report.
