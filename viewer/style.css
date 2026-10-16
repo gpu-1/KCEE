@@ -89,3 +89,6 @@ dialog{width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto;backgro
 #combined-probes td:nth-child(2),#combined-probes td:nth-child(3),#combined-probes td:nth-child(4){white-space:nowrap;}
 
 #flow-pressure-results .table-scroll{max-width:100%;overflow-x:auto}#flow-pressure-results td{white-space:nowrap}
+
+/* Keep sidebar controls inside their column, including at browser zoom. */
+aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overflow-wrap:anywhere}.sidebar-shortcuts{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:18px}.sidebar-shortcuts button{width:100%}.saved-runs-heading{align-items:center;flex-wrap:wrap;margin-bottom:16px}.saved-runs-heading h2{margin:0}aside>button{display:block;width:100%;margin:8px 0}.service-heading{flex-wrap:wrap}aside nav{flex-wrap:wrap}
