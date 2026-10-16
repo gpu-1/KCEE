@@ -153,3 +153,5 @@ passed. Browser review confirmed the new compact label and both plots, original
 historical labels, and the base-mesh upstream-pressure table label. The sidebar
 layout fix remains in place. Select **CFD verification 7bbe2b82** to review the
 new combined result; its CSV, JSON and Markdown report are available there.
+
+See [wake and below-bracket refinement](bracket-flow-local-refinement.md) for the matched four-case targeted refinement workflow and its limits.

@@ -635,17 +635,20 @@ def cfd_vortex(body: dict | None=None):
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
     from kcee.bracket_flow import MESHES
-    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
+    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
     mesh_name=(body or {}).get('mesh_name','coarse')
-    from kcee.bracket_flow import domain_spec
-    try:domain_spec(mesh_name,(body or {}).get('domain_name','base'))
+    from kcee.bracket_flow import domain_spec,validate_profile
+    try:
+        domain_spec(mesh_name,(body or {}).get('domain_name','base'))
+        validate_profile((body or {}).get('local_profile','baseline'),mesh_name,(body or {}).get('domain_name','base'),(body or {}).get('bore_level',4))
+        if (body or {}).get('local_profile','baseline')!='baseline' and (body or {}).get('sampling_version','compact-radius-v1')!='compact-radius-v1':raise ValueError('Targeted refinement requires Compact v1 sampling')
     except ValueError as error:raise HTTPException(422,str(error))
     ready()
     from kcee.bracket_flow_run import run_bracket_flow,BracketFlowError
     try:
         registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
         if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
-        dest=run_bracket_flow(ARTIFACTS,run_id,record,mesh_name,(body or {}).get('domain_name','base'),(body or {}).get('bore_level',4),(body or {}).get('sampling_version','compact-radius-v1'))
+        dest=run_bracket_flow(ARTIFACTS,run_id,record,mesh_name,(body or {}).get('domain_name','base'),(body or {}).get('bore_level',4),(body or {}).get('sampling_version','compact-radius-v1'),(body or {}).get('local_profile','baseline'))
     except KeyError:raise HTTPException(404,'Unknown parent design')
     except IntegrityError as error:raise HTTPException(409,str(error))
     except BracketFlowError as error:raise HTTPException(503,{'message':str(error),'run_id':error.run_id})
@@ -704,3 +707,20 @@ def bracket_flow_combined(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_combined_recorded_not_engineering_validated'}
+
+
+@app.post('/runs/{run_id}/flow-local-refinement',status_code=201)
+def bracket_flow_local_refinement(run_id: UUID,body: dict | None=None):
+    if body:raise HTTPException(422,'Local refinement uses the fixed wake/below boxes and Compact v1')
+    ready()
+    from kcee.flow_local_refinement import run_study
+    from kcee.bracket_flow_run import BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        dest=run_study(ARTIFACTS,run_id,record,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown source design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error)+' Completed studies remain saved.','run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_local_recorded_not_engineering_validated'}

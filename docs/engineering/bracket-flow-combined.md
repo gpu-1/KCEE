@@ -128,3 +128,5 @@ New requests now use versioned **Compact v1** sampling. Historical recorded
 results above keep their original method. See [sampling versions and the
 recomputed comparisons](cfd-sampling-versions.md) for current defaults, source
 lineage, schema compatibility and pressure-reference policy.
+
+See [wake and below-bracket refinement](bracket-flow-local-refinement.md) for the matched four-case targeted refinement workflow and its limits.

@@ -19,25 +19,26 @@ def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_leve
   version=flow_version(payload.get('result',{}))
   declared=json.loads(z.read('sampling.json')) if 'sampling.json' in names else sampling_spec(LEGACY)
   if declared!=sampling_spec(version):raise ValueError('Archive sampling version differs from recorded probes')
-  expected=Path(tmp)/'expected';metadata=make_case(expected,raw,mesh_name,domain_name,bore_level)
+  profile=payload.get('result',{}).get('inputs',{}).get('local_refinement_profile','baseline')
+  expected=Path(tmp)/'expected';metadata=make_case(expected,raw,mesh_name,domain_name,bore_level,profile)
   for p in expected.rglob('*'):
    if p.is_file() and z.read(p.relative_to(expected).as_posix())!=p.read_bytes():raise ValueError('Flow case/source surface differs from fixed configuration')
   root=Path(tmp)/'output'
   needed=['1500/U','1500/p','1500/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
   for name in needed:
    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(z.read(name))
-  result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,version)
+  result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,version,profile)
   if result!=payload['result']:raise ValueError('Flow diagnostics differ from raw solver evidence')
  return result,data
 
-def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base',bore_level=4,sampling_version=DEFAULT):
+def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base',bore_level=4,sampling_version=DEFAULT,local_profile='baseline'):
  sampling_spec(sampling_version)
  source=Path(root)/str(parent_id);settings=json.loads((source/'geometry-request.json').read_text())
  if settings.get('geometry_mm')!={'length':60,'width':30,'height':40,'thickness':3.5} or not settings.get('mounting_holes'):raise ValueError('Select the default native 60×30×40 mm bracket with bores')
  raw=(source/'bracket.stl').read_bytes();dest=Path(root)/str(uuid.uuid4());dest.mkdir()
  for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(source/name,dest/name)
  try:
-  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version}).encode(),headers={'Content-Type':'application/json'},method='POST')
+  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json'},method='POST')
   with urlopen(request,timeout=1080) as response:
    encoded=response.read(96*1024*1024+1)
    if len(encoded)>96*1024*1024:raise ValueError('Flow response exceeds limit')
