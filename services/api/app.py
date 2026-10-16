@@ -44,7 +44,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available(),'openfoam_vortex':cfd_available(True)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available(),'openfoam_vortex':cfd_available(True),'bracket_flow':cfd_available(bracket=True)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -630,3 +630,22 @@ def cfd_vortex(body: dict | None=None):
     try:registry.register(dest)
     except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Vortex artifacts retained; registration failed','run_id':dest.name})
     return {'run_id':dest.name,'validation_status':'cfd_vortex_numerical_checks_passed_not_engineering_validated'}
+
+@app.post('/runs/{run_id}/flow',status_code=201)
+def bracket_external_flow(run_id: UUID,body: dict | None=None):
+    import json
+    if body:raise HTTPException(422,'Bracket flow currently uses fixed exploratory inputs')
+    ready()
+    from kcee.bracket_flow_run import run_bracket_flow,BracketFlowError
+    try:
+        registry.verify(ARTIFACTS,run_id);record=registry.get(run_id)
+        if not (ARTIFACTS/str(run_id)/'geometry-request.json').is_file():raise HTTPException(422,'Select a native PicoGK bracket')
+        dest=run_bracket_flow(ARTIFACTS,run_id,record)
+    except KeyError:raise HTTPException(404,'Unknown parent design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except BracketFlowError as error:raise HTTPException(503,{'message':str(error),'run_id':error.run_id})
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable')
+    try:registry.register(dest)
+    except (psycopg.Error,IntegrityError):raise HTTPException(503,{'message':'Bracket-flow artifacts retained; registration failed','run_id':dest.name})
+    return {'run_id':dest.name,'validation_status':json.loads((dest/'result.json').read_text())['validation_status']}

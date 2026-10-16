@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {flowPoints} from '../bracket-flow-view.js';
+const row=(y=.015)=>({x_m:.05,y_m:y,z_m:.01,u_m_s:.003,v_m_s:.004,w_m_s:0,p_kinematic_m2_s2:-.1});
+test('bracket flow preserves SI fields and converts only positions to mm, with explicit volume scopes',()=>{const flow={cells:2,field:[row(),row(.04)]};const slice=flowPoints(flow);assert.equal(slice.count,1);assert.deepEqual(slice.positions,[50,15,10]);assert.equal(slice.min,.005);assert.equal(flowPoints(flow,'pressure','all').count,2);assert.equal(flowPoints(flow,'pressure','all').units,'m²/s²');assert.equal(flowPoints(flow,'speed','near').count,2);});
+test('invalid bracket field values are rejected rather than colored',()=>{assert.throws(()=>flowPoints({cells:2,field:[row()]}));const r=row();r.u_m_s=NaN;assert.throws(()=>flowPoints({cells:1,field:[r]}));assert.throws(()=>flowPoints({cells:1,field:[row()]},'stress'));});

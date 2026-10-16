@@ -470,6 +470,20 @@ class RegistryIntegration(unittest.TestCase):
         with self.assertRaises(HTTPError) as error:urlopen(req,timeout=15)
         self.assertEqual(error.exception.code,422)
 
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'Bracket flow worker not requested')
+    def test_external_flow_worker_on_explicit_synthetic_l_fixture(self):
+        # A generated, hole-free L is a worker/transport fixture, not a PicoGK validation case.
+        from kcee.demo import stl
+        from kcee.bracket_flow_run import verified_archive
+        import struct,base64
+        text=stl({'length':60,'width':30,'height':40,'thickness':3.5});vertices=[tuple(map(float,line.split()[1:])) for line in text.splitlines() if line.startswith('vertex ')]
+        raw=b'synthetic L worker fixture'.ljust(80,b' ')+struct.pack('<I',len(vertices)//3)+b''.join(struct.pack('<12fH',0,0,0,*vertices[i],*vertices[i+1],*vertices[i+2],0) for i in range(0,len(vertices),3))
+        req=Request('http://cfd:8007/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode()}).encode(),method='POST',headers={'Content-Type':'application/json'})
+        with urlopen(req,timeout=240) as response:payload=json.load(response)
+        self.assertIsNone(payload['error']);flow,archive=verified_archive(payload,raw);self.assertTrue(all(flow['checks'].values()));self.assertGreater(flow['cells'],1000);self.assertEqual(flow['source']['source_stl_sha256'],hashlib.sha256(raw).hexdigest());self.assertLess(flow['relative_boundary_mass_imbalance'],1e-5)
+        import zipfile,io
+        with zipfile.ZipFile(io.BytesIO(archive)) as z:self.assertIn('constant/polyMesh/points',z.namelist());self.assertIn('500/phi',z.namelist())
+
     @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'OpenFOAM profile not requested')
     def test_openfoam_vortex_fields_archive_and_verification(self):
         self.assertTrue(request('/capabilities')[1]['cfd']['openfoam_vortex'])

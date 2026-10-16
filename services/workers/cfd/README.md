@@ -7,3 +7,5 @@ The container uses the pinned project Python base, runs with a read-only filesys
 This first verified worker is a reduced fully developed laminar momentum benchmark, not a general 3D CFD adapter.
 
 OpenFOAM now provides a separate fixed 2D periodic velocity–pressure reference. See [the vortex workflow](../../../docs/engineering/openfoam-vortex.md) for numerical settings, saved meshes/fields and interpretation limits.
+
+The default native bracket also supports a separate exploratory external-flow workflow with surface preparation, snappyHexMesh, laminar simpleFoam, source-bound evidence and 3D fluid-field points. See [bracket flow](../../../docs/engineering/bracket-flow.md). Single-mesh results do not establish aerodynamic force accuracy or engineering acceptance.
