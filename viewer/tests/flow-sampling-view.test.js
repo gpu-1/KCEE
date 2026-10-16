@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {samplingLabel} from '../flow-sampling-view.js';
+test('current and historical studies are clearly distinguished',()=>{assert.match(samplingLabel({flow:{sampling:{version:'compact-radius-v1'}}}),/Compact v1/);assert.match(samplingLabel({domain_study:{schema:'historical'}}),/Historical sampling/);assert.equal(samplingLabel({kind:'bracket'}),'');assert.throws(()=>samplingLabel({flow:{sampling:{version:'unknown'}}}));});

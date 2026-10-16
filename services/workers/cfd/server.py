@@ -15,8 +15,8 @@ class Handler(BaseHTTPRequestHandler):
     length=int(self.headers.get('Content-Length','0'))
     if not 1<=length<=17*1024*1024:raise ValueError('Surface payload exceeds limit')
     payload=json.loads(self.rfile.read(length))
-    if set(payload)-{'stl_base64','mesh_name','domain_name','bore_level'} or 'stl_base64' not in payload:raise ValueError('Unsupported flow inputs')
-    self.send(200,run_payload(base64.b64decode(payload['stl_base64'],validate=True),payload.get('mesh_name','coarse'),payload.get('domain_name','base'),payload.get('bore_level',4)))
+    if set(payload)-{'stl_base64','mesh_name','domain_name','bore_level','sampling_version'} or 'stl_base64' not in payload:raise ValueError('Unsupported flow inputs')
+    self.send(200,run_payload(base64.b64decode(payload['stl_base64'],validate=True),payload.get('mesh_name','coarse'),payload.get('domain_name','base'),payload.get('bore_level',4),payload.get('sampling_version','compact-radius-v1')))
    except Exception:self.send(503,{'error':'Bracket flow preparation failed'})
    finally:vortex_lock.release()
    return

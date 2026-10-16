@@ -123,3 +123,8 @@ unestablished.
 The follow-up [matched bore pressure study](bracket-flow-pressure.md) retains
 these medium/far and fine/far sources and compares level-5 bore regions without
 overwriting this original combined report.
+
+New requests now use versioned **Compact v1** sampling. Historical recorded
+results above keep their original method. See [sampling versions and the
+recomputed comparisons](cfd-sampling-versions.md) for current defaults, source
+lineage, schema compatibility and pressure-reference policy.

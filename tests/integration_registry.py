@@ -481,6 +481,8 @@ class RegistryIntegration(unittest.TestCase):
         req=Request('http://cfd:8007/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode()}).encode(),method='POST',headers={'Content-Type':'application/json'})
         with urlopen(req,timeout=240) as response:payload=json.load(response)
         self.assertIsNone(payload['error']);flow,archive=verified_archive(payload,raw);self.assertTrue(all(flow['checks'].values()));self.assertGreater(flow['cells'],1000);self.assertEqual(flow['source']['source_stl_sha256'],hashlib.sha256(raw).hexdigest());self.assertLess(flow['relative_boundary_mass_imbalance'],1e-5)
+        self.assertEqual(flow['inputs']['probe_sampling'],'compact-radius-v1')
+        self.assertEqual(flow['sampling']['version'],'compact-radius-v1')
         self.assertTrue(all(p['available'] for p in flow['fixed_probes'] if 'bore' not in p['name']))
         self.assertTrue(all(not p['available'] for p in flow['fixed_probes'] if 'bore' in p['name']))
         import zipfile,io

@@ -2,6 +2,7 @@
 import base64,hashlib,io,json,math,re,struct,subprocess,tempfile,zipfile
 from pathlib import Path
 from kcee.openfoam_vortex import header,field_values
+from kcee.flow_sampling import LEGACY,COMPACT,DEFAULT,sampling_spec
 INPUTS={'inlet_velocity_m_s':.01,'kinematic_viscosity_m2_s':.0001,'density_kg_m3':1.,'domain_min_m':[-.12,-.09,-.10],'domain_max_m':[.24,.12,.14],'background_cells':[24,14,16],'surface_refinement_level':3,'maximum_iterations':1500,'mesh_smoothing':{'n_smooth_patch':5,'n_smooth_scale':8}}
 LIMITS=['Exploratory steady laminar external flow at Reynolds number 6 based on 60 mm and inlet speed; not realistic service conditions.','Single mesh, no prism layers; thin walls, bores and root details may be under-resolved. No mesh/domain convergence or force acceptance.','Uniform +x inlet, zero kinematic pressure outlet, slip far-field sides and no-slip bracket. No mounting wall, bolts, contact, turbulence or thermal coupling.','OpenFOAM p is kinematic pressure in m²/s² at the outlet reference, not pressure in Pa.','Velocity and pressure are cell fields. Field positions use signed-volume centroids of triangulated saved mesh cells, independently reconstructed rather than solver-native exported centers. Engineering validation remains pending.']
 def prepare_surface(raw):
@@ -120,7 +121,8 @@ def mesh_total_volume(log):
  if not match or not math.isfinite(float(match[1])) or float(match[1])<=0:raise ValueError('Missing positive OpenFOAM total volume')
  return float(match[1])
 
-def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='base',bore_level=4):
+def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='base',bore_level=4,sampling_version=LEGACY):
+ sampling_spec(sampling_version)
  if type(bore_level) is not int or bore_level not in (4,5):raise ValueError('Bore level must be 4 or 5')
  spec=domain_spec(mesh_name,domain_name)
  if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
@@ -145,11 +147,7 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
  if source_raw is not None:
   from kcee.flow_bores import bore_checks
   result['bore_verification']=bore_checks(source_raw,root/'constant/polyMesh')
-  from kcee.flow_sampling import sample_probes
-  result['fixed_probes']=sample_probes(rows,root/'constant/polyMesh','triangulated_polyhedral_volume_centroids')
-  legacy=[dict(row,x_m=pos[0],y_m=pos[1],z_m=pos[2]) for row,pos in zip(rows,vertex_means)]
-  legacy_probes=sample_probes(legacy,root/'constant/polyMesh','mesh_vertex_averages')
-  result['sampling_audit']={'method':'Same solved fields and wall mesh; only field-location basis changes. This isolates sampling-position sensitivity from mesh/solver changes.','legacy_probes':legacy_probes,'probe_changes':[{"name":a['name'],"available":a['available'] and b['available'],**({'pressure_change_m2_s2':a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'],'pressure_change_normalized_by_inlet_dynamic_scale':abs(a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'])/.00005} if a['available'] and b['available'] else {})} for a,b in zip(result['fixed_probes'],legacy_probes)]}
+  apply_sampling(result,vertex_means,root/'constant/polyMesh',sampling_version)
   result['mesh']['wake_refinement']={'min_m':[.06,-.005,-.015],'max_m':[.16,.035,.065],'level':2}
   result['inputs']['wake_refinement']=result['mesh']['wake_refinement']
   result['mesh']['bore_refinement']={'centres_m':[[.033,.015,.00175],[.048,.015,.00175],[.00175,.015,.016],[.00175,.015,.030]],'radius_m':.005,'level':bore_level,'nominal_cell_m':max(spec['background_spacing_m'])/(2**bore_level)}
@@ -157,13 +155,25 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
  if domain_name!='base':result['domain_name']=domain_name
  return result
 
-def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4):
+def apply_sampling(result,vertex_means,mesh_root,version):
+ sampling_spec(version);rows=result['field']
+ from kcee.flow_sampling import sample_probes
+ result['fixed_probes']=sample_probes(rows,mesh_root,'triangulated_polyhedral_volume_centroids',compact=version==COMPACT)
+ legacy=[dict(row,x_m=pos[0],y_m=pos[1],z_m=pos[2]) for row,pos in zip(rows,vertex_means)]
+ legacy_probes=sample_probes(legacy,mesh_root,'mesh_vertex_averages',compact=version==COMPACT)
+ result['sampling_audit']={'method':'Same solved fields and wall mesh; only field-location basis changes. This isolates sampling-position sensitivity from mesh/solver changes.','legacy_probes':legacy_probes,'probe_changes':[{"name":a['name'],"available":a['available'] and b['available'],**({'pressure_change_m2_s2':a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'],'pressure_change_normalized_by_inlet_dynamic_scale':abs(a['kinematic_pressure_m2_s2']-b['kinematic_pressure_m2_s2'])/.00005} if a['available'] and b['available'] else {})} for a,b in zip(result['fixed_probes'],legacy_probes)]}
+ if version==COMPACT:result['inputs']['probe_sampling']=version;result['sampling']=sampling_spec(version)
+ return result
+
+def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_version=DEFAULT):
+ sampling_spec(sampling_version)
  import shutil
  with tempfile.TemporaryDirectory(prefix='kcee-bracket-flow-') as tmp:
   root=Path(tmp);metadata=make_case(root,raw,mesh_name,domain_name,bore_level);failure=None
+  (root/'sampling.json').write_text(json.dumps(sampling_spec(sampling_version),sort_keys=True))
   (root/'runtime.json').write_text(json.dumps({'package':subprocess.check_output(['dpkg-query','-W','-f=${Version}','openfoam'],text=True),'binaries_sha256':{name:hashlib.sha256(Path(shutil.which(name)).read_bytes()).hexdigest() for name in ('snappyHexMesh','simpleFoam','checkMesh','surfaceCheck')}}))
   try:
-   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level)
+   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,sampling_version)
   except Exception as error:
    failure=str(error)[:2000];result=None;(root/'job.log').write_text(failure+'\n')
   buffer=io.BytesIO()

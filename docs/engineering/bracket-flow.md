@@ -345,3 +345,8 @@ policy are documented in [bracket-flow-domain.md](bracket-flow-domain.md).
 
 The combined far-domain spatial study and sensitivity plots are documented in
 [bracket-flow-combined.md](bracket-flow-combined.md).
+
+New requests now use versioned **Compact v1** sampling. Historical recorded
+results above keep their original method. See [sampling versions and the
+recomputed comparisons](cfd-sampling-versions.md) for current defaults, source
+lineage, schema compatibility and pressure-reference policy.

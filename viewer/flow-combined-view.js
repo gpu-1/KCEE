@@ -1,5 +1,5 @@
 export function combinedSeries(data){
- if(data?.schema!=='kcee.bracket-flow-combined.v1')throw Error('Invalid combined evidence');
+ if(!['kcee.bracket-flow-combined.v1','kcee.bracket-flow-combined.v2'].includes(data?.schema))throw Error('Invalid combined evidence');
  const convert=(pairs,key)=>pairs.map(p=>{const velocity=p.maximum_velocity_change_normalized_by_inlet*100,pressure=p.maximum_referenced_pressure_change_normalized_by_inlet_dynamic_scale*100;if(![velocity,pressure].every(v=>Number.isFinite(v)&&v>=0))throw Error('Invalid sensitivity value');return {label:p['from_'+key]+' → '+p['to_'+key],velocity,pressure};});
  return {mesh:convert(data.mesh_study.successive_changes,'mesh'),domain:convert(data.domain_comparison.data.successive_changes,'domain')};
 }

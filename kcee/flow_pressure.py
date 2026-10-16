@@ -3,7 +3,7 @@ import csv,hashlib,json,math,shutil,uuid
 from datetime import datetime,timezone
 from pathlib import Path
 from kcee.bracket_flow import domain_spec
-from kcee.flow_sampling import PROBES
+from kcee.flow_sampling import PROBES,common_sampling
 from kcee.flow_refinement import controlled_inputs
 LIMITS=[
  'This is a two-by-two background-mesh/bore-level sensitivity study in the fixed far domain. It is not an asymptotic convergence sequence or a mesh-independence acceptance test.',
@@ -15,6 +15,7 @@ LIMITS=[
 ]
 
 def summary(sources,audits):
+ sampling=common_sampling(sources)
  if len(sources)!=4 or [(s['flow']['mesh_name'],s['flow']['inputs']['bore_refinement']['level']) for s in sources]!=[('medium',4),('fine',4),('medium',5),('fine',5)]:raise ValueError('Use medium/fine level 4 followed by medium/fine level 5')
  if len({s['run_id'] for s in sources})!=4:raise ValueError('Use four distinct source cases')
  rows=[];common=None;source_hash=None
@@ -34,7 +35,7 @@ def summary(sources,audits):
   probes=[{'name':x['name'],'referenced_pressure_change_m2_s2':y['pressure_minus_upstream_m2_s2']-x['pressure_minus_upstream_m2_s2'],'velocity_vector_change_m_s':math.dist(x['velocity_m_s'],y['velocity_m_s'])} for x,y in zip(a['probes'],b['probes'])]
   return {'label':label,'from_run_id':a['run_id'],'to_run_id':b['run_id'],'probes':probes,'maximum_velocity_change_normalized_by_inlet':max(p['velocity_vector_change_m_s'] for p in probes)/.01,'maximum_referenced_pressure_change_normalized_by_inlet_dynamic_scale':max(abs(p['referenced_pressure_change_m2_s2']) for p in probes)/.00005,'largest_pressure_probe':max(probes,key=lambda p:abs(p['referenced_pressure_change_m2_s2']))['name']}
  compact=[dict(s,probes=s['compact_probes']) for s in rows]
- return {'compact_background_mesh_changes':[change(compact[0],compact[1],'Level 4'),change(compact[2],compact[3],'Level 5')],'compact_local_bore_changes':[change(compact[0],compact[2],'Medium'),change(compact[1],compact[3],'Fine')],'schema':'kcee.bracket-flow-pressure.v1','source_stl_sha256':source_hash,'common_inputs':common,'studies':rows,'background_mesh_changes':[change(rows[0],rows[1],'Level 4'),change(rows[2],rows[3],'Level 5')],'local_bore_changes':[change(rows[0],rows[2],'Medium'),change(rows[1],rows[3],'Fine')],'checks':{'all_solver_checks':all(all(s['solver_checks'].values()) for s in rows),'all_bore_opening_gates':all(s['bore_verification']['all_pass'] for s in rows),'refined_cases_have_more_cells':rows[2]['cells']>rows[0]['cells'] and rows[3]['cells']>rows[1]['cells'],'native_audits_bound_to_source_archives':True},'mesh_independence':'not_established','engineering_acceptance':'pending','limits':LIMITS}
+ return {'sampling':sampling,'compact_background_mesh_changes':[change(compact[0],compact[1],'Level 4'),change(compact[2],compact[3],'Level 5')],'compact_local_bore_changes':[change(compact[0],compact[2],'Medium'),change(compact[1],compact[3],'Fine')],'schema':'kcee.bracket-flow-pressure.v1','source_stl_sha256':source_hash,'common_inputs':common,'studies':rows,'background_mesh_changes':[change(rows[0],rows[1],'Level 4'),change(rows[2],rows[3],'Level 5')],'local_bore_changes':[change(rows[0],rows[2],'Medium'),change(rows[1],rows[3],'Fine')],'checks':{'all_solver_checks':all(all(s['solver_checks'].values()) for s in rows),'all_bore_opening_gates':all(s['bore_verification']['all_pass'] for s in rows),'refined_cases_have_more_cells':rows[2]['cells']>rows[0]['cells'] and rows[3]['cells']>rows[1]['cells'],'native_audits_bound_to_source_archives':True},'mesh_independence':'not_established','engineering_acceptance':'pending','limits':LIMITS}
 
 def save(root,parent,record,sources,audits):
  data=summary(sources,audits);root=Path(root);dest=root/str(uuid.uuid4());dest.mkdir()

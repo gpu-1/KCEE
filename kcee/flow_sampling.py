@@ -4,7 +4,27 @@ Position basis is supplied by the caller; it is recorded for every probe.
 No nearest-cell fallback and no extrapolation outside a supporting tetrahedron.
 """
 import itertools, math
-from kcee.flow_bores import wall_triangles
+LEGACY='first-enclosing-v1'
+COMPACT='compact-radius-v1'
+DEFAULT=COMPACT
+
+def sampling_spec(version):
+ if version not in (LEGACY,COMPACT):raise ValueError('Unsupported CFD sampling version')
+ return {'version':version,'candidate_limit':256,'visible_cells_per_octant':2,'maximum_candidate_support_cells':16,'support_cells':4,'selection':('first enclosing nondegenerate tetrahedron in candidate order' if version==LEGACY else 'minimum maximum support radius, then summed support distances, then original cell-ID tuple'),'position_basis':'triangulated_polyhedral_volume_centroids','wall_visibility':'probe-to-support rays reject bracket intersections','extrapolation':False,'native_openfoam_sampling':False}
+
+def flow_version(flow):
+ version=flow.get('inputs',{}).get('probe_sampling',LEGACY);spec=sampling_spec(version)
+ if (version==COMPACT or 'sampling' in flow) and flow.get('sampling')!=spec:raise ValueError('Compact sampling metadata is missing or differs')
+ expected='compact wall-visible positive tetrahedral interpolation' if version==COMPACT else 'wall-visible positive tetrahedral interpolation'
+ for p in flow.get('fixed_probes',[]):
+  if p.get('available') and (p.get('method',expected)!=expected or (version==COMPACT and p.get('method')!=expected)):raise ValueError('Probe method differs from sampling version')
+ return version
+
+def common_sampling(studies):
+ versions={flow_version(s['flow']) for s in studies}
+ if len(versions)!=1:raise ValueError('Cannot mix CFD sampling versions in one comparison')
+ return sampling_spec(versions.pop())
+
 PROBES=[('upstream',(-.03,.015,.020)),('wake',(.08,.015,.020)),('far wake',(.12,.015,.020)),('above',(.03,.015,.060)),('below',(.03,.015,-.020)),('base bore 1',(.033,.015,.00175)),('base bore 2',(.048,.015,.00175)),('upright bore 1',(.00175,.015,.016)),('upright bore 2',(.00175,.015,.030))]
 POSITION=('x_m','y_m','z_m');VALUES=('u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2')
 def sub(a,b):return tuple(x-y for x,y in zip(a,b))
@@ -53,6 +73,7 @@ def interpolate(field,point,triangles=(),compact=False):
  raise ValueError('No enclosing wall-visible tetrahedron for fixed probe '+str(point))
 
 def sample_probes(field,mesh_root,position_basis="mesh_vertex_averages",compact=False):
+ from kcee.flow_bores import wall_triangles
  triangles=[(t,tuple(min(p[k] for p in t) for k in range(3)),tuple(max(p[k] for p in t) for k in range(3))) for t in wall_triangles(mesh_root)]
  rows=[]
  for name,point in PROBES:

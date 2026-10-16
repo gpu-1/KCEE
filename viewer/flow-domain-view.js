@@ -1,5 +1,5 @@
 export function probeRows(data, name) {
-  if(data?.schema!=='kcee.bracket-flow-domain.v1'||data.studies?.length!==3)throw new Error('Invalid domain comparison');
+  if(!['kcee.bracket-flow-domain.v1','kcee.bracket-flow-domain.v2'].includes(data?.schema)||data.studies?.length!==3)throw new Error('Invalid domain comparison');
   return data.studies.map(study=>{
     const p=study.probes.find(p=>p.name===name);
     if(!p||![p.speed_m_s,p.pressure_minus_upstream_m2_s2,p.maximum_support_distance_m].every(Number.isFinite))throw new Error('Missing finite referenced probe values');

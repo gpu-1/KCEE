@@ -123,3 +123,8 @@ Validation: 181 backend tests, 68 viewer unit tests and 30 isolated end-to-end
 checks passed. Browser visual verification was not repeated because the earlier
 automatic approval review had reached a usage limit. Backend API execution,
 raw-case recomputation, registry and export checks were completed independently.
+
+New requests now use versioned **Compact v1** sampling. Historical recorded
+results above keep their original method. See [sampling versions and the
+recomputed comparisons](cfd-sampling-versions.md) for current defaults, source
+lineage, schema compatibility and pressure-reference policy.

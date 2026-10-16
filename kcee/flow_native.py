@@ -42,12 +42,15 @@ def audit_archive(data):
  from pathlib import Path
  from kcee.bracket_flow import mesh_list
  from kcee.flow_centres import volume_centres
- from kcee.flow_sampling import sample_probes
+ from kcee.flow_sampling import sample_probes,sampling_spec,LEGACY,COMPACT
  from kcee.openfoam_vortex import field_values,header
  if len(data)>36*1024*1024:raise ValueError('Native audit archive too large')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory(prefix='kcee-native-') as d:
   names=z.namelist()
   if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>192*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe native audit archive')
+  declared=json.loads(z.read('sampling.json')) if 'sampling.json' in names else sampling_spec(LEGACY)
+  version=declared.get('version')
+  if declared!=sampling_spec(version):raise ValueError('Native audit sampling declaration differs')
   root=Path(d)
   for name in ['1500/U','1500/p']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]:
    p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(name))
@@ -63,11 +66,11 @@ def audit_archive(data):
   if not 1000<=len(u)<=250000 or len(u)!=len(p):raise ValueError('Invalid native audit field counts')
   centres,_,_=volume_centres(root/'constant/polyMesh',len(u))
   rows=[dict(zip(('x_m','y_m','z_m','u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2'),[*c,*v,q])) for c,v,q in zip(centres,u,p)]
-  np,_=mesh_list(root/'constant/polyMesh/points');flow={'cells':len(rows),'field':rows,'fixed_probes':sample_probes(rows,root/'constant/polyMesh','triangulated_polyhedral_volume_centroids')}
+  np,_=mesh_list(root/'constant/polyMesh/points');flow={'cells':len(rows),'field':rows,'fixed_probes':sample_probes(rows,root/'constant/polyMesh','triangulated_polyhedral_volume_centroids',compact=version==COMPACT)}
   compact=sample_probes(rows,root/'constant/polyMesh','triangulated_polyhedral_volume_centroids',compact=True)
   if not all(p['available'] for p in flow['fixed_probes']+compact):raise ValueError('Missing original or compact stencil probes')
   original=flow['fixed_probes'];changes=[{'name':a['name'],'referenced_pressure_change_m2_s2':(b['kinematic_pressure_m2_s2']-compact[0]['kinematic_pressure_m2_s2'])-(a['kinematic_pressure_m2_s2']-original[0]['kinematic_pressure_m2_s2']),'velocity_vector_change_m_s':math.dist(a['velocity_m_s'],b['velocity_m_s'])} for a,b in zip(original,compact)]
-  result=audit(text,np,flow);result['schema']='kcee.native-centre-stencil-audit.v1';result['stencil_audit']={'method':'Same fields, centroid positions and wall visibility; select the enclosing tetrahedron with minimum maximum support radius, then minimum summed support distances, from the same bounded candidate pool. Diagnostic only; saved production probes are unchanged. This is custom interpolation, not native OpenFOAM sampling.','compact_probes':compact,'probe_changes':changes,'maximum_referenced_pressure_change_normalized_by_inlet_dynamic_scale':max(abs(p['referenced_pressure_change_m2_s2']) for p in changes)/.00005,'maximum_velocity_change_normalized_by_inlet':max(p['velocity_vector_change_m_s'] for p in changes)/.01}
+  result=audit(text,np,flow);result['schema']='kcee.native-centre-stencil-audit.v1';result['stencil_audit']={'source_sampling_version':version,'method':'Same fields, centroid positions and wall visibility; select the enclosing tetrahedron with minimum maximum support radius, then minimum summed support distances, from the same bounded candidate pool. Diagnostic only; saved production probes are unchanged. This is custom interpolation, not native OpenFOAM sampling.','compact_probes':compact,'probe_changes':changes,'maximum_referenced_pressure_change_normalized_by_inlet_dynamic_scale':max(abs(p['referenced_pressure_change_m2_s2']) for p in changes)/.00005,'maximum_velocity_change_normalized_by_inlet':max(p['velocity_vector_change_m_s'] for p in changes)/.01}
   result.update({'source_archive_sha256':hashlib.sha256(data).hexdigest(),'native_export_sha256':hashlib.sha256(raw).hexdigest(),'exporter_sha256':hashlib.sha256(Path(shutil.which('foamToVTK')).read_bytes()).hexdigest(),'exporter_log':proc.stdout,'exported_centres_m':decomposition_centres(text,np,len(rows))})
   return result
 
