@@ -64,7 +64,7 @@ their existing immediate workflow.
 - `POST /cfd-jobs/{id}/retry`: create a new linked job; active/completed jobs cannot retry.
 
 Kinds: `flow`, `refinement`, `domains`, `combined`, `local`, `reference`, `joint`,
-`vortex` and `forces`. All except vortex require a native parent design; `forces` also accepts a saved bracket-flow case. Only `flow`
+`vortex`, `forces` and `native_forces`. All except vortex require a native parent design; `forces` and `native_forces` also accept a saved bracket-flow case. Only `flow`
 accepts the existing bounded flow options; other kinds use fixed recipes.
 Invalid inputs are rejected before background work. One managed job runs at a
 time. No remote credentials, source documents, arbitrary commands or paths are
@@ -89,3 +89,5 @@ were independently verified unchanged. Automated validation covers 231 backend,
 a new retry and verified result registration.
 
 Wall-load jobs use verified saved fields without starting OpenFOAM. They report source verification and current-case wall-face progress. Their cancellation is cooperative at source/case and wall-face batch boundaries. See [force estimates](../engineering/bracket-flow-forces.md).
+
+Native full-stress jobs run the scoped compatibility self-tested OpenFOAM postprocessor, analytical benchmark and stress replay. See [native wall loads](../engineering/native-bracket-forces.md). They preserve saved source fields, terminate native process groups on cancellation and register separate native reports.

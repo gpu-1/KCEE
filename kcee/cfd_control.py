@@ -22,13 +22,13 @@ def headers():
 def registered(identifier):
  c=current.get()
  if c:c.registered(str(identifier))
-def run_logged(command,root,name,timeout):
+def run_logged(command,root,name,timeout,env=None):
  c=current.get()
  if c is None:
-  with (root/(name+'.log')).open('w') as log:return subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,cwd=root)
+  with (root/(name+'.log')).open('w') as log:return subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,cwd=root,env=env)
  c.check();c.progress(stage=name,log_path=str(root/(name+'.log')))
  with (root/(name+'.log')).open('w') as log:
-  proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,cwd=root,start_new_session=True);deadline=time.monotonic()+timeout
+  proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,cwd=root,start_new_session=True,env=env);deadline=time.monotonic()+timeout
   try:
    while proc.poll() is None:
     c.check()

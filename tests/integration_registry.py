@@ -475,7 +475,7 @@ class RegistryIntegration(unittest.TestCase):
         # A generated, hole-free L is a worker/transport fixture, not a PicoGK validation case.
         from kcee.demo import stl
         from kcee.bracket_flow_run import verified_archive
-        import struct,base64
+        import struct,base64,zipfile,io
         text=stl({'length':60,'width':30,'height':40,'thickness':3.5});vertices=[tuple(map(float,line.split()[1:])) for line in text.splitlines() if line.startswith('vertex ')]
         raw=b'synthetic L worker fixture'.ljust(80,b' ')+struct.pack('<I',len(vertices)//3)+b''.join(struct.pack('<12fH',0,0,0,*vertices[i],*vertices[i+1],*vertices[i+2],0) for i in range(0,len(vertices),3))
         req=Request('http://cfd:8007/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode()}).encode(),method='POST',headers={'Content-Type':'application/json'})
@@ -518,6 +518,23 @@ class RegistryIntegration(unittest.TestCase):
         csv_path=root/force_id/'verification.csv';csv_bytes=csv_path.read_bytes();csv_path.write_bytes(csv_bytes+b'tamper')
         with self.assertRaises(HTTPError) as error:request('/runs/'+force_id+'/verify')
         self.assertEqual(error.exception.code,409);csv_path.write_bytes(csv_bytes)
+        self.assertTrue(request('/capabilities')[1]['cfd']['native_forces'])
+        req=Request(BASE+'/cfd-jobs',data=json.dumps({'kind':'native_forces','parent_id':dest.name}).encode(),headers={'Content-Type':'application/json'})
+        with urlopen(req,timeout=15) as response:self.assertEqual(response.status,202);native_job=json.load(response)
+        deadline=time.monotonic()+180
+        while time.monotonic()<deadline:
+            native_job=request('/cfd-jobs/'+native_job['id'])[1]
+            if native_job['state'] not in ('queued','running','cancel_requested'):break
+            time.sleep(.1)
+        self.assertEqual(native_job['state'],'completed',native_job);native_id=native_job['result']['run_id']
+        self.assertEqual(request('/runs/'+native_id+'/verify')[1]['integrity'],'verified')
+        with urlopen(BASE+'/runs/'+native_id+'/native-force-verification',timeout=120) as response:native_replay=json.load(response)
+        self.assertEqual(native_replay['native_force_evidence'],'reproduced');self.assertEqual(native_replay['source_cases'],1)
+        native=json.loads((root/native_id/'cfd.json').read_text());self.assertTrue(native['checks']['native_analytical_benchmark']);self.assertTrue(native['checks']['all_native_integration_replays']);self.assertFalse(native['checks']['all_bore_gates'])
+        self.assertEqual(native['studies'][0]['runtime']['simpleFoam_sha256'],json.loads(zipfile.ZipFile(io.BytesIO(archive)).read('runtime.json'))['binaries_sha256']['simpleFoam'])
+        self.assertEqual(hashlib.sha256((dest/'cfd-artifacts.zip').read_bytes()).hexdigest(),original)
+        self.assertTrue((root/native_id/'native-forces.zip').is_file())
+
         self.assertEqual(flow['inputs']['probe_sampling'],'compact-radius-v1')
         self.assertEqual(flow['sampling']['version'],'compact-radius-v1')
         self.assertTrue(all(p['available'] for p in flow['fixed_probes'] if 'bore' not in p['name']))

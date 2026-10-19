@@ -100,3 +100,5 @@ aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overfl
 .cfd-job-panel{padding:18px 0;border-bottom:1px solid #314653;margin-bottom:20px}.cfd-job-panel select,.cfd-job-panel progress{width:100%;max-width:100%}.cfd-job-panel button{white-space:normal;overflow-wrap:anywhere}.cfd-job-panel>button,#cfd-job-runs button{width:100%;margin-top:8px}#cfd-job-status{text-transform:capitalize}
 
 .force-chart svg{display:block;width:100%;height:auto}.table-scroll{max-width:100%;overflow-x:auto}#flow-forces-results select{max-width:100%;width:100%}#flow-forces-results td{font-variant-numeric:tabular-nums}
+
+#native-force-results select{width:100%;max-width:100%}#native-force-results td{font-variant-numeric:tabular-nums}

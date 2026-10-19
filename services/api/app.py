@@ -45,7 +45,7 @@ class BracketRequest(BaseModel):
 def capabilities():
     queue=os.environ.get('KCEE_GEOMETRY_QUEUE','/data/geometry/queue')
     key=os.environ.get('KCEE_GEOMETRY_KEY','/data/geometry/key')
-    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available(),'openfoam_vortex':cfd_available(True),'bracket_flow':cfd_available(bracket=True)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
+    return {'geometry':{'mesh':True,'picogk':available(queue,key)},'cfd':{'plane_poiseuille':cfd_available(),'openfoam_vortex':cfd_available(True),'bracket_flow':cfd_available(bracket=True),'native_forces':cfd_available(native=True)},'thermal':{'steady_1d':thermal_available()},'structural':{'calculix':solver_available()},'validation':'demonstrator_only'}
 
 @app.post('/runs/bracket',status_code=201)
 def bracket(body: BracketRequest=BracketRequest()):
@@ -761,6 +761,28 @@ def bracket_flow_joint_study(run_id: UUID,body: dict | None=None):
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}
 
 
+@app.post('/runs/{run_id}/native-forces',status_code=201)
+def bracket_native_force_study(run_id: UUID,body: dict | None=None):
+    ready()
+    if body:raise HTTPException(422,'Native forces use fixed inputs')
+    from kcee.native_forces_run import run_study
+    try:
+        dest=run_study(ARTIFACTS,run_id,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown native-force source')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_native_full_stress_not_engineering_validated'}
+
+@app.get('/runs/{run_id}/native-force-verification')
+def native_force_verification(run_id: UUID):
+    ready()
+    from kcee.native_forces_run import verify_study
+    try:return verify_study(ARTIFACTS,run_id,registry)
+    except KeyError:raise HTTPException(404,'Unknown native force study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+
 @app.post('/runs/{run_id}/flow-forces',status_code=201)
 def bracket_force_study(run_id: UUID,body: dict | None=None):
     ready()
@@ -792,7 +814,7 @@ def cfd_job_manager():
         if _cfd_jobs is None:
             from kcee.cfd_jobs import Jobs
             def execute(kind,parent,options):
-                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study,'forces':bracket_force_study}
+                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study,'forces':bracket_force_study,'native_forces':bracket_native_force_study}
                 return cfd_vortex() if kind=='vortex' else functions[kind](UUID(parent),options)
             _cfd_jobs=Jobs(os.environ.get('KCEE_CFD_JOBS_DIR','/data/cfd-jobs'),execute)
         return _cfd_jobs
@@ -800,7 +822,7 @@ def cfd_job_manager():
 def recover_cfd_jobs():cfd_job_manager()
 
 class CFDJobRequest(BaseModel):
-    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex','forces']
+    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex','forces','native_forces']
     parent_id: UUID | None=None
     options: dict={}
 

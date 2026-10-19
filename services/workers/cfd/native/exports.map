@@ -1,0 +1,4 @@
+{
+  global: _ZNK4Foam10dictionary6digestEv;
+  local: *;
+};

@@ -31,7 +31,7 @@ cp .env.example .env
 ```
 API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
 
-The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. Local AI explanations, Kokoro playback, structural and thermal studies, and verified exploratory CFD workflows are implemented. Automatic voice alerts, full viscous force integration, chemistry and engineering acceptance remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
+The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. Local AI explanations, Kokoro playback, structural and thermal studies, and verified exploratory CFD workflows are implemented. Native full-stress force integration is available with an analytical benchmark and comparison against the earlier estimates. Automatic voice alerts, chemistry and engineering acceptance remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
 
 For native viewer generation, provision PicoGK and run `python3 scripts/start_geometry_worker.py`; then refresh the viewer. See [native worker](docs/operations/native-geometry-worker.md).
 
@@ -64,3 +64,5 @@ Project backup and Mac Studio migration: `python3 scripts/backup_project.py crea
 Long CFD studies have [progress, cancellation and retry controls](docs/operations/cfd-jobs.md) in the website, with durable job history and saved-case preservation.
 
 Pressure-load and wall-shear estimate studies, with analytical integration verification and source replay: [wall loads](docs/engineering/bracket-flow-forces.md).
+
+Native OpenFOAM pressure/full viscous loads, runtime repair and analytical verification: [native wall loads](docs/engineering/native-bracket-forces.md).

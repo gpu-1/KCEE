@@ -1,10 +1,10 @@
 import {request} from './client.js';
-const titles={forces:'Wall force estimates',flow:'Bracket flow',refinement:'Mesh refinement',domains:'Boundary distances',combined:'CFD verification',local:'Wake & below',reference:'Pressure study',joint:'Meshes & domains',vortex:'Vortex benchmark'};
-const stages={integrating_wall_faces:'Integrating wall loads',saving_force_report:'Saving force report',solver:'Running CFD',surfaceCheck:'Checking surface',blockMesh:'Preparing mesh',snappyHexMesh:'Refining mesh',checkMesh:'Checking mesh',simpleFoam:'Solving',icoFoam:'Solving',postprocessing:'Processing fields',verifying_solver_evidence:'Verifying results',verifying_sources:'Verifying saved cases'};
+const titles={native_forces:'Native wall loads',forces:'Wall force estimates',flow:'Bracket flow',refinement:'Mesh refinement',domains:'Boundary distances',combined:'CFD verification',local:'Wake & below',reference:'Pressure study',joint:'Meshes & domains',vortex:'Vortex benchmark'};
+const stages={native_force_postprocess:'Processing native stresses',native_force_benchmark:'Verifying native stress benchmark',verifying_native_stresses:'Replaying full-stress integration',saving_native_force_report:'Saving native force report',integrating_wall_faces:'Integrating wall loads',saving_force_report:'Saving force report',solver:'Running CFD',surfaceCheck:'Checking surface',blockMesh:'Preparing mesh',snappyHexMesh:'Refining mesh',checkMesh:'Checking mesh',simpleFoam:'Solving',icoFoam:'Solving',postprocessing:'Processing fields',verifying_solver_evidence:'Verifying results',verifying_sources:'Verifying saved cases'};
 export const activeJob=job=>['queued','running','cancel_requested'].includes(job?.state);
 export function jobSummary(job){
  const worker=job.worker,stage=job.state==='cancel_requested'?'Stopping at a safe stage…':worker?.active===false?job.stage:worker?.stage||job.stage;
- const faceProgress=stage==='integrating_wall_faces'&&Number.isFinite(job.faces_processed)&&Number.isFinite(job.wall_faces)?` · ${job.faces_processed} / ${job.wall_faces} wall faces`:'';
+ const faceProgress=['integrating_wall_faces','verifying_native_stresses'].includes(stage)&&Number.isFinite(job.faces_processed)&&Number.isFinite(job.wall_faces)?` · ${job.faces_processed} / ${job.wall_faces} wall faces`:'';
  const iteration=Number.isFinite(worker?.iteration)&&Number.isFinite(worker?.iteration_target)?` · ${worker.iteration} / ${worker.iteration_target} ${worker.progress_unit||'iterations'}`:'';
  const state=job.state.replaceAll('_',' '),label=stages[stage]||String(stage).replaceAll('_',' ');
  return `${state}${label===state?'':' · '+label}${iteration}${faceProgress}`;

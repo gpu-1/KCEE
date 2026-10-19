@@ -12,7 +12,7 @@ class Handler(BaseHTTPRequestHandler):
    except (KeyError,ValueError):self.send(404,{'error':'Unknown worker job'})
    return
   self.health()
- def health(self):self.send(200,{'status':'ready','scope':'channel_vortex_and_exploratory_bracket_flow','bracket_flow':all(shutil.which(n) for n in ('surfaceCheck','snappyHexMesh','simpleFoam')),'openfoam_vortex':all(shutil.which(n) for n in ('blockMesh','checkMesh','icoFoam'))}) if self.path=='/health' else self.send(404,{'error':'Not found'})
+ def health(self):self.send(200,{'status':'ready','native_forces':__import__('pathlib').Path('/opt/kcee/native/libkceeDigest.so').is_file(),'scope':'channel_vortex_and_exploratory_bracket_flow','bracket_flow':all(shutil.which(n) for n in ('surfaceCheck','snappyHexMesh','simpleFoam')),'openfoam_vortex':all(shutil.which(n) for n in ('blockMesh','checkMesh','icoFoam'))}) if self.path=='/health' else self.send(404,{'error':'Not found'})
  def do_POST(self):
   if self.path.startswith('/jobs/') and self.path.endswith('/cancel'):
    from kcee.cfd_worker_jobs import status
@@ -31,6 +31,28 @@ class Handler(BaseHTTPRequestHandler):
   except Exception:self.send(503,{'error':'CFD job stopped'})
   finally:end(control.identifier)
  def _post(self):
+  if self.path in ('/native-forces','/native-force-benchmark'):
+   if not vortex_lock.acquire(blocking=False):self.send(409,{'error':'CFD worker busy'});return
+   try:
+    import base64,hashlib
+    length=int(self.headers.get('Content-Length','0'))
+    if self.path=='/native-force-benchmark':
+     if length>2:raise ValueError('Native benchmark uses fixed inputs')
+     if length and self.rfile.read(length)!=b'{}':raise ValueError('Native benchmark uses fixed inputs')
+     from kcee.native_force_benchmark import execute
+     data=execute()
+    else:
+     if not 1<=length<=90*1024*1024:raise ValueError('Native source payload exceeds limit')
+     payload=json.loads(self.rfile.read(length))
+     if set(payload)!={'archive_base64','archive_sha256','stl_base64','mesh_name','domain_name','bore_level','local_profile'}:raise ValueError('Invalid native source inputs')
+     data=base64.b64decode(payload['archive_base64'],validate=True)
+     if len(data)>48*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Native source hash differs')
+     from kcee.native_forces import execute_source
+     data=execute_source(data,base64.b64decode(payload['stl_base64'],validate=True),payload['mesh_name'],payload['domain_name'],payload['bore_level'],payload['local_profile'])
+    self.send(200,{'archive_base64':base64.b64encode(data).decode(),'archive_sha256':hashlib.sha256(data).hexdigest()})
+   except Exception as error:self.send(503,{'error':'Native force postprocessing failed: '+str(error)[-1800:]})
+   finally:vortex_lock.release()
+   return
   if self.path=='/bracket-flow':
    if not vortex_lock.acquire(blocking=False):self.send(409,{'error':'CFD worker busy'});return
    try:

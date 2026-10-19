@@ -1,5 +1,7 @@
 # Bracket pressure loads and wall-shear estimates
 
+This documents the historical one-sided estimator. A separate [native full-stress workflow](native-bracket-forces.md) now resolves the function-object runtime issue and compares full viscous loads with these unchanged estimates.
+
 The website's **Calculate wall loads** action creates a registered derived study
 from saved OpenFOAM fields. Select a bracket-flow case for one source case, or
 its native design / mesh-domain comparison for the fixed six-case comparison:
