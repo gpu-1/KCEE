@@ -1,12 +1,13 @@
 import {request} from './client.js';
-const titles={flow:'Bracket flow',refinement:'Mesh refinement',domains:'Boundary distances',combined:'CFD verification',local:'Wake & below',reference:'Pressure study',joint:'Meshes & domains',vortex:'Vortex benchmark'};
-const stages={solver:'Running CFD',surfaceCheck:'Checking surface',blockMesh:'Preparing mesh',snappyHexMesh:'Refining mesh',checkMesh:'Checking mesh',simpleFoam:'Solving',icoFoam:'Solving',postprocessing:'Processing fields',verifying_solver_evidence:'Verifying results',verifying_sources:'Verifying saved cases'};
+const titles={forces:'Wall force estimates',flow:'Bracket flow',refinement:'Mesh refinement',domains:'Boundary distances',combined:'CFD verification',local:'Wake & below',reference:'Pressure study',joint:'Meshes & domains',vortex:'Vortex benchmark'};
+const stages={integrating_wall_faces:'Integrating wall loads',saving_force_report:'Saving force report',solver:'Running CFD',surfaceCheck:'Checking surface',blockMesh:'Preparing mesh',snappyHexMesh:'Refining mesh',checkMesh:'Checking mesh',simpleFoam:'Solving',icoFoam:'Solving',postprocessing:'Processing fields',verifying_solver_evidence:'Verifying results',verifying_sources:'Verifying saved cases'};
 export const activeJob=job=>['queued','running','cancel_requested'].includes(job?.state);
 export function jobSummary(job){
  const worker=job.worker,stage=job.state==='cancel_requested'?'Stopping at a safe stage…':worker?.active===false?job.stage:worker?.stage||job.stage;
+ const faceProgress=stage==='integrating_wall_faces'&&Number.isFinite(job.faces_processed)&&Number.isFinite(job.wall_faces)?` · ${job.faces_processed} / ${job.wall_faces} wall faces`:'';
  const iteration=Number.isFinite(worker?.iteration)&&Number.isFinite(worker?.iteration_target)?` · ${worker.iteration} / ${worker.iteration_target} ${worker.progress_unit||'iterations'}`:'';
  const state=job.state.replaceAll('_',' '),label=stages[stage]||String(stage).replaceAll('_',' ');
- return `${state}${label===state?'':' · '+label}${iteration}`;
+ return `${state}${label===state?'':' · '+label}${iteration}${faceProgress}`;
 }
 export function mountCfdJobs({busy,completed}){
  const $=id=>document.getElementById(id);let selected=null,timer=null,mutation=false,serial=0,delivered=new Set(),runningId=null;

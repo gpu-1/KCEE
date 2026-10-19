@@ -31,7 +31,7 @@ cp .env.example .env
 ```
 API: http://localhost:8000/health. Viewer: http://localhost:5173 (run with `docker compose --profile viewer up --build -d`). POST `/runs/bracket` with `{}` to run the demo; artifacts are served under `/artifacts/<run-id>/`.
 
-The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. Manual Kokoro summary playback is local; AI, automatic voice alerts, thermal, CFD and chemistry integrations remain scaffolds. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
+The viewer browses saved runs, creates bracket demos and shows verified geometry, analytical results, assumptions and provenance. Local STL imports remain available. See [viewer guide](docs/tutorials/viewer.md). Container startup needs downloaded dependencies; the Python demo runs offline with the standard library. Run persistence, integrity checks and the CalculiX structural adapter are implemented. Local AI explanations, Kokoro playback, structural and thermal studies, and verified exploratory CFD workflows are implemented. Automatic voice alerts, full viscous force integration, chemistry and engineering acceptance remain pending. See [run registry](docs/operations/run-registry.md). See [architecture](docs/architecture/overview.md), [installation](docs/operations/install-macos.md), [demo](docs/tutorials/bracket.md), and [roadmap](docs/ROADMAP.md).
 
 For native viewer generation, provision PicoGK and run `python3 scripts/start_geometry_worker.py`; then refresh the viewer. See [native worker](docs/operations/native-geometry-worker.md).
 
@@ -62,3 +62,5 @@ Local references: use **Local documents** to upload UTF-8 text/Markdown or text 
 Project backup and Mac Studio migration: `python3 scripts/backup_project.py create /path/to/new/backup.zip` captures verified database data, saved studies and source files. Restore always creates a separate project with new credentials. See [backup and migration guide](docs/operations/backups.md).
 
 Long CFD studies have [progress, cancellation and retry controls](docs/operations/cfd-jobs.md) in the website, with durable job history and saved-case preservation.
+
+Pressure-load and wall-shear estimate studies, with analytical integration verification and source replay: [wall loads](docs/engineering/bracket-flow-forces.md).

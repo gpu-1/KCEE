@@ -761,6 +761,28 @@ def bracket_flow_joint_study(run_id: UUID,body: dict | None=None):
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}
 
 
+@app.post('/runs/{run_id}/flow-forces',status_code=201)
+def bracket_force_study(run_id: UUID,body: dict | None=None):
+    ready()
+    if body:raise HTTPException(422,'Force studies use fixed inputs')
+    from kcee.flow_forces_run import run_study
+    try:
+        dest=run_study(ARTIFACTS,run_id,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown source design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_wall_force_estimate_not_engineering_validated'}
+
+@app.get('/runs/{run_id}/force-verification')
+def bracket_force_verification(run_id: UUID):
+    ready()
+    from kcee.flow_forces_run import verify_study
+    try:return verify_study(ARTIFACTS,run_id,registry)
+    except KeyError:raise HTTPException(404,'Unknown force study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+
 # A single process owns durable CFD orchestration; solver work stays in the CFD worker.
 _cfd_jobs=None
 _cfd_jobs_lock=threading.Lock()
@@ -770,7 +792,7 @@ def cfd_job_manager():
         if _cfd_jobs is None:
             from kcee.cfd_jobs import Jobs
             def execute(kind,parent,options):
-                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study}
+                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study,'forces':bracket_force_study}
                 return cfd_vortex() if kind=='vortex' else functions[kind](UUID(parent),options)
             _cfd_jobs=Jobs(os.environ.get('KCEE_CFD_JOBS_DIR','/data/cfd-jobs'),execute)
         return _cfd_jobs
@@ -778,7 +800,7 @@ def cfd_job_manager():
 def recover_cfd_jobs():cfd_job_manager()
 
 class CFDJobRequest(BaseModel):
-    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex']
+    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex','forces']
     parent_id: UUID | None=None
     options: dict={}
 

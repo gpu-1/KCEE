@@ -63,8 +63,8 @@ their existing immediate workflow.
 - `POST /cfd-jobs/{id}/cancel`: request cancellation; terminal jobs are unchanged.
 - `POST /cfd-jobs/{id}/retry`: create a new linked job; active/completed jobs cannot retry.
 
-Kinds: `flow`, `refinement`, `domains`, `combined`, `local`, `reference`, `joint`
-and `vortex`. All except vortex require a native parent design. Only `flow`
+Kinds: `flow`, `refinement`, `domains`, `combined`, `local`, `reference`, `joint`,
+`vortex` and `forces`. All except vortex require a native parent design; `forces` also accepts a saved bracket-flow case. Only `flow`
 accepts the existing bounded flow options; other kinds use fixed recipes.
 Invalid inputs are rejected before background work. One managed job runs at a
 time. No remote credentials, source documents, arbitrary commands or paths are
@@ -87,3 +87,5 @@ restart. All eight manifest digests from the preceding fine outer-domain study
 were independently verified unchanged. Automated validation covers 231 backend,
 85 viewer and 31 isolated integration tests, including cancellation followed by
 a new retry and verified result registration.
+
+Wall-load jobs use verified saved fields without starting OpenFOAM. They report source verification and current-case wall-face progress. Their cancellation is cooperative at source/case and wall-face batch boundaries. See [force estimates](../engineering/bracket-flow-forces.md).

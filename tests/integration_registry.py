@@ -481,6 +481,43 @@ class RegistryIntegration(unittest.TestCase):
         req=Request('http://cfd:8007/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode()}).encode(),method='POST',headers={'Content-Type':'application/json'})
         with urlopen(req,timeout=240) as response:payload=json.load(response)
         self.assertIsNone(payload['error']);flow,archive=verified_archive(payload,raw);self.assertTrue(all(flow['checks'].values()));self.assertGreater(flow['cells'],1000);self.assertEqual(flow['source']['source_stl_sha256'],hashlib.sha256(raw).hexdigest());self.assertLess(flow['relative_boundary_mass_imbalance'],1e-5)
+        from kcee.flow_forces import from_archive,benchmark
+        loads=from_archive(archive,flow)
+        self.assertTrue(all(loads['checks'].values()));self.assertTrue(all(benchmark()['checks'].values()))
+        self.assertGreater(loads['pressure_force_N'][0],0);self.assertGreater(loads['viscous_estimate_force_N'][0],0)
+        self.assertLess(loads['relative_area_vector_closure'],1e-9)
+        # Exercise the registered single-case force workflow with this explicitly
+        # synthetic fixture. It is not relabelled as native geometry validation.
+        import uuid,shutil,time
+        from kcee.bracket_flow_run import save_completed
+        root=Path('/data/runs');parent=run(root)
+        (parent/'bracket.stl').write_bytes(raw)
+        for name in ('geometry-request.json','geometry.json'):
+            (parent/name).write_text(json.dumps({'fixture':'synthetic hole-free L; not PicoGK validation'}))
+        m=json.loads((parent/'manifest.json').read_text());m['artifacts']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in parent.iterdir() if p.name!='manifest.json'}
+        (parent/'manifest.json').write_text(json.dumps(m,indent=2));registry=Registry();registry.register(parent);record=registry.get(parent.name)
+        dest=root/str(uuid.uuid4());dest.mkdir()
+        for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(parent/name,dest/name)
+        save_completed(dest,root,parent.name,record,flow,archive);registry.register(dest)
+        original=hashlib.sha256((dest/'cfd-artifacts.zip').read_bytes()).hexdigest()
+        req=Request(BASE+'/cfd-jobs',data=json.dumps({'kind':'forces','parent_id':dest.name}).encode(),headers={'Content-Type':'application/json'})
+        with urlopen(req,timeout=15) as response:self.assertEqual(response.status,202);job=json.load(response)
+        deadline=time.monotonic()+120
+        while time.monotonic()<deadline:
+            job=request('/cfd-jobs/'+job['id'])[1]
+            if job['state'] not in ('queued','running','cancel_requested'):break
+            time.sleep(.1)
+        self.assertEqual(job['state'],'completed',job);force_id=job['result']['run_id']
+        self.assertEqual(request('/runs/'+force_id+'/verify')[1]['integrity'],'verified')
+        with urlopen(BASE+'/runs/'+force_id+'/force-verification',timeout=120) as response:replay=json.load(response)
+        self.assertEqual(replay['force_evidence'],'reproduced');self.assertEqual(replay['source_cases'],1)
+        saved=json.loads((root/force_id/'cfd.json').read_text());self.assertFalse(saved['checks']['all_bore_gates'])
+        self.assertEqual(saved['studies'][0]['run_id'],dest.name);self.assertEqual(saved['studies'][0]['archive_sha256'],original)
+        self.assertEqual(len((root/force_id/'verification.csv').read_text().splitlines()),4)
+        self.assertEqual(hashlib.sha256((dest/'cfd-artifacts.zip').read_bytes()).hexdigest(),original)
+        csv_path=root/force_id/'verification.csv';csv_bytes=csv_path.read_bytes();csv_path.write_bytes(csv_bytes+b'tamper')
+        with self.assertRaises(HTTPError) as error:request('/runs/'+force_id+'/verify')
+        self.assertEqual(error.exception.code,409);csv_path.write_bytes(csv_bytes)
         self.assertEqual(flow['inputs']['probe_sampling'],'compact-radius-v1')
         self.assertEqual(flow['sampling']['version'],'compact-radius-v1')
         self.assertTrue(all(p['available'] for p in flow['fixed_probes'] if 'bore' not in p['name']))
