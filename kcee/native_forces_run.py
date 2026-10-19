@@ -52,7 +52,7 @@ def summarize(root,sources,blobs):
    for key in ('pressure_force_N','viscous_force_N','total_force_N','pressure_moment_N_m','viscous_moment_N_m','total_moment_N_m'):
     scale=max(norm(loads[key]),loads['force_normalization_N']*(.06 if 'moment' in key else 1));errors[key]=norm(sub(last[key],loads[key]))/scale
    if max(errors.values())>1e-6:raise ValueError('Final native history differs from independent postprocessing')
-   rows[-1]['force_history']=history;rows[-1]['history_postprocess_relative_differences']=errors
+   rows[-1]['force_history']=history;rows[-1]['history_postprocess_relative_differences']=errors;rows[-1]['inputs']=f['inputs'];rows[-1]['mesh_recipe']=f['mesh']
  if len(parents)!=1 or len(surfaces)!=1 or len(physics)!=1 or len(runtimes)!=1 or len({s['run_id'] for s in rows})!=len(rows):raise ValueError('Native source identity/physics/runtime differs')
  comparisons=[]
  if len(rows)==6:
@@ -78,7 +78,8 @@ def summarize(root,sources,blobs):
  if len(rows)==3:
   from kcee.force_history import mesh_comparison
   result['force_convergence']=mesh_comparison(rows)
-  result['limits']=[s for s in LIMITS if 'no-prism-layer' not in s and 'only by postprocessing' not in s]+['The dictionary-hash compatibility overlay is explicitly scoped to this fixed native-force-history solver invocation and native postprocessing. Meshing commands do not preload it. Fingerprints are retained.', 'Surface level 4, bore level 5 and three requested wall layers are fixed across three background resolutions. Actual layer coverage is measured. These are locally refined meshes, not a uniform Richardson/GCI sequence.', 'Native force and moment histories are recorded at all 3000 iterations. Separate pressure/viscous/total window checks and final postprocess agreement are replayed. A small total change can hide larger opposing component changes.']
+  result['force_convergence']['physics']={k:rows[0]['inputs'][k] for k in ('inlet_velocity_m_s','kinematic_viscosity_m2_s','density_kg_m3','domain_min_m','domain_max_m')}
+  result['limits']=[s for s in LIMITS if 'no-prism-layer' not in s and 'only by postprocessing' not in s]+['All three cases use the fixed low-speed laminar Re=6 demonstrator: inlet 0.01 m/s, kinematic viscosity 0.0001 m²/s and density 1 kg/m³. No service-condition, turbulence, thermal or structural validation is inferred.', 'The dictionary-hash compatibility overlay is explicitly scoped to this fixed native-force-history solver invocation and native postprocessing. Meshing commands do not preload it. Fingerprints are retained.', 'Surface level 4, bore level 5 and three requested wall layers are fixed across three background resolutions. Actual layer coverage is measured. These are locally refined meshes, not a uniform Richardson/GCI sequence.', 'Native force and moment histories are recorded at all 3000 iterations. Separate pressure/viscous/total window checks and final postprocess agreement are replayed. A small total change can hide larger opposing component changes.']
   result['checks']['history_final_postprocess_agreement']=True
  return result
 
