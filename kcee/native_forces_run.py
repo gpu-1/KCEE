@@ -46,21 +46,40 @@ def summarize(root,sources,blobs):
   evidence=blobs[s['run_id']+'.zip'];data=(p/'cfd-artifacts.zip').read_bytes();loads=verify_source(evidence,data,f);old=estimate(data,f);meta=json.loads(unpack(evidence)['runtime.json']);runtimes.add(json.dumps(meta,sort_keys=True))
   difference={key:sub(loads[native],old[prior]) for key,native,prior in [('pressure_force_N','pressure_force_N','pressure_force_N'),('viscous_force_N','viscous_force_N','viscous_estimate_force_N'),('total_force_N','total_force_N','total_estimate_force_N'),('pressure_moment_N_m','pressure_moment_N_m','pressure_moment_N_m'),('viscous_moment_N_m','viscous_moment_N_m','viscous_estimate_moment_N_m'),('total_moment_N_m','total_moment_N_m','total_estimate_moment_N_m')]}
   rows.append({'run_id':s['run_id'],'manifest_sha256':digest,'archive_sha256':manifest['artifacts']['cfd-artifacts.zip'],'native_evidence_sha256':hashlib.sha256(evidence).hexdigest(),'mesh_name':f['mesh_name'],'domain_name':f.get('domain_name','base'),'local_profile':f['inputs'].get('local_refinement_profile','baseline'),'cells':f['cells'],'source_checks':f['checks'],'bore_checks_pass':f['bore_verification']['all_pass'],'loads':loads,'prior_estimate':old,'native_minus_estimate':difference,'runtime':meta})
+  if f['inputs'].get('local_refinement_profile')=='wall-layers-v1':rows[-1]['layer_audit']=f['mesh']['layer_audit']
  if len(parents)!=1 or len(surfaces)!=1 or len(physics)!=1 or len(runtimes)!=1 or len({s['run_id'] for s in rows})!=len(rows):raise ValueError('Native source identity/physics/runtime differs')
  comparisons=[]
  if len(rows)==6:
   if [(r['mesh_name'],r['domain_name'],r['local_profile']) for r in rows]!=RECIPES:raise ValueError('Native comparison recipes differ')
   for a,b,label in [(0,1,'Baseline medium → fine · far'),(2,3,'Targeted medium → fine · far'),(4,5,'Targeted medium → fine · outer'),(2,4,'Medium far → outer'),(3,5,'Fine far → outer + grid')]:
    x,y=rows[a],rows[b];differences={k:sub(y['loads'][k],x['loads'][k]) for k in ('pressure_force_N','viscous_force_N','total_force_N','total_moment_N_m')};comparisons.append({'label':label,'from_run_id':x['run_id'],'to_run_id':y['run_id'],'signed_changes':differences,'total_force_change_normalized':norm(differences['total_force_N'])/y['loads']['force_normalization_N']})
- elif len(rows)!=1:raise ValueError('Use one source or the fixed six native cases')
+ elif len(rows)==4:
+  expected=[('medium','far','wake-below-v1'),('fine','far','wake-below-v1'),('medium','far','wall-layers-v1'),('fine','far','wall-layers-v1')]
+  if [(r['mesh_name'],r['domain_name'],r['local_profile']) for r in rows]!=expected:raise ValueError('Layer comparison recipes differ')
+  for a,b,label in [(0,1,'Without layers: medium → fine'),(2,3,'With layers: medium → fine'),(0,2,'Medium: add near-wall layers'),(1,3,'Fine: add near-wall layers')]:
+   x,y=rows[a],rows[b];differences={k:sub(y['loads'][k],x['loads'][k]) for k in ('pressure_force_N','viscous_force_N','total_force_N','total_moment_N_m')}
+   comparisons.append({'label':label,'from_run_id':x['run_id'],'to_run_id':y['run_id'],'signed_changes':differences,'total_force_change_normalized':norm(differences['total_force_N'])/y['loads']['force_normalization_N']})
+ elif len(rows)!=1:raise ValueError('Use one source, the fixed layer comparison or six native cases')
  checks={'native_analytical_benchmark':all(benchmark['checks'].values()),'all_native_integration_replays':all(all(r['loads']['checks'].values()) for r in rows),'all_source_solver_checks':all(all(r['source_checks'].values()) for r in rows),'all_bore_gates':all(r['bore_checks_pass'] for r in rows)}
- return {'schema':'kcee.bracket-native-forces.v1','method':VERSION,'parent_design_id':next(iter(parents)),'source_stl_sha256':next(iter(surfaces)),'studies':rows,'comparisons':comparisons,'benchmark':benchmark,'checks':checks,'limits':LIMITS,'mesh_independence':'not_established','engineering_acceptance':'pending'}
+ limits=LIMITS if not any('layer_audit' in r for r in rows) else [s for s in LIMITS if 'no-prism-layer' not in s]+['Layered and unlayered cases share the far domain, surface refinement and physics. Extrusion moves wall-adjacent cells and can fail locally. Face coverage is not area coverage. Two mesh levels establish sensitivity only; no Richardson order, uncertainty estimate or force convergence is claimed.']
+ result={'schema':'kcee.bracket-native-forces.v1','method':VERSION,'parent_design_id':next(iter(parents)),'source_stl_sha256':next(iter(surfaces)),'studies':rows,'comparisons':comparisons,'benchmark':benchmark,'checks':checks,'limits':limits,'mesh_independence':'not_established','engineering_acceptance':'pending'}
+ if len(rows)==4:result['layer_sensitivity']=layer_sensitivity(rows)
+ return result
+
+def layer_sensitivity(rows):
+ output={}
+ for name,a,b in [('without_layers',0,1),('with_layers',2,3)]:
+  output[name]={}
+  for key in ('pressure_force_N','viscous_force_N','total_force_N'):
+   x,y=rows[a]['loads'][key],rows[b]['loads'][key];difference=sub(y,x)
+   output[name][key]={'signed_change':difference,'change_norm_N':norm(difference),'relative_change_to_fine_norm':norm(difference)/norm(y) if norm(y)>1e-30 else None}
+ return {'medium_to_fine':output,'convergence':'not_established','reason':'Two resolutions and partial layer coverage do not support observed-order or extrapolated-error claims.'}
 
 def save(root,parent,record,data,blobs):
  root=Path(root);dest=root/str(uuid.uuid4());dest.mkdir()
  for n in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(root/str(parent)/n,dest/n)
  req=json.loads((dest/'requirements.json').read_text());req['native_force_study']={'method':VERSION,'source_run_ids':[s['run_id'] for s in data['studies']]};(dest/'requirements.json').write_text(json.dumps(req,indent=2))
- result={'kind':'bracket_flow_native_forces','geometry_backend':'PicoGK / native OpenFOAM full stress','validation_status':STATUS,'native_force_study':data,'assumptions':LIMITS}
+ result={'kind':'bracket_flow_native_forces','geometry_backend':'PicoGK / native OpenFOAM full stress','validation_status':STATUS,'native_force_study':data,'assumptions':data.get('limits',LIMITS)}
  for n,v in [('result.json',result),('cfd.json',data),('voice-summary.json',{'text':'Native full pressure and viscous loads recorded and compared with the earlier wall shear estimates. Engineering acceptance remains pending.','delivery':'artifact_only'})]:(dest/n).write_text(json.dumps(v,indent=2))
  evidence=pack(blobs)
  if len(evidence)>96*1024*1024:raise ValueError('Combined native evidence exceeds limit')
@@ -69,13 +88,15 @@ def save(root,parent,record,data,blobs):
   w=csv.writer(stream);w.writerow(['method','run_id','manifest_sha256','native_evidence_sha256','mesh','profile','domain','axis','native_pressure_N','native_viscous_N','native_total_N','prior_viscous_estimate_N','native_minus_estimate_viscous_N','native_pressure_moment_N_m','native_viscous_moment_N_m','native_total_moment_N_m'])
   for s in data['studies']:
    for i,a in enumerate('xyz'):w.writerow([VERSION,s['run_id'],s['manifest_sha256'],s['native_evidence_sha256'],s['mesh_name'],s['local_profile'],s['domain_name'],a,s['loads']['pressure_force_N'][i],s['loads']['viscous_force_N'][i],s['loads']['total_force_N'][i],s['prior_estimate']['viscous_estimate_force_N'][i],s['native_minus_estimate']['viscous_force_N'][i],s['loads']['pressure_moment_N_m'][i],s['loads']['viscous_moment_N_m'][i],s['loads']['total_moment_N_m'][i]])
- lines=['# Native bracket pressure and full viscous loads','','Method: '+VERSION,'','Full native Stokes stress; separately registered from historical one-sided estimates. Forces in N; moments about (0,0,0) m in N·m. No flow iterations are rerun.','','| Case | Axis | Pressure N | Native viscous N | Total N | Prior viscous estimate N |','|---|---|---|---|---|---|']
+ lines=['# Native bracket pressure and full viscous loads','','Method: '+VERSION,'','Full native Stokes stress; separately registered from historical one-sided estimates. Forces in N; moments about (0,0,0) m in N·m. Native integration reads saved flow fields. Layer comparison source cases are newly solved, with their recipes recorded separately.','','| Case | Axis | Pressure N | Native viscous N | Total N | Prior viscous estimate N |','|---|---|---|---|---|---|']
  for s in data['studies']:
   for i,a in enumerate('xyz'):lines.append('| '+s['mesh_name']+' / '+s['local_profile']+' / '+s['domain_name']+' | '+a+' | '+' | '.join(f'{v:.10g}' for v in [s['loads']['pressure_force_N'][i],s['loads']['viscous_force_N'][i],s['loads']['total_force_N'][i],s['prior_estimate']['viscous_estimate_force_N'][i]])+' |')
+ if 'layer_sensitivity' in data:lines+=['','## Near-wall layer mesh sensitivity',json.dumps(data['layer_sensitivity'],indent=2)]
  lines+=['','## Native analytical benchmark',json.dumps(data['benchmark'],indent=2),'','## Native mesh/domain comparisons',json.dumps(data['comparisons'],indent=2),'','## Checks',json.dumps(data['checks'],indent=2),'','## Source, runtime and full component evidence']
  for s in data['studies']:lines.append(json.dumps({**s,'loads':{k:v for k,v in s['loads'].items() if k!='wall_samples'},'prior_estimate':{k:v for k,v in s['prior_estimate'].items() if k!='wall_face_samples'}},indent=2))
- lines+=['','## Limits',*['- '+s for s in LIMITS]];(dest/'report.md').write_text('\n'.join(lines)+'\n')
+ lines+=['','## Limits',*['- '+s for s in data.get('limits',LIMITS)]];(dest/'report.md').write_text('\n'.join(lines)+'\n')
  implementation=('native_forces.py','native_force_benchmark.py','native_forces_run.py','flow_forces.py','flow_forces_run.py','cfd_control.py')
+ if len(data['studies'])==4:implementation+=('layer_forces_run.py','bracket_flow.py','bracket_flow_run.py')
  m={'schema_version':1,'run_id':dest.name,'kind':'bracket_flow_native_forces','parent_design_id':str(parent),'source_parent_manifest_sha256':record['manifest_sha256'],'created_at':datetime.now(timezone.utc).isoformat(),'validation_status':STATUS,'method':VERSION,'implementation_sha256':{n:hashlib.sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in implementation},'source_runs':[{'run_id':s['run_id'],'manifest_sha256':s['manifest_sha256'],'native_evidence_sha256':s['native_evidence_sha256']} for s in data['studies']],'artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(dest.iterdir())}};(dest/'manifest.json').write_text(json.dumps(m,indent=2));return dest
 
 def run_study(root,identifier,registry):

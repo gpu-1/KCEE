@@ -35,11 +35,12 @@ def domain_spec(mesh_name='coarse',domain_name='base'):
  spacing=[(b-a)/n for a,b,n in zip(lo,hi,cells)]
  return {'domain_min_m':[a-steps*h for a,h in zip(lo,spacing)],'domain_max_m':[b+steps*h for b,h in zip(hi,spacing)],'background_cells':[n+2*steps for n in cells],'background_spacing_m':spacing}
 
+LAYER_PROFILE='wall-layers-v1'
 LOCAL_PROFILE='wake-below-v1'
 LOCAL_REGIONS=[{'name':'targetWake','min_m':[.065,-.002,.002],'max_m':[.135,.032,.038],'level':3},{'name':'targetBelow','min_m':[.015,.003,-.030],'max_m':[.045,.027,-.010],'level':3}]
 def validate_profile(profile,mesh,domain,bore_level):
- if profile not in ('baseline',LOCAL_PROFILE):raise ValueError('Unsupported local CFD refinement profile')
- if profile==LOCAL_PROFILE and (mesh not in ('medium','fine') or domain not in ('far','outer') or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain or medium/fine outer-domain cases with bore level 4')
+ if profile not in ('baseline',LOCAL_PROFILE,LAYER_PROFILE):raise ValueError('Unsupported local CFD refinement profile')
+ if profile in (LOCAL_PROFILE,LAYER_PROFILE) and (mesh not in ('medium','fine') or domain not in ('far','outer') or bore_level!=4):raise ValueError('Targeted refinement uses medium/fine far-domain or medium/fine outer-domain cases with bore level 4')
 
 def make_case(root,raw,mesh_name='coarse',domain_name='base',bore_level=4,local_profile='baseline'):
  validate_profile(local_profile,mesh_name,domain_name,bore_level)
@@ -87,7 +88,7 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
   path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('maxLocalCells 150000','maxLocalCells 200000'))
  if bore_level==5:
   path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('levels ((1e15 4))','levels ((1e15 5))').replace('maxLocalCells 150000','maxLocalCells 250000').replace('maxLocalCells 200000','maxLocalCells 250000').replace('maxGlobalCells 200000','maxGlobalCells 250000'))
- if local_profile==LOCAL_PROFILE:
+ if local_profile in (LOCAL_PROFILE,LAYER_PROFILE):
   path=root/'system/snappyHexMeshDict';text=path.read_text()
   for region in LOCAL_REGIONS:
    vec=lambda values:'('+' '.join(map(str,values))+')'
@@ -96,6 +97,9 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
   text=text.replace('maxLocalCells 150000','maxLocalCells 250000').replace('maxLocalCells 200000','maxLocalCells 250000').replace('maxGlobalCells 200000','maxGlobalCells 250000');path.write_text(text)
  if mesh_name=='fine' and domain_name=='outer':
   path=root/'system/snappyHexMeshDict';path.write_text(path.read_text().replace('maxLocalCells 250000','maxLocalCells 350000').replace('maxLocalCells 150000','maxLocalCells 350000').replace('maxGlobalCells 250000','maxGlobalCells 350000').replace('maxGlobalCells 200000','maxGlobalCells 350000'))
+ if local_profile==LAYER_PROFILE:
+  path=root/'system/snappyHexMeshDict';text=path.read_text().replace('addLayers false','addLayers true').replace('layers {};','layers {bracket {nSurfaceLayers 3;}};').replace('expansionRatio 1.0','expansionRatio 1.2').replace('finalLayerThickness 0.3','finalLayerThickness 0.5').replace('minThickness 0.1','minThickness 0.05')
+  path.write_text(text)
  return metadata
 
 def command(root,name,args=(),timeout=180):
@@ -148,7 +152,7 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
  if mesh_name not in MESHES:raise ValueError('Unsupported bracket-flow mesh')
  root=Path(root);vectors=field_values(root/'1500/U',True);pressures=field_values(root/'1500/p');from kcee.flow_centres import volume_centres
  centres,vertex_means,position_audit=volume_centres(root/'constant/polyMesh',len(vectors))
- if not 1000<=len(vectors)<=(350000 if mesh_name=='fine' and domain_name=='outer' else 250000 if bore_level==5 or local_profile==LOCAL_PROFILE else 200000) or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
+ if not 1000<=len(vectors)<=(350000 if mesh_name=='fine' and domain_name=='outer' else 250000 if bore_level==5 or local_profile in (LOCAL_PROFILE,LAYER_PROFILE) else 200000) or len(vectors)!=len(pressures) or len(vectors)!=len(centres):raise ValueError('Invalid field count')
  rows=[dict(zip(('x_m','y_m','z_m','u_m_s','v_m_s','w_m_s','p_kinematic_m2_s2'),[*c,*u,p])) for c,u,p in zip(centres,vectors,pressures)]
  mesh=(root/'checkMesh.log').read_text();surface=(root/'surfaceCheck.log').read_text();log=(root/'simpleFoam.log').read_text()
  residuals={key:[float(x) for x in re.findall(r'Solving for '+key+r', Initial residual = ([^,\s]+)',log)] for key in ('Ux','Uy','Uz','p')}
@@ -172,10 +176,17 @@ def evaluate_case(root,metadata,mesh_name='coarse',source_raw=None,domain_name='
   result['inputs']['wake_refinement']=result['mesh']['wake_refinement']
   result['mesh']['bore_refinement']={'centres_m':[[.033,.015,.00175],[.048,.015,.00175],[.00175,.015,.016],[.00175,.015,.030]],'radius_m':.005,'level':bore_level,'nominal_cell_m':max(spec['background_spacing_m'])/(2**bore_level)}
   result['inputs']['bore_refinement']=result['mesh']['bore_refinement']
- if local_profile==LOCAL_PROFILE:
+ if local_profile in (LOCAL_PROFILE,LAYER_PROFILE):
   result['inputs']['local_refinement_profile']=local_profile
   result['mesh']['targeted_refinement']={'regions':LOCAL_REGIONS,'nominal_cell_m':max(spec['background_spacing_m'])/8}
   result['inputs']['targeted_refinement']=result['mesh']['targeted_refinement']
+ if local_profile==LAYER_PROFILE:
+  audit=layer_audit((root/'snappyHexMesh.log').read_text())
+  result['mesh']['prism_layers']=audit['extruded_faces']>0
+  result['mesh']['layer_audit']=audit
+  result['checks']['near_wall_layers_present']=audit['extruded_faces']>0
+  result['limits']=[s for s in LIMITS if 'no prism layers' not in s]+['Three prism layers requested; achieved wall-face coverage is measured from the mesher log. Partial extrusion, local layer collapse and lack of mesh independence remain limitations.']
+  result['validation_status']='exploratory_bracket_flow_checks_passed_not_engineering_validated' if all(result['checks'].values()) else 'exploratory_bracket_flow_checks_need_attention'
  if domain_name!='base':result['domain_name']=domain_name
  return result
 
@@ -193,7 +204,7 @@ def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_
  from kcee.cfd_control import checkpoint
  checkpoint('preparing',case=mesh_name+' / '+domain_name)
  validate_profile(local_profile,mesh_name,domain_name,bore_level)
- if local_profile==LOCAL_PROFILE and sampling_version!=COMPACT:raise ValueError('Targeted refinement requires Compact v1 sampling')
+ if local_profile in (LOCAL_PROFILE,LAYER_PROFILE) and sampling_version!=COMPACT:raise ValueError('Targeted refinement requires Compact v1 sampling')
  sampling_spec(sampling_version)
  import shutil
  with tempfile.TemporaryDirectory(prefix='kcee-bracket-flow-') as tmp:
@@ -211,3 +222,12 @@ def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_
   data=buffer.getvalue()
   if len(data)>(48 if mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024:raise ValueError('Solver archive exceeds limit')
   return {'result':result,'error':failure,'archive_base64':base64.b64encode(data).decode(),'archive_sha256':hashlib.sha256(data).hexdigest()}
+
+
+def layer_audit(log):
+ """Report actual extrusion, never infer achieved layers from a request."""
+ matches=list(re.finditer(r'Extruding\s+(\d+)\s+out of\s+(\d+)\s+faces',log))
+ if not matches:raise ValueError('Missing layer extrusion evidence')
+ m=matches[-1];extruded,total=map(int,m.groups())
+ if not 0<=extruded<=total or total<=0:raise ValueError('Invalid layer coverage')
+ return {'method':'wall-layers-v1','requested_layers':3,'expansion_ratio':1.2,'relative_final_thickness':.5,'relative_minimum_thickness':.05,'extruded_faces':extruded,'candidate_faces':total,'extruded_face_fraction':extruded/total,'basis':'Final snappyHexMesh extrusion iteration; face coverage, not area coverage or uniform achieved layer count'}

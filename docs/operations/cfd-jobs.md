@@ -91,3 +91,5 @@ a new retry and verified result registration.
 Wall-load jobs use verified saved fields without starting OpenFOAM. They report source verification and current-case wall-face progress. Their cancellation is cooperative at source/case and wall-face batch boundaries. See [force estimates](../engineering/bracket-flow-forces.md).
 
 Native full-stress jobs run the scoped compatibility self-tested OpenFOAM postprocessor, analytical benchmark and stress replay. See [native wall loads](../engineering/native-bracket-forces.md). They preserve saved source fields, terminate native process groups on cancellation and register separate native reports.
+
+`layer_forces` compares far-domain medium/fine targeted cases with and without near-wall layers, then repeats the native full-stress benchmark and replay. It uses fixed inputs, the same job controls, and raw-verified completed case reuse. See [near-wall force study](../engineering/near-wall-force-study.md).

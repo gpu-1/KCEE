@@ -66,3 +66,5 @@ Long CFD studies have [progress, cancellation and retry controls](docs/operation
 Pressure-load and wall-shear estimate studies, with analytical integration verification and source replay: [wall loads](docs/engineering/bracket-flow-forces.md).
 
 Native OpenFOAM pressure/full viscous loads, runtime repair and analytical verification: [native wall loads](docs/engineering/native-bracket-forces.md).
+
+Near-wall CFD force sensitivity: [recipe, measured layer coverage and verification](docs/engineering/near-wall-force-study.md).

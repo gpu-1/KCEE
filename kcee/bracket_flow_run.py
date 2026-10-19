@@ -25,6 +25,7 @@ def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_leve
    if p.is_file() and z.read(p.relative_to(expected).as_posix())!=p.read_bytes():raise ValueError('Flow case/source surface differs from fixed configuration')
   root=Path(tmp)/'output'
   needed=['1500/U','1500/p','1500/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
+  if profile=='wall-layers-v1':needed.append('snappyHexMesh.log')
   for name in needed:
    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(z.read(name))
   result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,version,profile)

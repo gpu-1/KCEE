@@ -5,16 +5,30 @@ export function nativeRows(study,moment=false){
  return ['x','y','z'].map((axis,i)=>{const values=keys.map(k=>f[k][i]);if(Math.abs(values[0]+values[1]-values[2])>1e-10*Math.max(...values.map(Math.abs),1e-20))throw Error('Native load components do not close');return {axis,values};});
 }
 export function mountNativeForces(data,openRun,verify){
- if(data?.schema!=='kcee.bracket-native-forces.v1'||![1,6].includes(data.studies?.length))throw Error('Invalid native force study');
+ if(data?.schema!=='kcee.bracket-native-forces.v1'||![1,4,6].includes(data.studies?.length))throw Error('Invalid native force study');
  const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg',cell=(tr,text)=>{const td=document.createElement('td');td.textContent=String(text);tr.append(td);return td;};
  for(const id of ['native-case','native-comparisons','native-benchmark','native-checks'])$(id).replaceChildren();$('native-verify-status').textContent='';
+ $('native-layer-sensitivity').hidden=!data.layer_sensitivity;$('native-layer-chart').replaceChildren();$('native-layer-summary').textContent='';
+ if(data.layer_sensitivity){
+  const node=(tag,attrs={},text)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n;};
+  const values=data.studies.map(s=>s.loads.total_force_N[0]),lo=Math.min(...values),hi=Math.max(...values),span=Math.max(hi-lo,Math.abs(hi)*.01,1e-30),y=v=>190-(v-lo)/span*140;
+  const svg=node('svg',{viewBox:'0 0 360 270',role:'img','aria-label':'Medium to fine native total x-force, with and without layers'});
+  svg.append(node('text',{x:12,y:18,fill:'#dfe9f1','font-size':12},'Total x-force (N)'),node('line',{x1:65,x2:310,y1:210,y2:210,stroke:'#a5b9c7'}));
+  for(const [offset,color,label] of [[0,'#f4bd75','Without layers'],[2,'#79dcc8','With layers']]){
+   svg.append(node('polyline',{points:`90,${y(values[offset])} 285,${y(values[offset+1])}`,fill:'none',stroke:color,'stroke-width':2}));
+   for(let j=0;j<2;j++){const v=values[offset+j];svg.append(node('circle',{cx:90+j*195,cy:y(v),r:4,fill:color}),node('text',{x:48+j*195,y:y(v)-9,fill:color,'font-size':11},v.toExponential(4)));}
+   svg.append(node('text',{x:12+offset*88,y:255,fill:color,'font-size':12},label));
+  }
+  svg.append(node('text',{x:65,y:229,fill:'#dfe9f1','font-size':12},'Medium'),node('text',{x:270,y:229,fill:'#dfe9f1','font-size':12},'Fine'));$('native-layer-chart').append(svg);
+  const m=data.layer_sensitivity.medium_to_fine,format=v=>v===null?'undefined near zero':(100*v).toFixed(2)+'%';$('native-layer-summary').textContent='Total force-vector change relative to fine-vector magnitude: '+format(m.without_layers.total_force_N.relative_change_to_fine_norm)+' without layers; '+format(m.with_layers.total_force_N.relative_change_to_fine_norm)+' with layers. These are changes, not errors.';
+ }
  for(const [i,s] of data.studies.entries()){nativeRows(s);const o=document.createElement('option');o.value=i;o.textContent=s.mesh_name+' / '+s.local_profile+' / '+s.domain_name;$('native-case').append(o);}
  const show=()=>{
   const s=data.studies[Number($('native-case').value)],moment=$('native-quantity').value==='moment',rows=nativeRows(s,moment),unit=moment?'N·m':'N';$('native-components').replaceChildren();$('native-estimates').replaceChildren();$('native-chart').replaceChildren();$('native-unit').textContent=unit;
   for(const r of rows){const tr=document.createElement('tr');for(const v of [r.axis,...r.values.map(v=>v.toExponential(6))])cell(tr,v);$('native-components').append(tr);}
   const native=moment?s.loads.viscous_moment_N_m:s.loads.viscous_force_N,prior=moment?s.prior_estimate.viscous_estimate_moment_N_m:s.prior_estimate.viscous_estimate_force_N;
   for(const [i,axis] of ['x','y','z'].entries()){if(!Number.isFinite(prior[i]))throw Error('Missing prior estimate');const tr=document.createElement('tr');for(const v of [axis,native[i].toExponential(6),prior[i].toExponential(6),(native[i]-prior[i]).toExponential(6)])cell(tr,v);$('native-estimates').append(tr);}
-  $('native-case-info').textContent=s.cells+' fluid cells · '+s.loads.wall_faces+' wall faces · native laminar Stokes stress. Integration replay errors: '+s.loads.independent_force_replay_error_N.toExponential(2)+' N and '+s.loads.independent_moment_replay_error_N_m.toExponential(2)+' N·m. Engineering acceptance pending.';
+  $('native-case-info').textContent=(s.layer_audit?'Requested 3 layers; final extrusion covers '+(s.layer_audit.extruded_face_fraction*100).toFixed(1)+'% of candidate faces. ':'')+s.cells+' fluid cells · '+s.loads.wall_faces+' wall faces · native laminar Stokes stress. Integration replay errors: '+s.loads.independent_force_replay_error_N.toExponential(2)+' N and '+s.loads.independent_moment_replay_error_N_m.toExponential(2)+' N·m. Engineering acceptance pending.';
   $('native-open-source').onclick=()=>openRun(s.run_id);
   const node=(tag,attrs={},text)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n;};
   const maximum=Math.max(...rows.flatMap(r=>r.values.map(Math.abs)),1e-30),colors=['#f4bd75','#79dcc8','#bda6ff'],svg=node('svg',{viewBox:'0 0 360 290',role:'img','aria-label':'Native pressure, full viscous and total '+(moment?'moments':'forces')+' in '+unit});svg.append(node('line',{x1:180,x2:180,y1:20,y2:240,stroke:'#a5b9c7'}));

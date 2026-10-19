@@ -636,7 +636,7 @@ def cfd_vortex(body: dict | None=None):
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
     from kcee.bracket_flow import MESHES
-    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far','outer') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
+    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far','outer') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1','wall-layers-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
     mesh_name=(body or {}).get('mesh_name','coarse')
     from kcee.bracket_flow import domain_spec,validate_profile
     try:
@@ -761,6 +761,19 @@ def bracket_flow_joint_study(run_id: UUID,body: dict | None=None):
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}
 
 
+@app.post('/runs/{run_id}/layer-forces',status_code=201)
+def bracket_layer_force_study(run_id: UUID,body: dict | None=None):
+    ready()
+    if body:raise HTTPException(422,'Layer study uses fixed inputs')
+    from kcee.layer_forces_run import run_study
+    try:
+        dest=run_study(ARTIFACTS,run_id,registry);registry.register(dest)
+    except KeyError:raise HTTPException(404,'Unknown layer-study source')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+    except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
+    return {'run_id':dest.name,'validation_status':'exploratory_native_full_stress_not_engineering_validated'}
+
 @app.post('/runs/{run_id}/native-forces',status_code=201)
 def bracket_native_force_study(run_id: UUID,body: dict | None=None):
     ready()
@@ -814,7 +827,7 @@ def cfd_job_manager():
         if _cfd_jobs is None:
             from kcee.cfd_jobs import Jobs
             def execute(kind,parent,options):
-                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study,'forces':bracket_force_study,'native_forces':bracket_native_force_study}
+                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study,'forces':bracket_force_study,'native_forces':bracket_native_force_study,'layer_forces':bracket_layer_force_study}
                 return cfd_vortex() if kind=='vortex' else functions[kind](UUID(parent),options)
             _cfd_jobs=Jobs(os.environ.get('KCEE_CFD_JOBS_DIR','/data/cfd-jobs'),execute)
         return _cfd_jobs
@@ -822,7 +835,7 @@ def cfd_job_manager():
 def recover_cfd_jobs():cfd_job_manager()
 
 class CFDJobRequest(BaseModel):
-    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex','forces','native_forces']
+    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex','forces','native_forces','layer_forces']
     parent_id: UUID | None=None
     options: dict={}
 
