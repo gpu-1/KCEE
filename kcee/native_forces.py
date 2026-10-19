@@ -80,7 +80,7 @@ def runtime():
 def validate_runtime(meta):
  if meta.get('method')!=VERSION or not meta.get('package','').startswith('1912.200626-3'):raise ValueError('Native runtime package/method differs')
  build=meta.get('overlay',{})
- if build.get('source_sha256')!='c75ca0f04cc4f49708296c1926cbde9d0138b3fef298fed54270dfe29e2df404' or build.get('scope')!='dictionary::digest only; LD_PRELOAD only for native postprocessing':raise ValueError('Native compatibility scope differs')
+ if build.get('source_sha256')!='c75ca0f04cc4f49708296c1926cbde9d0138b3fef298fed54270dfe29e2df404' or build.get('scope') not in __import__('kcee.force_history',fromlist=['SCOPES']).SCOPES:raise ValueError('Native compatibility scope differs')
  for key,names in [('binaries_sha256',{'libkceeDigest.so','hash-self-test'}),('implementation_sha256',{'build.py','digest.cpp','hash_test.cpp','exports.map'})]:
   values=build.get(key,{})
   if set(values)!=names or not all(re.fullmatch('[a-f0-9]{64}',v or '') for v in values.values()):raise ValueError('Native compatibility fingerprints missing')
@@ -89,7 +89,7 @@ def validate_runtime(meta):
  return meta
 
 def execute_case(root,time,patch,rho):
- root=Path(root);p=root/'system/controlDict';p.write_text(p.read_text()+functions(patch,rho))
+ root=Path(root);p=root/'system/controlDict';p.write_bytes(__import__('kcee.force_history',fromlist=['postprocess_control']).postprocess_control(p.read_bytes())+functions(patch,rho).encode())
  checkpoint('native_force_postprocess',case='Native '+patch+' stresses')
  env={**os.environ,'LD_PRELOAD':str(NATIVE/'libkceeDigest.so')}
  proc=run_logged(['simpleFoam','-case',str(root),'-postProcess','-time',str(time)],root,'native_force_postprocess',180,env=env)
@@ -121,12 +121,12 @@ def integrate(files,mesh,pressures,rho,normalization,time):
  if not all(checks.values()):raise ValueError('Native force replay/stress checks failed: '+json.dumps(checks))
  return {'method':VERSION,'pressure_force_N':native_force['pressure'],'viscous_force_N':native_force['viscous'],'total_force_N':native_force['total'],'pressure_moment_N_m':native_moment['pressure'],'viscous_moment_N_m':native_moment['viscous'],'total_moment_N_m':native_moment['total'],'coefficients':scale(native_force['total'],1/normalization),'force_normalization_N':normalization,'coefficient_reference_area_m2':.0012,'moment_origin_m':[0,0,0],'wall_faces':len(mesh),'independent_force_replay_error_N':force_error,'independent_moment_replay_error_N_m':moment_error,'maximum_relative_stress_trace':trace,'uniform_pressure_offset_1Pa_force_N':total(areas),'uniform_pressure_offset_1Pa_moment_N_m':total(moment_areas),'checks':checks,'wall_samples':samples}
 
-def source_members(data):
+def source_members(data,time=1500):
  if len(data)>48*1024*1024:raise ValueError('Native source archive exceeds limit')
  with zipfile.ZipFile(io.BytesIO(data)) as z:
   names=z.namelist()
   if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>256*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe native source archive')
-  required=['1500/U','1500/p','1500/phi']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]+['constant/transportProperties','constant/turbulenceProperties','system/controlDict','system/fvSchemes','system/fvSolution','runtime.json']
+  required=[str(time)+'/U',str(time)+'/p',str(time)+'/phi']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]+['constant/transportProperties','constant/turbulenceProperties','system/controlDict','system/fvSchemes','system/fvSolution','runtime.json']
   members={n:z.read(n) for n in required}
   # OpenFOAM supports executable dictionary directives. Saved numeric ASCII
   # fields/meshes need none; never execute archive-supplied code or includes.
@@ -137,22 +137,24 @@ def source_members(data):
 
 def execute_source(data,raw,mesh_name,domain_name,bore_level,profile):
  from kcee.bracket_flow import make_case
- members=source_members(data)
+ time=3000 if profile=='wall-bore-history-v1' else 1500
+ members=source_members(data,time)
  with tempfile.TemporaryDirectory(prefix='kcee-native-force-') as tmp:
   root=Path(tmp);make_case(root,raw,mesh_name,domain_name,bore_level,profile)
   for n in ('constant/transportProperties','constant/turbulenceProperties','system/controlDict','system/fvSchemes','system/fvSolution'):
    if (root/n).read_bytes()!=members[n]:raise ValueError('Native source case recipe differs')
   for n,v in members.items():p=root/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(v)
-  files=execute_case(root,1500,'bracket',1.);return pack(files)
+  files=execute_case(root,time,'bracket',1.);return pack(files)
 
 def verify_source(evidence,data,flow):
  from kcee.bracket_flow import make_case
- files=unpack(evidence);members=source_members(data)
+ time=3000 if flow['inputs'].get('local_refinement_profile')=='wall-bore-history-v1' else 1500
+ files=unpack(evidence);members=source_members(data,time)
  with tempfile.TemporaryDirectory() as tmp:
   root=Path(tmp)
   for n,v in members.items():p=root/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(v)
-  if files['controlDict']!=members['system/controlDict']+functions('bracket',flow['inputs']['density_kg_m3']).encode():raise ValueError('Native postprocess recipe differs')
+  if files['controlDict']!=__import__('kcee.force_history',fromlist=['postprocess_control']).postprocess_control(members['system/controlDict'])+functions('bracket',flow['inputs']['density_kg_m3']).encode():raise ValueError('Native postprocess recipe differs')
   meta=validate_runtime(json.loads(files['runtime.json']))
   if meta['simpleFoam_sha256']!=json.loads(members['runtime.json'])['binaries_sha256']['simpleFoam']:raise ValueError('Native postprocessing solver differs from source solver')
-  mesh=mesh_patch(root/'constant/polyMesh','bracket');pressures=field_values(root/'1500/p')
-  return integrate(files,mesh,pressures,flow['inputs']['density_kg_m3'],.5*flow['inputs']['density_kg_m3']*flow['inputs']['inlet_velocity_m_s']**2*.0012,1500)
+  mesh=mesh_patch(root/'constant/polyMesh','bracket');pressures=field_values(root/str(time)/'p')
+  return integrate(files,mesh,pressures,flow['inputs']['density_kg_m3'],.5*flow['inputs']['density_kg_m3']*flow['inputs']['inlet_velocity_m_s']**2*.0012,time)

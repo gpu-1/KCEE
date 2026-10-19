@@ -13,3 +13,5 @@
 10. Native OpenFOAM full pressure/viscous stress integration now uses a source-pinned, single-symbol dictionary hash-stream compatibility fix. It includes a manufactured full-stress/native integration benchmark, prior-estimate comparisons, mesh/domain comparisons, independently replayed exported tensors, signed force/moment charts, evidence bundles and cancellable/retryable jobs. Step 9 historical estimator reports remain immutable. Near-wall resolution, mesh/domain independence and engineering acceptance remain pending.
 
 11. Near-wall force sensitivity: versioned prism-layer recipe, medium/fine paired native loads, measured extrusion coverage, signed sensitivity charts and reproducible reports. Force convergence remains pending.
+
+12. Native force histories and three wall/bore refinement levels: separate iterative settling and component mesh sensitivity, final-load replay, charts and history CSV. Mesh convergence requires assessment of recorded results.

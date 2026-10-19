@@ -25,9 +25,7 @@ map and build check enforce that one-symbol interface. Hashing is not disabled.
 
 The build self-test checks SHA1 of mixed character/string writes against the
 known `abc` digest and dictionary digest against independently serialized text.
-The library is loaded through `LD_PRELOAD` **only for fixed native
-postprocessing commands**. The normal worker environment and existing
-meshing/solver commands do not receive it. The stock solver executable is
+The library is loaded through `LD_PRELOAD` for fixed native postprocessing commands. The versioned [force-history workflow](force-history-refinement.md) additionally scopes it to its fixed solver invocation. The normal worker environment, meshing commands and historical solves do not receive it. The stock solver executable is
 unchanged and its digest must match the source run's recorded solver digest.
 Build records bind source checksum, corrected header, compiler, compatibility
 source files, export map, library and test executable. Native evidence also

@@ -85,7 +85,8 @@ def from_archive(data,flow):
   if not m:raise ValueError('Missing bracket patch')
   start=int(re.search(r'startFace\s+(\d+)',m[1])[1]);size=int(re.search(r'nFaces\s+(\d+)',m[1])[1])
   if len(points)!=n or len(faces)!=nf or len(owners)!=nf or no!=nf or start<ni or not 1<=size<=nf-start:raise ValueError('Invalid force mesh addressing')
-  ptext=z.read('1500/p').decode();utext=z.read('1500/U').decode()
+  time='3000' if flow['inputs'].get('local_refinement_profile')=='wall-bore-history-v1' else '1500'
+  ptext=z.read(time+'/p').decode();utext=z.read(time+'/U').decode()
   ppatch=re.search(r'\bbracket\s*\{([^{}]*)\}',ptext,re.S);upatch=re.search(r'\bbracket\s*\{([^{}]*)\}',utext,re.S)
   if not ppatch or not re.search(r'type\s+zeroGradient\s*;',ppatch[1]) or not upatch or not re.search(r'type\s+fixedValue\s*;',upatch[1]) or not re.search(r'value\s+uniform\s+\(0\s+0\s+0\)\s*;',upatch[1]):raise ValueError('Unsupported wall boundary conditions')
   if not re.search(r'dimensions\s*\[0 2 -2 0 0 0 0\]',ptext):raise ValueError('Pressure is not kinematic SI')

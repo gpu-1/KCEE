@@ -68,3 +68,5 @@ Pressure-load and wall-shear estimate studies, with analytical integration verif
 Native OpenFOAM pressure/full viscous loads, runtime repair and analytical verification: [native wall loads](docs/engineering/native-bracket-forces.md).
 
 Near-wall CFD force sensitivity: [recipe, measured layer coverage and verification](docs/engineering/near-wall-force-study.md).
+
+Three-level CFD force histories and wall/bore refinement: [recipe, settling checks and reproducible evidence](docs/engineering/force-history-refinement.md).

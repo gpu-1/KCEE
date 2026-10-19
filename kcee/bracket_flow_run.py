@@ -9,11 +9,13 @@ class BracketFlowError(ValueError):
  def __init__(self,message,run_id):super().__init__(message);self.run_id=run_id
 
 def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_level=4):
+ profile=payload.get('result',{}).get('inputs',{}).get('local_refinement_profile','baseline')
+ history=profile=='wall-bore-history-v1'
  data=base64.b64decode(payload['archive_base64'],validate=True)
- if len(data)>(48 if mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
+ if len(data)>(48 if history or mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory() as tmp:
   names=z.namelist()
-  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>(256 if mesh_name=='fine' and domain_name=='outer' else 192)*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
+  if len(names)!=len(set(names)) or len(names)>200 or sum(i.file_size for i in z.infolist())>(256 if history or mesh_name=='fine' and domain_name=='outer' else 192)*1024*1024 or any(n.startswith('/') or '..' in n.split('/') for n in names):raise ValueError('Unsafe flow archive')
   runtime=json.loads(z.read('runtime.json'))
   if not runtime['package'].startswith('1912.200626-3') or set(runtime['binaries_sha256'])!={'snappyHexMesh','simpleFoam','checkMesh','surfaceCheck'} or any(len(v)!=64 or any(c not in '0123456789abcdef' for c in v) for v in runtime['binaries_sha256'].values()):raise ValueError('Invalid OpenFOAM runtime record')
   version=flow_version(payload.get('result',{}))
@@ -24,8 +26,10 @@ def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_leve
   for p in expected.rglob('*'):
    if p.is_file() and z.read(p.relative_to(expected).as_posix())!=p.read_bytes():raise ValueError('Flow case/source surface differs from fixed configuration')
   root=Path(tmp)/'output'
-  needed=['1500/U','1500/p','1500/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
-  if profile=='wall-layers-v1':needed.append('snappyHexMesh.log')
+  time='3000' if history else '1500'
+  needed=[time+'/U',time+'/p',time+'/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
+  if profile in ('wall-layers-v1','wall-bore-history-v1'):needed.append('snappyHexMesh.log')
+  if history:needed+=['runtime.json','postProcessing/solverLoads/0/force.dat','postProcessing/solverLoads/0/moment.dat']
   for name in needed:
    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(z.read(name))
   result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,version,profile)
@@ -42,8 +46,8 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
   from kcee.cfd_control import checkpoint,headers
   checkpoint('solver',mesh=mesh_name,domain=domain_name)
   request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json',**headers()},method='POST')
-  with urlopen(request,timeout=1080) as response:
-   response_limit=(128 if mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
+  with urlopen(request,timeout=2040 if local_profile=='wall-bore-history-v1' else 1080) as response:
+   response_limit=(128 if local_profile=='wall-bore-history-v1' or mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
    encoded=response.read(response_limit+1)
    if len(encoded)>response_limit:raise ValueError('Flow response exceeds limit')
    payload=json.loads(encoded)

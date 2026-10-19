@@ -11,7 +11,7 @@ export async function request(path, options = {}) {
 }
 export function artifactUrl(id, name) {
   if (!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)) throw new Error('Invalid run identifier');
-  if (!['bracket.stl','result.json','report.md','manifest.json','fea-artifacts.zip','thermal-artifacts.zip','temperature.csv','velocity.csv','field.csv','cfd-artifacts.zip','verification.csv','native-forces.zip'].includes(name)) throw new Error('Unsupported artifact');
+  if (!['bracket.stl','result.json','report.md','manifest.json','fea-artifacts.zip','thermal-artifacts.zip','temperature.csv','velocity.csv','field.csv','cfd-artifacts.zip','verification.csv','native-forces.zip','force-history.csv'].includes(name)) throw new Error('Unsupported artifact');
   return `/api/artifacts/${id}/${name}`;
 }
 export async function verifiedBytes(id, name, digest, signal) {

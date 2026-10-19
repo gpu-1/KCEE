@@ -28,6 +28,6 @@ def status(identifier,cancel=False):
   try:
    with Path(path).open('rb') as stream:stream.seek(max(0,stream.seek(0,2)-65536));text=stream.read().decode(errors='replace')
    times=re.findall(r'^Time = ([\d.eE+-]+)',text,re.M)
-   if times:result['iteration']=float(times[-1]);result['iteration_target']=1500 if j['stage']=='simpleFoam' else .5 if j['stage']=='icoFoam' else None;result['progress_unit']='s' if j['stage']=='icoFoam' else 'iterations'
+   if times:result['iteration']=float(times[-1]);result['iteration_target']=j.get('iteration_target',1500) if j['stage']=='simpleFoam' else .5 if j['stage']=='icoFoam' else None;result['progress_unit']='s' if j['stage']=='icoFoam' else 'iterations'
   except OSError:pass
  return result
