@@ -27,3 +27,16 @@ Two resolutions do not establish an observed convergence order, Richardson extra
 - `POST /runs/{id}/layer-forces`: synchronous fixed-input counterpart.
 - Individual flow jobs accept `local_profile: "wall-layers-v1"` with medium/fine far/outer domain and bore level 4. The comparison itself fixes the far domain.
 - Existing native force and six-case comparison workflows remain supported.
+
+## Recorded default-bracket result
+
+Study `198ca91d-f9e4-4c00-bf1a-9bf5ee3ccc3f`, manifest SHA-256 `65db523914b8cf6a5fa4b8101e4ffa5f5b952349c4ebe9f3d71a1ce4f74f9831`:
+
+| Recipe | Medium cells | Fine cells | Total force-vector change | Pressure force-vector change | Viscous force-vector change |
+|---|---:|---:|---:|---:|---:|
+| Without layers | 150695 | 221723 | 1.1568% | 3.3923% | 5.3358% |
+| With layers | 162824 | 236917 | 1.1132% | 5.1360% | 8.5449% |
+
+Each change is normalized by its corresponding fine-mesh vector magnitude. The medium/fine layer face coverage was 83.7060% / 87.4319%. Source solver, native integration replay, bore and analytical benchmark checks passed. Eleven prior manifests remained unchanged, and the earlier six-case native report reproduced.
+
+The small reduction in total-force change does **not** demonstrate improved component convergence: pressure and viscous mesh sensitivities increased and partly cancel in the total. Further wall/surface refinement, coverage checks and force iteration histories are needed before a convergence claim.

@@ -20,7 +20,7 @@ export function mountNativeForces(data,openRun,verify){
    svg.append(node('text',{x:12+offset*88,y:255,fill:color,'font-size':12},label));
   }
   svg.append(node('text',{x:65,y:229,fill:'#dfe9f1','font-size':12},'Medium'),node('text',{x:270,y:229,fill:'#dfe9f1','font-size':12},'Fine'));$('native-layer-chart').append(svg);
-  const m=data.layer_sensitivity.medium_to_fine,format=v=>v===null?'undefined near zero':(100*v).toFixed(2)+'%';$('native-layer-summary').textContent='Total force-vector change relative to fine-vector magnitude: '+format(m.without_layers.total_force_N.relative_change_to_fine_norm)+' without layers; '+format(m.with_layers.total_force_N.relative_change_to_fine_norm)+' with layers. These are changes, not errors.';
+  const m=data.layer_sensitivity.medium_to_fine,format=v=>v===null?'undefined near zero':(100*v).toFixed(2)+'%';$('native-layer-summary').textContent='Total force-vector change relative to fine-vector magnitude: '+format(m.without_layers.total_force_N.relative_change_to_fine_norm)+' without layers; '+format(m.with_layers.total_force_N.relative_change_to_fine_norm)+' with layers. Layered pressure change: '+format(m.with_layers.pressure_force_N.relative_change_to_fine_norm)+'; layered viscous change: '+format(m.with_layers.viscous_force_N.relative_change_to_fine_norm)+'. Opposing component changes can cancel in the total. These are changes, not errors; convergence is not established.';
  }
  for(const [i,s] of data.studies.entries()){nativeRows(s);const o=document.createElement('option');o.value=i;o.textContent=s.mesh_name+' / '+s.local_profile+' / '+s.domain_name;$('native-case').append(o);}
  const show=()=>{
