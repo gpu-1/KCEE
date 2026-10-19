@@ -81,6 +81,9 @@ def summarize(root,sources,blobs):
   result['force_convergence']['physics']={k:rows[0]['inputs'][k] for k in ('inlet_velocity_m_s','kinematic_viscosity_m2_s','density_kg_m3','domain_min_m','domain_max_m')}
   result['limits']=[s for s in LIMITS if 'no-prism-layer' not in s and 'only by postprocessing' not in s]+['All three cases use the fixed low-speed laminar Re=6 demonstrator: inlet 0.01 m/s, kinematic viscosity 0.0001 m²/s and density 1 kg/m³. No service-condition, turbulence, thermal or structural validation is inferred.', 'The dictionary-hash compatibility overlay is explicitly scoped to this fixed native-force-history solver invocation and native postprocessing. Meshing commands do not preload it. Fingerprints are retained.', 'Surface level 4, bore level 5 and three requested wall layers are fixed across three background resolutions. Actual layer coverage is measured. These are locally refined meshes, not a uniform Richardson/GCI sequence.', 'Native force and moment histories are recorded at all 3000 iterations. Separate pressure/viscous/total window checks and final postprocess agreement are replayed. A small total change can hide larger opposing component changes.']
   result['checks']['history_final_postprocess_agreement']=True
+ if len(rows)==1 and 'force_history' in rows[0]:
+  result['limits']=[s for s in LIMITS if 'no-prism-layer' not in s and 'only by postprocessing' not in s]+['This single source uses the fixed Re=6 wall/bore-history recipe with 3000 online force/moment samples. It does not establish mesh independence.', 'The dictionary-digest overlay was scoped to the fixed history solver invocation and native postprocessing; meshing commands did not preload it. Native history and final postprocessing runtime identities and loads are checked.']
+  result['checks']['history_final_postprocess_agreement']=True
  return result
 
 def layer_sensitivity(rows):
