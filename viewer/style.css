@@ -96,3 +96,5 @@ aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overfl
 #flow-local-results svg{display:block;width:100%;height:auto}#flow-local-results td{white-space:nowrap}#local-probe{display:block;width:100%;padding:8px;margin:8px 0;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}
 
 #flow-reference-results svg{display:block;width:100%;height:auto}#reference-comparison{display:block;width:100%;padding:8px;margin:8px 0;background:#12202a;color:#dfe9f1;border:1px solid #526b7b}#flow-reference-results .table-scroll{overflow-x:auto;max-width:100%}#reference-cases td:first-child{min-width:100px}#reference-decomposition td{white-space:nowrap}
+
+.cfd-job-panel{padding:18px 0;border-bottom:1px solid #314653;margin-bottom:20px}.cfd-job-panel select,.cfd-job-panel progress{width:100%;max-width:100%}.cfd-job-panel button{white-space:normal;overflow-wrap:anywhere}.cfd-job-panel>button,#cfd-job-runs button{width:100%;margin-top:8px}#cfd-job-status{text-transform:capitalize}

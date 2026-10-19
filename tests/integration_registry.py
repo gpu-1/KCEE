@@ -489,6 +489,30 @@ class RegistryIntegration(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(archive)) as z:self.assertIn('constant/polyMesh/points',z.namelist());self.assertIn('1500/phi',z.namelist())
 
     @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'OpenFOAM profile not requested')
+    def test_cfd_job_cancel_retry_and_registered_result(self):
+        import time
+        def post(path,body):
+            with urlopen(Request(BASE+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'}),timeout=15) as response:
+                self.assertEqual(response.status,202 if path.endswith('/retry') or path=='/cfd-jobs' else 200)
+                return json.load(response)
+        def terminal(identifier):
+            deadline=time.monotonic()+180
+            while time.monotonic()<deadline:
+                job=request('/cfd-jobs/'+identifier)[1]
+                if job['state'] not in ('queued','running','cancel_requested'):return job
+                time.sleep(.1)
+            self.fail('CFD job did not reach a terminal state')
+        job=post('/cfd-jobs',{'kind':'vortex'})
+        post('/cfd-jobs/'+job['id']+'/cancel',{})
+        self.assertEqual(terminal(job['id'])['state'],'cancelled')
+        retry=post('/cfd-jobs/'+job['id']+'/retry',{})
+        self.assertNotEqual(retry['id'],job['id']);self.assertEqual(retry['retry_of'],job['id'])
+        result=terminal(retry['id']);self.assertEqual(result['state'],'completed',result)
+        run_id=result['result']['run_id']
+        self.assertIn(run_id,result['completed_run_ids'])
+        self.assertEqual(request('/runs/'+run_id+'/verify')[1]['integrity'],'verified')
+
+    @unittest.skipUnless(os.environ.get('KCEE_TEST_FEA'),'OpenFOAM profile not requested')
     def test_openfoam_vortex_fields_archive_and_verification(self):
         self.assertTrue(request('/capabilities')[1]['cfd']['openfoam_vortex'])
         with urlopen(Request(BASE+'/runs/cfd-vortex',data=b'',method='POST'),timeout=180) as response:

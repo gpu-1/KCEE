@@ -110,9 +110,12 @@ def execute():
   runtime={'package':subprocess.check_output(['dpkg-query','-W','-f=${Version}', 'openfoam'],text=True).strip(),'architecture':subprocess.check_output(['dpkg','--print-architecture'],text=True).strip(),'binaries_sha256':{name:hashlib.sha256(Path(shutil.which(name)).read_bytes()).hexdigest() for name in ('blockMesh','checkMesh','icoFoam')}}
   (root/'runtime.json').write_text(json.dumps(runtime,indent=2))
   for name,n,dt in CASE_SPECS:
+   from kcee.cfd_control import checkpoint
+   checkpoint('preparing',case='Vortex '+name)
    case=root/name;make_case(case,n,dt)
    for command in ('blockMesh','checkMesh','icoFoam'):
-    with (case/(command+'.log')).open('w') as log:subprocess.run([command,'-case',str(case)],stdout=log,stderr=subprocess.STDOUT,check=True,timeout=90)
+    from kcee.cfd_control import run_logged
+    if run_logged([command,'-case',str(case)],case,command,90).returncode:raise ValueError(command+' failed')
    mesh_ok='Mesh OK.' in (case/'checkMesh.log').read_text()
    log=(case/'icoFoam.log').read_text();continuity=[float(x) for x in re.findall(r'time step continuity errors : sum local = ([^,\s]+)',log)]
    if len(continuity)!=3*round(.5/dt) or 'End' not in log:raise ValueError('Incomplete solver run')

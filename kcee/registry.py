@@ -24,6 +24,8 @@ class Registry:
             stored=conn.execute('SELECT manifest, manifest_sha256 FROM design_runs WHERE id=%s',(manifest['run_id'],)).fetchone()
             if stored['manifest_sha256']!=digest or stored['manifest']!=manifest:
                 raise IntegrityError('Run ID already registered with different provenance')
+        from kcee.cfd_control import registered
+        registered(manifest['run_id'])
         return manifest['run_id']
 
     def get(self,run_id):

@@ -50,7 +50,10 @@ def report_markdown(summary):
 
 def run_refinement(root,parent_id,record,registry):
  studies=[]
+ from kcee.flow_sources import reusable
  for mesh in ('coarse','medium','fine'):
+  existing=reusable(root,parent_id,record,registry,mesh)
+  if existing:studies.append(existing);continue
   dest=run_bracket_flow(root,parent_id,record,mesh);registry.register(dest);registry.verify(root,dest.name);manifest,digest=verify_directory(dest)
   studies.append({'run_id':dest.name,'manifest_sha256':digest,'flow':json.loads((dest/'result.json').read_text())['flow']})
  return save_comparison(root,parent_id,record,studies)

@@ -5,8 +5,32 @@ vortex_lock=threading.Lock()
 class Handler(BaseHTTPRequestHandler):
  def send(self,status,data):
   raw=json.dumps(data).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
- def do_GET(self):self.send(200,{'status':'ready','scope':'channel_vortex_and_exploratory_bracket_flow','bracket_flow':all(shutil.which(n) for n in ('surfaceCheck','snappyHexMesh','simpleFoam')),'openfoam_vortex':all(shutil.which(n) for n in ('blockMesh','checkMesh','icoFoam'))}) if self.path=='/health' else self.send(404,{'error':'Not found'})
+ def do_GET(self):
+  if self.path.startswith('/jobs/'):
+   from kcee.cfd_worker_jobs import status
+   try:self.send(200,status(self.path.split('/')[2]))
+   except (KeyError,ValueError):self.send(404,{'error':'Unknown worker job'})
+   return
+  self.health()
+ def health(self):self.send(200,{'status':'ready','scope':'channel_vortex_and_exploratory_bracket_flow','bracket_flow':all(shutil.which(n) for n in ('surfaceCheck','snappyHexMesh','simpleFoam')),'openfoam_vortex':all(shutil.which(n) for n in ('blockMesh','checkMesh','icoFoam'))}) if self.path=='/health' else self.send(404,{'error':'Not found'})
  def do_POST(self):
+  if self.path.startswith('/jobs/') and self.path.endswith('/cancel'):
+   from kcee.cfd_worker_jobs import status
+   try:self.send(200,status(self.path.split('/')[2],True))
+   except (KeyError,ValueError):self.send(404,{'error':'Unknown worker job'})
+   return
+  identifier=self.headers.get('X-KCEE-Job-ID')
+  if not identifier:return self._post()
+  from kcee.cfd_worker_jobs import begin,end
+  from kcee.cfd_control import using
+  try:control=begin(identifier)
+  except ValueError:self.send(422,{'error':'Invalid worker job'});return
+  try:
+   with using(control):self._post()
+  except BrokenPipeError:pass
+  except Exception:self.send(503,{'error':'CFD job stopped'})
+  finally:end(control.identifier)
+ def _post(self):
   if self.path=='/bracket-flow':
    if not vortex_lock.acquire(blocking=False):self.send(409,{'error':'CFD worker busy'});return
    try:

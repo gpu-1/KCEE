@@ -1,5 +1,6 @@
 import zipfile
 import logging
+import threading
 import os
 from pathlib import Path
 from uuid import UUID
@@ -758,3 +759,57 @@ def bracket_flow_joint_study(run_id: UUID,body: dict | None=None):
     except ValueError as error:raise HTTPException(422,str(error))
     except psycopg.Error:raise HTTPException(503,'Database unavailable; completed studies retained')
     return {'run_id':dest.name,'validation_status':'exploratory_bracket_flow_reference_not_engineering_validated'}
+
+
+# A single process owns durable CFD orchestration; solver work stays in the CFD worker.
+_cfd_jobs=None
+_cfd_jobs_lock=threading.Lock()
+def cfd_job_manager():
+    global _cfd_jobs
+    with _cfd_jobs_lock:
+        if _cfd_jobs is None:
+            from kcee.cfd_jobs import Jobs
+            def execute(kind,parent,options):
+                functions={'flow':bracket_external_flow,'refinement':bracket_flow_refinement,'domains':bracket_flow_domains,'combined':bracket_flow_combined,'local':bracket_flow_local_refinement,'reference':bracket_flow_reference_study,'joint':bracket_flow_joint_study}
+                return cfd_vortex() if kind=='vortex' else functions[kind](UUID(parent),options)
+            _cfd_jobs=Jobs(os.environ.get('KCEE_CFD_JOBS_DIR','/data/cfd-jobs'),execute)
+        return _cfd_jobs
+@app.on_event('startup')
+def recover_cfd_jobs():cfd_job_manager()
+
+class CFDJobRequest(BaseModel):
+    kind: Literal['flow','refinement','domains','combined','local','reference','joint','vortex']
+    parent_id: UUID | None=None
+    options: dict={}
+
+@app.get('/cfd-jobs')
+def list_cfd_jobs():return {'items':cfd_job_manager().list()}
+@app.get('/cfd-jobs/{job_id}')
+def get_cfd_job(job_id: UUID):
+    try:return cfd_job_manager().get(str(job_id))
+    except KeyError:raise HTTPException(404,'Unknown CFD job')
+@app.post('/cfd-jobs',status_code=202)
+def start_cfd_job(body: CFDJobRequest):
+    ready()
+    from kcee.cfd_jobs import validate
+    try:
+        validate(body.kind,body.parent_id,body.options)
+        if body.parent_id:
+            registry.verify(ARTIFACTS,body.parent_id)
+            if not (ARTIFACTS/str(body.parent_id)/'geometry-request.json').is_file():raise ValueError('Select a native PicoGK bracket')
+        return cfd_job_manager().start(body.kind,body.parent_id,body.options)
+    except RuntimeError as error:raise HTTPException(409,str(error))
+    except (ValueError,TypeError) as error:raise HTTPException(422,str(error))
+    except KeyError:raise HTTPException(404,'Unknown parent design')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+@app.post('/cfd-jobs/{job_id}/cancel')
+def cancel_cfd_job(job_id: UUID):
+    try:return cfd_job_manager().cancel(str(job_id))
+    except KeyError:raise HTTPException(404,'Unknown CFD job')
+@app.post('/cfd-jobs/{job_id}/retry',status_code=202)
+def retry_cfd_job(job_id: UUID):
+    ready()
+    try:return cfd_job_manager().retry(str(job_id))
+    except KeyError:raise HTTPException(404,'Unknown CFD job')
+    except RuntimeError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))

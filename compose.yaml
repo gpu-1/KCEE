@@ -23,6 +23,7 @@ services:
     ports: ["127.0.0.1:8000:8000"]
     environment:
       CFD_URL: http://cfd:8007
+      KCEE_CFD_JOBS_DIR: /data/cfd-jobs
       THERMAL_URL: http://thermal:8006
       STRUCTURAL_URL: http://structural:8005
       PGHOST: postgres
@@ -48,7 +49,7 @@ services:
       interval: 5s
       timeout: 4s
       retries: 10
-    volumes: ["./.local/backups:/data/backup-status:ro", "./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant", "./.local/embeddings:/data/embeddings"]
+    volumes: ["./.local/cfd-jobs:/data/cfd-jobs", "./.local/backups:/data/backup-status:ro", "./runs:/data/runs", "./.local/geometry:/data/geometry", "./.local/control:/data/control", "./.local/studies:/data/explorations:ro", "./.local/voice:/data/voice", "./.local/assistant:/data/assistant", "./.local/embeddings:/data/embeddings"]
     depends_on:
       postgres: {condition: service_healthy}
     networks: [local]

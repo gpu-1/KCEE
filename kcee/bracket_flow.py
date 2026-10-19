@@ -99,8 +99,8 @@ relaxationFactors {fields {p 0.3;} equations {U 0.7;}}
  return metadata
 
 def command(root,name,args=(),timeout=180):
- with (root/(name+'.log')).open('w') as log:
-  proc=subprocess.run([name,'-case',str(root),*args],stdout=log,stderr=subprocess.STDOUT,timeout=timeout,cwd=root)
+ from kcee.cfd_control import run_logged
+ proc=run_logged([name,'-case',str(root),*args],root,name,timeout)
  if proc.returncode:raise ValueError(name+' failed: '+(root/(name+'.log')).read_text()[-1500:])
 
 def mesh_list(path):
@@ -190,6 +190,8 @@ def apply_sampling(result,vertex_means,mesh_root,version):
  return result
 
 def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_version=DEFAULT,local_profile='baseline'):
+ from kcee.cfd_control import checkpoint
+ checkpoint('preparing',case=mesh_name+' / '+domain_name)
  validate_profile(local_profile,mesh_name,domain_name,bore_level)
  if local_profile==LOCAL_PROFILE and sampling_version!=COMPACT:raise ValueError('Targeted refinement requires Compact v1 sampling')
  sampling_spec(sampling_version)
@@ -199,7 +201,7 @@ def run_payload(raw,mesh_name='coarse',domain_name='base',bore_level=4,sampling_
   (root/'sampling.json').write_text(json.dumps(sampling_spec(sampling_version),sort_keys=True))
   (root/'runtime.json').write_text(json.dumps({'package':subprocess.check_output(['dpkg-query','-W','-f=${Version}','openfoam'],text=True),'binaries_sha256':{name:hashlib.sha256(Path(shutil.which(name)).read_bytes()).hexdigest() for name in ('snappyHexMesh','simpleFoam','checkMesh','surfaceCheck')}}))
   try:
-   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,sampling_version,local_profile)
+   command(root,'surfaceCheck',['constant/triSurface/bracket.stl']);command(root,'blockMesh');command(root,'snappyHexMesh',['-overwrite']);command(root,'checkMesh');command(root,'simpleFoam',timeout=900);from kcee.cfd_control import checkpoint;checkpoint('postprocessing');result=evaluate_case(root,metadata,mesh_name,raw,domain_name,bore_level,sampling_version,local_profile)
   except Exception as error:
    failure=str(error)[:2000];result=None;(root/'job.log').write_text(failure+'\n')
   buffer=io.BytesIO()

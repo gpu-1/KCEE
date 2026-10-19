@@ -38,7 +38,9 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
  raw=(source/'bracket.stl').read_bytes();dest=Path(root)/str(uuid.uuid4());dest.mkdir()
  for name in ('requirements.json','bracket.stl','geometry-request.json','geometry.json'):shutil.copy2(source/name,dest/name)
  try:
-  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json'},method='POST')
+  from kcee.cfd_control import checkpoint,headers
+  checkpoint('solver',mesh=mesh_name,domain=domain_name)
+  request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json',**headers()},method='POST')
   with urlopen(request,timeout=1080) as response:
    response_limit=(128 if mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
    encoded=response.read(response_limit+1)
@@ -48,6 +50,7 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
    archive=base64.b64decode(payload['archive_base64'],validate=True)
    if len(archive)<=36*1024*1024 and hashlib.sha256(archive).hexdigest()==payload['archive_sha256']:(dest/'failed-solver-artifacts.zip').write_bytes(archive)
    raise ValueError('OpenFOAM execution failed; inspect retained solver logs')
+  checkpoint('verifying_solver_evidence',mesh=mesh_name,domain=domain_name)
   flow,archive=verified_archive(payload,raw,mesh_name,domain_name,bore_level)
   if flow_version(flow)!=sampling_version:raise ValueError('Worker returned a different sampling version')
  except Exception as error:

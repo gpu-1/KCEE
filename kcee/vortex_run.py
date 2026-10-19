@@ -31,10 +31,13 @@ def verify_payload(payload):
  return result,archive
 
 def run_vortex(root):
- with urlopen(Request(os.environ.get('CFD_URL','http://cfd:8007')+'/vortex',data=b'',method='POST'),timeout=240) as response:
+ from kcee.cfd_control import checkpoint,headers
+ checkpoint('solver',case='Taylor–Green vortex')
+ with urlopen(Request(os.environ.get('CFD_URL','http://cfd:8007')+'/vortex',data=b'',headers=headers(),method='POST'),timeout=240) as response:
   raw=response.read(24*1024*1024+1)
   if len(raw)>24*1024*1024:raise ValueError('Solver payload too large')
   payload=json.loads(raw)
+ checkpoint('verifying_solver_evidence')
  flow,archive=verify_payload(payload);dest=Path(root)/str(uuid.uuid4());dest.mkdir(parents=True,exist_ok=False)
  result={'kind':'cfd_vortex','validation_status':flow['validation_status'],'geometry_backend':'OpenFOAM periodic reference domain envelope','vortex':flow,'assumptions':flow['limits']}
  for name,data in [('result.json',result),('cfd.json',flow),('requirements.json',flow['inputs']),('voice-summary.json',{'text':'OpenFOAM vortex numerical verification completed. Engineering validation remains pending.','delivery':'artifact_only'})]:(dest/name).write_text(json.dumps(data,indent=2))
