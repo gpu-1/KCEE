@@ -538,6 +538,12 @@ class RegistryIntegration(unittest.TestCase):
             self.assertIn('text/csv',response.headers['Content-Type']);self.assertIn('report_manifest_sha256',response.read().decode())
         with self.assertRaises(HTTPError) as bad_format:request('/runs/'+native_id+'/regional-forces?format=unsafe')
         self.assertEqual(bad_format.exception.code,422)
+        with urlopen(BASE+'/runs/'+native_id+'/regional-wall/'+dest.name,timeout=120) as response:wall=json.load(response)
+        self.assertEqual(wall['schema'],'native-regional-wall-view-v1');self.assertTrue(all(wall['checks'].values()));self.assertEqual(wall['source']['run_id'],dest.name)
+        self.assertEqual(wall['surface']['region_face_counts'],[r['faces'] for r in wall['source']['regions']]);self.assertEqual(len(set(wall['surface']['triangle_source_faces'])),wall['surface']['wall_faces'])
+        with self.assertRaises(HTTPError) as wrong_wall:request('/runs/'+native_id+'/regional-wall/'+native_id)
+        self.assertEqual(wrong_wall.exception.code,422)
+
         regional_headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Evidence':'1'}
         def check_regional(payload,headers=regional_headers):
             req=Request(BASE+'/runs/'+native_id+'/regional-force-verification',data=payload,headers=headers)

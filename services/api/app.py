@@ -824,6 +824,15 @@ def native_regional_forces(run_id: UUID, format: str='json'):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(422,str(error))
 
+@app.get('/runs/{run_id}/regional-wall/{source_id}')
+def regional_wall_view(run_id: UUID,source_id: UUID):
+    ready()
+    from kcee.regional_wall import surface
+    try:return surface(ARTIFACTS,run_id,source_id,registry)
+    except KeyError:raise HTTPException(404,'Required native source is unavailable')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+
 @app.post('/runs/{run_id}/regional-force-verification')
 async def verify_regional_export(run_id: UUID,request: Request):
     ready()

@@ -102,3 +102,7 @@ aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overfl
 .force-chart svg{display:block;width:100%;height:auto}.table-scroll{max-width:100%;overflow-x:auto}#flow-forces-results select{max-width:100%;width:100%}#flow-forces-results td{font-variant-numeric:tabular-nums}
 
 #native-force-results select{width:100%;max-width:100%}#native-force-results td{font-variant-numeric:tabular-nums}
+
+#regional-wall-tools select,#regional-wall-quantity{display:block;width:100%;max-width:100%;margin:8px 0;padding:8px;background:#1b2a35;color:#dfe9f1;border:1px solid #3a5262}#regional-wall-values td{white-space:nowrap}#regional-wall-tools .service-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+.region-legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;font-size:11px}.region-legend>span{display:inline-flex;align-items:center;gap:5px}.region-swatch{display:inline-block;width:12px;height:12px;border-radius:2px}

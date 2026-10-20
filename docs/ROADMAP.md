@@ -19,3 +19,5 @@
 13. Regional native-load diagnostics: disjoint face-centre neighborhoods, signed pressure/viscous/total force and moment changes, complete load closure, pressure-reference sensitivity and source-bound JSON/CSV snapshots. Remaining component sensitivity is assessed without rerunning or modifying saved studies; convergence remains pending.
 
 14. Regional JSON exports can be reopened and checked against fully replayed local source evidence, with bounded strict parsing, source mismatch/availability/integrity distinctions and downloadable verification records. Original numerical and engineering gate status is retained.
+
+15. Actual CFD wall neighborhoods in the 3D viewer: full wall polygons with native parent-face region identities, source-case selection, neighborhood highlighting, source-matched force/moment tables and geometry/evidence JSON export. Display face counts are checked against integrated regions.
