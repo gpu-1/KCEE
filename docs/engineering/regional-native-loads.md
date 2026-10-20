@@ -31,3 +31,13 @@ Medium → fine signed x-force changes (N):
 | Upright remainder | -7.54748e-09 | 9.24672e-09 | 1.69924e-09 |
 
 The largest individual pressure and viscous changes are in the upright remainder, with substantial root changes. Opposing component and regional changes cancel in the whole-bracket total. These results identify diagnostic targets; centroid membership, quality-recipe changes and pressure-reference dependence prevent an error or convergence claim.
+
+## Reopen and verify exported JSON
+
+Under **Where loads change**, expand **Verify a regional export**, select a regional JSON snapshot (up to 2 MB), and choose **Verify export**. The selected source report and its source cases must exist locally, including after a backup restore. The file is sent only to the local API; imported values are never registered or substituted for source evidence.
+
+`POST /runs/{uuid}/regional-force-verification` accepts the original JSON bytes, with the local website Origin and `X-KCEE-Evidence: 1`. Input is streamed with a 2 MB limit. Strict parsing rejects duplicate keys, nonfinite values, unsupported schemas and excessive nesting. The verifier hashes the exact uploaded bytes, independently replays the selected native source report and recomputes its regional snapshot. Every field is compared, including comparisons, limits, method version and all provenance. Boolean values cannot substitute for numeric values.
+
+Results distinguish `matches_reproduced_sources`, `snapshot_differs`, `source_mismatch`, `source_unavailable`, `source_integrity_failed` and `source_replay_failed`. A mismatched source report is not replayed. Changed snapshots identify affected top-level fields. An implementation mismatch is reported explicitly among those fields; historical exports are not silently rewritten for a newer method. The original regional implementation is unchanged by this verifier, so previously exported files from that implementation still match.
+
+JSON and readable text verification reports retain the exact file SHA-256, local check time, selected report, reproduced source identities, mismatch categories and engineering limitations. A report is also available for a completed mismatch. Malformed files and request failures do not receive a successful verification status. A matching snapshot with failed original source checks still records those failures and leaves engineering acceptance pending. Verification demonstrates equality to the available local evidence; it does not establish authorship, external authenticity, mesh convergence or physical accuracy.

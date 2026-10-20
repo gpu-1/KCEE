@@ -824,6 +824,21 @@ def native_regional_forces(run_id: UUID, format: str='json'):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(422,str(error))
 
+@app.post('/runs/{run_id}/regional-force-verification')
+async def verify_regional_export(run_id: UUID,request: Request):
+    ready()
+    if request.headers.get('origin') not in ('http://localhost:5173','http://127.0.0.1:5173') or request.headers.get('x-kcee-evidence')!='1':raise HTTPException(403,'Regional export checks require the local website')
+    from kcee.regional_verification import verify,MAX_BYTES
+    raw=bytearray()
+    async for part in request.stream():
+        raw.extend(part)
+        if len(raw)>MAX_BYTES:raise HTTPException(413,'Regional export exceeds 2 MB')
+    try:
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(verify,ARTIFACTS,run_id,registry,bytes(raw))
+    except (ValueError,TypeError,OverflowError) as error:raise HTTPException(422,str(error)[:180])
+    except psycopg.Error:raise HTTPException(503,'Source database unavailable')
+
 @app.post('/runs/{run_id}/flow-forces',status_code=201)
 def bracket_force_study(run_id: UUID,body: dict | None=None):
     ready()

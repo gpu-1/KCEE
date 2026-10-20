@@ -6,9 +6,9 @@ export function nativeRows(study,moment=false){
  if(!keys.every(k=>Array.isArray(f[k])&&f[k].length===3&&f[k].every(Number.isFinite)))throw Error('Invalid native load vector');
  return ['x','y','z'].map((axis,i)=>{const values=keys.map(k=>f[k][i]);if(Math.abs(values[0]+values[1]-values[2])>1e-10*Math.max(...values.map(Math.abs),1e-20))throw Error('Native load components do not close');return {axis,values};});
 }
-export function mountNativeForces(data,openRun,verify,regional){
+export function mountNativeForces(data,openRun,verify,regional,verifyRegional){
  if(data?.schema!=='kcee.bracket-native-forces.v1'||![1,3,4,6].includes(data.studies?.length))throw Error('Invalid native force study');
- mountRegionalForces(regional);document.getElementById('regional-forces').hidden=data.studies.length<2;
+ mountRegionalForces(regional,verifyRegional);document.getElementById('regional-forces').hidden=data.studies.length<2;
  const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg',cell=(tr,text)=>{const td=document.createElement('td');td.textContent=String(text);tr.append(td);return td;};
  for(const id of ['native-case','native-comparisons','native-benchmark','native-checks'])$(id).replaceChildren();$('native-verify-status').textContent='';
  $('native-layer-sensitivity').hidden=!data.layer_sensitivity;$('native-layer-chart').replaceChildren();$('native-layer-summary').textContent='';

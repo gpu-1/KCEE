@@ -1,3 +1,4 @@
+import {mountRegionalVerification} from './regional-verification-view.js';
 let generation=0,urls=[];
 export function regionalRows(data,comparison,component='pressure',moment=false,axis=0){
  if(data?.schema!=='native-regional-loads-v1'||!['pressure','viscous','total'].includes(component)||![0,1,2].includes(axis))throw Error('Invalid regional diagnostics');
@@ -5,7 +6,8 @@ export function regionalRows(data,comparison,component='pressure',moment=false,a
  if(!c)throw Error('Missing regional comparison');
  return c.regions.map(r=>{const v=r.signed_changes[key];if(!Array.isArray(v)||v.length!==3||!v.every(Number.isFinite))throw Error('Invalid regional change');return {name:r.region,value:v[axis]};});
 }
-export function mountRegionalForces(load){
+export function mountRegionalForces(load,verify){
+ mountRegionalVerification(verify);
  const token=++generation,$=id=>document.getElementById(id);for(const u of urls)URL.revokeObjectURL(u);urls=[];
  $('regional-result').hidden=true;$('regional-status').textContent='';$('regional-load').disabled=false;
  $('regional-load').onclick=async()=>{

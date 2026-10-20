@@ -538,6 +538,17 @@ class RegistryIntegration(unittest.TestCase):
             self.assertIn('text/csv',response.headers['Content-Type']);self.assertIn('report_manifest_sha256',response.read().decode())
         with self.assertRaises(HTTPError) as bad_format:request('/runs/'+native_id+'/regional-forces?format=unsafe')
         self.assertEqual(bad_format.exception.code,422)
+        regional_headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Evidence':'1'}
+        def check_regional(payload,headers=regional_headers):
+            req=Request(BASE+'/runs/'+native_id+'/regional-force-verification',data=payload,headers=headers)
+            with urlopen(req,timeout=120) as response:return json.load(response)
+        checked=check_regional(json.dumps(regional).encode());self.assertEqual(checked['integrity'],'matches_reproduced_sources');self.assertFalse(checked['all_source_solver_checks'])
+        regional['cases'][0]['regions'][0]['loads']['pressure_force_N'][0]+=.01
+        changed=check_regional(json.dumps(regional).encode());self.assertEqual(changed['integrity'],'snapshot_differs');self.assertIn('cases',changed['mismatched_fields'])
+        for payload,headers,status in [(b'{}',regional_headers,422),(b'x'*(2*1024*1024+1),regional_headers,413),(b'{}',{'Content-Type':'application/json'},403)]:
+            with self.assertRaises(HTTPError) as rejected:check_regional(payload,headers)
+            self.assertEqual(rejected.exception.code,status)
+
         regional_archive=root/native_id/'native-forces.zip';regional_bytes=regional_archive.read_bytes();regional_archive.write_bytes(regional_bytes+b'tamper')
         try:
             with self.assertRaises(HTTPError) as tampered_region:request('/runs/'+native_id+'/regional-forces')
