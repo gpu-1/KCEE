@@ -26,7 +26,7 @@ export function mountRegionalWall(studies,load,draw,restore,available){
   $('regional-wall-note').textContent=current.source.mesh+' · '+current.surface.wall_faces+' native wall faces · '+current.surface.triangles.length+' display triangles. '+(selected<0?'All neighborhoods shown.':current.regions[selected]+' highlighted; other faces dimmed.')+' Colors are region labels, not stress. Selected source '+current.source.run_id+'.';
  };
  const fetchCase=async()=>{
-  const ticket=++seq,id=$('regional-wall-case').value;visible=true;current=null;$('regional-wall-note').textContent='Reproducing native source evidence and loading the wall mesh…';$('regional-wall-show').disabled=true;
+  const ticket=++seq,id=$('regional-wall-case').value;visible=true;current=null;$('regional-wall-loads').replaceChildren();$('regional-wall-download').hidden=true;$('regional-wall-note').textContent='Reproducing native source evidence and loading the wall mesh…';$('regional-wall-show').disabled=true;
   try{let d=cache.get(id);if(!d){d=await load(id);if(token!==generation||ticket!==seq)return;wallGeometry(d);cache.set(id,d);}if(token!==generation||ticket!==seq)return;
    if(d.source.run_id!==id||!Object.values(d.checks).every(v=>v===true))throw Error('Wall source identity or checks differ');current=d;visible=true;show(true);$('regional-wall-reset').disabled=false;
    if(download)URL.revokeObjectURL(download);download=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));$('regional-wall-download').href=download;$('regional-wall-download').hidden=false;
