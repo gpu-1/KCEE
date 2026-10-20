@@ -1,3 +1,4 @@
+import {mountHotspots,clearHotspots} from './wall-hotspots.js';
 import {mountFieldComparison,clearFieldComparison,metricKey} from './wall-field-comparison.js';
 import {fieldColors,faceDescription} from './wall-fields-view.js';
 export const REGION_COLORS=['#e5b56b','#e47e82','#80b6ed','#b398ec','#ed91cc','#77cfb8','#a8ce73'];
@@ -13,8 +14,8 @@ export function wallGeometry(data,selected=-1){
  if(faceRegions.size!==s.wall_faces||counts.some((n,i)=>n!==s.region_face_counts[i]||n!==data.source.regions[i].faces))throw Error('Regional face counts differ from integrated evidence');
  return {positions,colors};
 }
-export function clearRegionalWall(){clearFieldComparison();generation++;if(download)URL.revokeObjectURL(download);download=null;const e=document.getElementById('regional-wall-tools');if(e)e.hidden=true;const values=document.getElementById('regional-wall-values');if(values)values.hidden=true;document.getElementById('wall-field-scale').hidden=true;document.getElementById('wall-face-info').textContent='';}
-export function mountRegionalWall(studies,load,draw,restore,available){
+export function clearRegionalWall(){clearHotspots();clearFieldComparison();generation++;if(download)URL.revokeObjectURL(download);download=null;const e=document.getElementById('regional-wall-tools');if(e)e.hidden=true;const values=document.getElementById('regional-wall-values');if(values)values.hidden=true;document.getElementById('wall-field-scale').hidden=true;document.getElementById('wall-face-info').textContent='';}
+export function mountRegionalWall(studies,load,draw,restore,available,focus){
  clearRegionalWall();const token=generation,$=id=>document.getElementById(id),cache=new Map();let seq=0,current=null,visible=false,commonRanges=null;
  const pending=new Map(),acquire=async id=>{if(cache.has(id))return cache.get(id);if(!pending.has(id)){const promise=load(id).then(d=>{if(token!==generation)throw Error('Study changed');wallGeometry(d);fieldColors(wallGeometry(d),d,'regions');if(d.source.run_id!==id||!Object.values(d.checks).every(v=>v===true))throw Error('Source identity or checks differ');cache.set(id,d);return d;}).finally(()=>pending.delete(id));pending.set(id,promise);}return pending.get(id);};
  $('regional-wall-tools').hidden=false;$('regional-wall-values').hidden=false;$('regional-wall-case').replaceChildren();$('regional-wall-legend').replaceChildren();$('regional-wall-region').replaceChildren();$('regional-wall-loads').replaceChildren();$('regional-wall-note').textContent='Colors identify diagnostic neighborhoods, not stress. Uses the saved CFD wall mesh and native face-centre assignments.';$('regional-wall-download').hidden=true;
@@ -29,13 +30,13 @@ export function mountRegionalWall(studies,load,draw,restore,available){
   $('regional-wall-note').textContent=current.source.mesh+' · '+current.surface.wall_faces+' native wall faces · '+current.surface.triangles.length+' display triangles. '+(selected<0?'All neighborhoods shown.':current.regions[selected]+' highlighted; other faces dimmed.')+($('wall-color-mode').value==='regions'?' Colors identify neighborhoods.':' Colors show native pressure or full traction values in Pa; see the legend.')+' Selected source '+current.source.run_id+'.';
  };
  const fetchCase=async()=>{
-  const ticket=++seq,id=$('regional-wall-case').value;visible=true;current=null;$('regional-wall-loads').replaceChildren();$('wall-face-info').textContent='';$('wall-field-scale').hidden=true;$('regional-wall-download').hidden=true;$('regional-wall-note').textContent='Reproducing native source evidence and loading the wall mesh…';$('regional-wall-show').disabled=true;
+  const ticket=++seq,id=$('regional-wall-case').value;visible=true;current=null;clearHotspots();$('regional-wall-loads').replaceChildren();$('wall-face-info').textContent='';$('wall-field-scale').hidden=true;$('regional-wall-download').hidden=true;$('regional-wall-note').textContent='Reproducing native source evidence and loading the wall mesh…';$('regional-wall-show').disabled=true;
   try{const d=await acquire(id);if(token!==generation||ticket!==seq)return;
-   if(d.source.run_id!==id||!Object.values(d.checks).every(v=>v===true))throw Error('Wall source identity or checks differ');current=d;visible=true;show(true);$('regional-wall-reset').disabled=false;
+   if(d.source.run_id!==id||!Object.values(d.checks).every(v=>v===true))throw Error('Wall source identity or checks differ');current=d;visible=true;show(true);$('regional-wall-reset').disabled=false;mountHotspots(d,row=>{if(current!==d||!visible)return;$('regional-wall-region').value=String(row.region);show();const index=d.surface.triangle_source_faces.indexOf(row.face);$('wall-face-info').textContent=faceDescription(d,index)+' White marker shows this native face centre.';focus(row.centre_m.map(x=>x*1000));document.getElementById('viewport').scrollIntoView({block:'center'});});
    if(download)URL.revokeObjectURL(download);download=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));$('regional-wall-download').href=download;$('regional-wall-download').hidden=false;
   }catch(e){if(token===generation&&ticket===seq)$('regional-wall-note').textContent=e.message;}finally{if(token===generation&&ticket===seq)$('regional-wall-show').disabled=!available;}
  };
  mountFieldComparison(studies,acquire,ranges=>{commonRanges=ranges;show();});
  $('regional-wall-show').onclick=fetchCase;$('regional-wall-case').onchange=()=>{if(visible)fetchCase();};$('regional-wall-region').onchange=()=>show();$('regional-wall-quantity').onchange=()=>show();$('wall-color-mode').onchange=()=>show();$('wall-color-axis').onchange=()=>show();
- $('regional-wall-reset').onclick=()=>{seq++;visible=false;restore();$('wall-field-scale').hidden=true;$('wall-face-info').textContent='';$('regional-wall-show').disabled=!available;$('regional-wall-reset').disabled=true;$('regional-wall-loads').replaceChildren();$('regional-wall-note').textContent='Original PicoGK surface shown. Choose Show regions to inspect the saved CFD wall.';};
+ $('regional-wall-reset').onclick=()=>{seq++;visible=false;clearHotspots();restore();$('wall-field-scale').hidden=true;$('wall-face-info').textContent='';$('regional-wall-show').disabled=!available;$('regional-wall-reset').disabled=true;$('regional-wall-loads').replaceChildren();$('regional-wall-note').textContent='Original PicoGK surface shown. Choose Show regions to inspect the saved CFD wall.';};
 }

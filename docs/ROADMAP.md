@@ -25,3 +25,5 @@
 16. Native pressure and full viscous/total wall traction colors: physical Pa units, fixed per-case signed/magnitude legends, unsmoothed parent-face inspection, integrated force/moment closure and source-bound field exports. Numerical colors use unlit materials; stress/engineering acceptance is not inferred.
 
 17. Cross-case wall-field comparison: native-face area-weighted distributions and percentiles, per-neighborhood charts/tables, common signed/magnitude 3D color ranges and source-bound comparison JSON. These population comparisons do not establish mesh convergence.
+
+18. Wall hotspot investigations: whole native-face area tails with all threshold ties, force/moment tail–remainder closure, regional load contributions, source-bound evidence export and native-face location markers in 3D. Hotspot ranking is diagnostic; mesh convergence remains pending.
