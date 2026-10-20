@@ -23,3 +23,5 @@
 15. Actual CFD wall neighborhoods in the 3D viewer: full wall polygons with native parent-face region identities, source-case selection, neighborhood highlighting, source-matched force/moment tables and geometry/evidence JSON export. Display face counts are checked against integrated regions.
 
 16. Native pressure and full viscous/total wall traction colors: physical Pa units, fixed per-case signed/magnitude legends, unsmoothed parent-face inspection, integrated force/moment closure and source-bound field exports. Numerical colors use unlit materials; stress/engineering acceptance is not inferred.
+
+17. Cross-case wall-field comparison: native-face area-weighted distributions and percentiles, per-neighborhood charts/tables, common signed/magnitude 3D color ranges and source-bound comparison JSON. These population comparisons do not establish mesh convergence.

@@ -1,0 +1,43 @@
+import {faceMap,fieldValue} from './wall-fields-view.js';
+export const METHOD='native-wall-area-distributions-v1';
+export const METRICS=[['pressure','magnitude'],...['viscous','total'].flatMap(m=>['magnitude','0','1','2'].map(a=>[m,a]))];
+export const metricKey=(mode,axis)=>mode==='pressure'?'pressure':mode+'_'+axis;
+const sum=xs=>{let s=0,c=0;for(const x of xs){const y=x-c,t=s+y;c=(t-s)-y;s=t;}return s;};
+export function weightedStats(values,areas){
+ if(values.length!==areas.length)throw Error('Mismatched weighted samples');
+ if(!values.length)return null;
+ if(values.length!==areas.length||!values.every(Number.isFinite)||!areas.every(a=>Number.isFinite(a)&&a>0))throw Error('Invalid area-weighted field samples');
+ const area=sum(areas),sorted=values.map((v,i)=>[v,areas[i]]).sort((a,b)=>a[0]-b[0]);
+ const quantile=q=>{let a=0;for(const [v,w] of sorted){a+=w;if(a>=q*area)return v;}return sorted.at(-1)[0];};
+ const result={faces:values.length,area_m2:area,min:sorted[0][0],p05:quantile(.05),median:quantile(.5),p95:quantile(.95),max:sorted.at(-1)[0],mean:sum(values.map((v,i)=>v*areas[i]))/area,rms:Math.sqrt(sum(values.map((v,i)=>v*v*areas[i]))/area)};
+ if(!Object.values(result).every(Number.isFinite))throw Error('Nonfinite weighted statistics');return result;
+}
+export function summarizeCase(data){
+ const map=faceMap(data),regionByFace=new Map();data.surface.triangle_source_faces.forEach((f,i)=>{const r=data.surface.triangle_regions[i];if(!Number.isInteger(r)||r<0||r>=data.regions.length||(regionByFace.has(f)&&regionByFace.get(f)!==r))throw Error('Inconsistent face regions');regionByFace.set(f,r);});
+ const rows=[...map.values()],summarize=selected=>Object.fromEntries(METRICS.map(([mode,axis])=>[metricKey(mode,axis),weightedStats(selected.map(f=>fieldValue(f,mode,axis)),selected.map(f=>f.area_m2))]));
+ return {run_id:data.source.run_id,mesh:data.source.mesh,profile:data.source.profile,domain:data.source.domain,manifest_sha256:data.source.manifest_sha256,archive_sha256:data.source.archive_sha256,native_evidence_sha256:data.source.native_evidence_sha256,overall:summarize(rows),regions:data.regions.map((name,i)=>({name,statistics:summarize(rows.filter(r=>regionByFace.get(r.face)===i))}))};
+}
+export async function buildFieldComparison(payloads){
+ if(!Array.isArray(payloads)||payloads.length<2||payloads.length>6||new Set(payloads.map(d=>d.source.run_id)).size!==payloads.length)throw Error('Use two to six distinct native source cases');
+ const first=payloads[0];for(const d of payloads)if(d.report_run_id!==first.report_run_id||d.report_manifest_sha256!==first.report_manifest_sha256||d.field_implementation_sha256!==first.field_implementation_sha256||d.regional_implementation_sha256!==first.regional_implementation_sha256||JSON.stringify(d.regions)!==JSON.stringify(first.regions)||!Object.values(d.checks).every(v=>v===true))throw Error('Field comparison source or method differs');
+ const cases=[];for(const d of payloads){const bytes=new TextEncoder().encode(JSON.stringify(d)),hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');cases.push({...summarizeCase(d),field_snapshot_sha256:hash});}
+ const shared_ranges=Object.fromEntries(METRICS.map(([mode,axis])=>{const key=metricKey(mode,axis),signed=mode==='pressure'||axis!=='magnitude',span=cases.reduce((v,c)=>Math.max(v,Math.abs(c.overall[key].min),Math.abs(c.overall[key].max)),0);return [key,{min:signed?-span:0,max:span}];}));
+ return {schema:METHOD,report_run_id:first.report_run_id,report_manifest_sha256:first.report_manifest_sha256,field_implementation_sha256:first.field_implementation_sha256,regional_implementation_sha256:first.regional_implementation_sha256,regions:first.regions,cases,shared_ranges,limits:'Area weights are native parent-face area magnitudes, counted once per face. Quantiles use the first sorted value whose cumulative area reaches the requested fraction, without interpolation. Distribution changes compare surface populations, not matched physical points or discretization errors. Region membership and wall area can change with mesh. Pressure retains its outlet reference. Shared palettes use the extrema of all cases and remain fixed across highlighting. No mesh convergence, uncertainty bound or physical validation is inferred.'};
+}
+let revision=0,urls=[];
+export function clearFieldComparison(){revision++;for(const u of urls)URL.revokeObjectURL(u);urls=[];const e=document.getElementById('wall-comparison');if(e)e.hidden=true;}
+export function mountFieldComparison(studies,load,setShared){
+ clearFieldComparison();const ticket=revision,$=id=>document.getElementById(id);let result=null;
+ $('wall-comparison').hidden=studies.length<2;$('wall-comparison-result').hidden=true;$('wall-comparison-status').textContent='';$('wall-comparison-build').disabled=false;$('wall-shared-scale').checked=false;$('wall-shared-scale').disabled=true;
+ $('wall-comparison-region').replaceChildren();for(const [i,name] of ['Whole wall','Base bore 1','Base bore 2','Upright bore 1','Upright bore 2','Root','Base remainder','Upright remainder'].entries()){const o=document.createElement('option');o.value=i-1;o.textContent=name;$('wall-comparison-region').append(o);}
+ const show=()=>{if(!result)return;const mode=$('wall-comparison-mode').value,axis=$('wall-comparison-axis').value,key=metricKey(mode,axis),region=Number($('wall-comparison-region').value);$('wall-comparison-axis').disabled=mode==='pressure';$('wall-comparison-rows').replaceChildren();const stats=result.cases.map(c=>region<0?c.overall[key]:c.regions[region].statistics[key]);
+  result.cases.forEach((c,i)=>{const s=stats[i],tr=document.createElement('tr');for(const text of [c.mesh+' / '+c.profile+' / '+c.domain,...(s?[s.faces,s.area_m2.toExponential(4),s.mean.toExponential(4),s.p05.toExponential(4),s.median.toExponential(4),s.p95.toExponential(4),s.max.toExponential(4)]:Array(7).fill('No faces'))]){const td=document.createElement('td');td.textContent=text;tr.append(td);}$('wall-comparison-rows').append(tr);});
+  const valid=stats.filter(Boolean),lo=Math.min(0,...valid.map(s=>s.min)),hi=Math.max(0,...valid.map(s=>s.max)),x=v=>65+260*(v-lo)/Math.max(hi-lo,1e-30),ns='http://www.w3.org/2000/svg',node=(tag,attrs={},text)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;},svg=node('svg',{viewBox:'0 0 360 '+(85+55*stats.length),role:'img','aria-label':'Area-weighted field distributions in Pa'});
+  svg.append(node('text',{x:10,y:17,fill:'#dfe9f1','font-size':11},'Pa · line P05–P95 · dot median · grey min–max'));stats.forEach((s,i)=>{if(!s)return;const y=48+i*55;svg.append(node('text',{x:5,y:y+4,fill:'#dfe9f1','font-size':10},result.cases[i].mesh),node('line',{x1:x(s.min),x2:x(s.max),y1:y,y2:y,stroke:'#526b7b','stroke-width':2}),node('line',{x1:x(s.p05),x2:x(s.p95),y1:y,y2:y,stroke:'#79dcc8','stroke-width':5}),node('circle',{cx:x(s.median),cy:y,r:4,fill:'#f4bd75'}));});svg.append(node('text',{x:50,y:60+55*stats.length,fill:'#a5b9c7','font-size':10},lo.toExponential(3)),node('text',{x:260,y:60+55*stats.length,fill:'#a5b9c7','font-size':10},hi.toExponential(3)));$('wall-comparison-chart').replaceChildren(svg);
+ };
+ $('wall-comparison-build').onclick=async()=>{if(result){show();return;}$('wall-comparison-build').disabled=true;try{const payloads=[];for(const [i,s] of studies.entries()){$('wall-comparison-status').textContent='Reproducing source '+(i+1)+' of '+studies.length+' · '+s.mesh_name+'…';const d=await load(s.run_id);if(ticket!==revision)return;payloads.push(d);}const comparison=await buildFieldComparison(payloads);if(ticket!==revision)return;result=comparison;$('wall-comparison-result').hidden=false;$('wall-shared-scale').disabled=false;$('wall-comparison-limits').textContent=result.limits;
+   const u=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));urls.push(u);$('wall-comparison-json').href=u;$('wall-comparison-status').textContent='Compared '+result.cases.length+' source cases. Areas count each native face once. Shared color scales are available; distribution changes do not establish convergence.';show();
+  }catch(e){if(ticket===revision)$('wall-comparison-status').textContent=e.message;}finally{if(ticket===revision)$('wall-comparison-build').disabled=false;}};
+ for(const id of ['wall-comparison-mode','wall-comparison-axis','wall-comparison-region'])$(id).onchange=show;
+ $('wall-shared-scale').onchange=()=>setShared($('wall-shared-scale').checked?result.shared_ranges:null);
+}

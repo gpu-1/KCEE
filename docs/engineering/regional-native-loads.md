@@ -61,3 +61,15 @@ Numerical colors use an unlit, non-tone-mapped material and a blue–cyan–red 
 Click a mesh face without dragging to inspect its native identity, region, centre, area, pressure, full viscous and total traction, and pressure/viscous/total forces. Multiple display triangles from one polygon return the same parent values. Orbit dragging is excluded from picking. Source loading disables old-face inspection and clears stale tables/links; returning to the original model clears field legends and inspection.
 
 The geometry/evidence JSON now includes the wall fields and the separate field implementation SHA-256. Earlier wall-view and regional JSON methods are unchanged. Pressure depends on its reference; traction accuracy, wall resolution, physical validation and engineering acceptance remain pending. These colors do not represent structural stress or design allowables.
+
+## Area-weighted comparisons and common color scales
+
+**Compare field distributions** loads and checks every source case of the selected native report, reusing cases already in the browser cache. Progress identifies the current case. It derives whole-wall and per-neighborhood distributions for pressure, viscous traction and total traction, with magnitude and signed x/y/z traction components. The chart shows min–max, the area-weighted P05–P95 interval and median; the table includes face count, wall area and mean.
+
+`native-wall-area-distributions-v1` counts each native parent face once, using its area-vector magnitude as the area weight. Fan triangles are never counted as independent samples. A quantile is the first sorted face value whose cumulative area reaches the specified fraction; no interpolation is applied. Means and RMS values use area weights. Empty neighborhoods are unavailable, not zero-valued evidence.
+
+After comparison, **Use shared color scales in the 3D view** locks each numerical field to the extrema across all compared source cases. Signed fields use a symmetric zero-centred range; magnitudes use zero to the common maximum. The original per-case scale remains selectable by disabling the checkbox. Highlighting a neighborhood does not recompute either range. The legend explicitly states whether the range is case-specific or shared.
+
+The comparison JSON binds the native report manifest, every source manifest/archive/native evidence hash, field and regional implementation identities, all nine field distributions, all neighborhood distributions and the common ranges. Each checked wall-field payload is additionally bound by the SHA-256 of its compact JSON representation. This is a derived comparison snapshot, not a replacement registered study. Native source methods and historical exports are unchanged.
+
+Surface populations and neighborhood membership differ across meshes. Area-weighted distribution changes are not matched-point errors, analytical accuracy estimates, mesh convergence, or physical validation. Pressure retains the saved outlet reference; common color scales improve comparability without resolving reference or discretization sensitivity.

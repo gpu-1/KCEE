@@ -9,13 +9,14 @@ export function fieldValue(face,mode,axis='magnitude'){
  if(mode==='pressure')return face.pressure_Pa;if(!['viscous','total'].includes(mode)||!['magnitude','0','1','2'].includes(String(axis)))throw Error('Unsupported wall field');const v=face[mode+'_traction_Pa'];return axis==='magnitude'?Math.hypot(...v):v[Number(axis)];
 }
 const linear=c=>c<=.04045?c/12.92:((c+.055)/1.055)**2.4;
-export function fieldColors(geometry,data,mode,axis='magnitude',selected=-1){
+export function fieldColors(geometry,data,mode,axis='magnitude',selected=-1,shared=null){
  const map=faceMap(data);if(mode==='regions')return {...geometry,unlit:false,faceMap:map,legend:null};
- const values=[...map.values()].map(r=>fieldValue(r,mode,axis)),min=values.reduce((a,b)=>Math.min(a,b),Infinity),max=values.reduce((a,b)=>Math.max(a,b),-Infinity),signed=mode==='pressure'||axis!=='magnitude',span=signed?Math.max(Math.abs(min),Math.abs(max)):max,lo=signed?-span:0,hi=span;
- const colors=[];data.surface.triangle_source_faces.forEach((id,i)=>{const v=fieldValue(map.get(id),mode,axis),t=hi===lo?(signed?.5:0):(v-lo)/(hi-lo),rgb=t<.5?[0,2*t,1]:[2*t-1,2-2*t,2-2*t],dim=selected>=0&&data.surface.triangle_regions[i]!==selected;
+ const values=[...map.values()].map(r=>fieldValue(r,mode,axis)),min=values.reduce((a,b)=>Math.min(a,b),Infinity),max=values.reduce((a,b)=>Math.max(a,b),-Infinity),signed=mode==='pressure'||axis!=='magnitude',span=signed?Math.max(Math.abs(min),Math.abs(max)):max,lo=shared?.min??(signed?-span:0),hi=shared?.max??span;
+ if(!Number.isFinite(lo)||!Number.isFinite(hi)||lo>hi||lo>min+1e-12*Math.max(1,Math.abs(min))||hi<max-1e-12*Math.max(1,Math.abs(max)))throw Error('Shared range does not cover this wall field');
+ const colors=[];data.surface.triangle_source_faces.forEach((id,i)=>{const v=fieldValue(map.get(id),mode,axis),t=Math.max(0,Math.min(1,hi===lo?(signed?.5:0):(v-lo)/(hi-lo))),rgb=t<.5?[0,2*t,1]:[2*t-1,2-2*t,2-2*t],dim=selected>=0&&data.surface.triangle_regions[i]!==selected;
   const color=dim?[.025,.04,.055]:rgb.map(linear);for(let j=0;j<3;j++)colors.push(...color);
  });
- return {...geometry,colors,unlit:true,faceMap:map,legend:{min:lo,max:hi,actualMin:min,actualMax:max,signed,label:mode==='pressure'?'Pressure relative to outlet':(mode==='viscous'?'Full viscous traction':'Total traction')+' '+(axis==='magnitude'?'magnitude':'xyz'[Number(axis)]+' component'),units:'Pa'}};
+ return {...geometry,colors,unlit:true,faceMap:map,legend:{min:lo,max:hi,actualMin:min,actualMax:max,shared:Boolean(shared),signed,label:mode==='pressure'?'Pressure relative to outlet':(mode==='viscous'?'Full viscous traction':'Total traction')+' '+(axis==='magnitude'?'magnitude':'xyz'[Number(axis)]+' component'),units:'Pa'}};
 }
 export function faceDescription(data,index){
  if(!Number.isInteger(index)||index<0||index>=data.surface.triangles.length)throw Error('Invalid selected triangle');const face=data.surface.triangle_source_faces[index],r=faceMap(data).get(face),region=data.regions[data.surface.triangle_regions[index]],vector=v=>v.map(x=>x.toExponential(5)).join(', ');

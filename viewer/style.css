@@ -108,3 +108,5 @@ aside,.details{min-width:0}aside button{max-width:100%;white-space:normal;overfl
 .region-legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;font-size:11px}.region-legend>span{display:inline-flex;align-items:center;gap:5px}.region-swatch{display:inline-block;width:12px;height:12px;border-radius:2px}
 
 .wall-field-gradient{height:14px;background:linear-gradient(to right,#0000ff,#00ffff,#ff0000);border:1px solid #526b7b;border-radius:3px}#wall-face-info{overflow-wrap:anywhere}
+
+#wall-comparison select{display:block;width:100%;max-width:100%;padding:8px;margin:8px 0;background:#1b2a35;color:#dfe9f1;border:1px solid #3a5262}#wall-comparison input[type=checkbox]{width:auto;margin:0}
