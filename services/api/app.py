@@ -636,7 +636,7 @@ def cfd_vortex(body: dict | None=None):
 def bracket_external_flow(run_id: UUID,body: dict | None=None):
     import json
     from kcee.bracket_flow import MESHES
-    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far','outer') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1','wall-layers-v1','wall-bore-history-v1') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
+    if body and (set(body)-{'mesh_name','domain_name','bore_level','sampling_version','local_profile'} or not isinstance(body.get('mesh_name','coarse'),str) or body.get('mesh_name','coarse') not in MESHES or body.get('domain_name','base') not in ('base','expanded','far','outer') or body.get('sampling_version','compact-radius-v1') not in ('first-enclosing-v1','compact-radius-v1') or body.get('local_profile','baseline') not in ('baseline','wake-below-v1','wall-layers-v1','wall-bore-history-v1','wall-bore-history-fine-v2') or type(body.get('bore_level',4)) is not int or body.get('bore_level',4) not in (4,5)):raise HTTPException(422,'Choose a supported mesh, domain and bore level 4 or 5')
     mesh_name=(body or {}).get('mesh_name','coarse')
     from kcee.bracket_flow import domain_spec,validate_profile
     try:

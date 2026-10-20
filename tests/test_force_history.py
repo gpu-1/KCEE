@@ -37,3 +37,11 @@ class ForceHistoryTests(unittest.TestCase):
    record={'force_history_runtime':meta,'binaries_sha256':{'simpleFoam':'b'*64},'package':meta['package'],'solver_overlay_scope':'dictionary::digest only; fixed force-history simpleFoam invocation'}
    (root/'runtime.json').write_text(json.dumps(record))
    with self.assertRaisesRegex(ValueError,'fingerprint'):evaluate(root)
+ def test_fine_quality_v2_changes_only_skewness_generation(self):
+  from kcee.force_history import FINE_PROFILE
+  with tempfile.TemporaryDirectory() as tmp,patch('kcee.bracket_flow.prepare_surface',return_value=(b'solid bracket\nendsolid bracket\n',{})):
+   a=Path(tmp)/'v1';b=Path(tmp)/'v2';make_case(a,b'fixture','fine','far',5,PROFILE);make_case(b,b'fixture','fine','far',5,FINE_PROFILE)
+   differences=[p.relative_to(a).as_posix() for p in a.rglob('*') if p.is_file() and p.read_bytes()!=(b/p.relative_to(a)).read_bytes()]
+   self.assertEqual(differences,['system/snappyHexMeshDict'])
+   self.assertEqual((a/differences[0]).read_text().replace('maxBoundarySkewness 20','maxBoundarySkewness 3.5').replace('maxInternalSkewness 4','maxInternalSkewness 3.5'),(b/differences[0]).read_text())
+   with self.assertRaises(ValueError):validate_profile(FINE_PROFILE,'medium','far',5)

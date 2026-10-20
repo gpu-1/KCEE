@@ -137,7 +137,7 @@ def source_members(data,time=1500):
 
 def execute_source(data,raw,mesh_name,domain_name,bore_level,profile):
  from kcee.bracket_flow import make_case
- time=3000 if profile=='wall-bore-history-v1' else 1500
+ time=3000 if profile in ('wall-bore-history-v1','wall-bore-history-fine-v2') else 1500
  members=source_members(data,time)
  with tempfile.TemporaryDirectory(prefix='kcee-native-force-') as tmp:
   root=Path(tmp);make_case(root,raw,mesh_name,domain_name,bore_level,profile)
@@ -148,7 +148,7 @@ def execute_source(data,raw,mesh_name,domain_name,bore_level,profile):
 
 def verify_source(evidence,data,flow):
  from kcee.bracket_flow import make_case
- time=3000 if flow['inputs'].get('local_refinement_profile')=='wall-bore-history-v1' else 1500
+ time=3000 if flow['inputs'].get('local_refinement_profile') in ('wall-bore-history-v1','wall-bore-history-fine-v2') else 1500
  files=unpack(evidence);members=source_members(data,time)
  with tempfile.TemporaryDirectory() as tmp:
   root=Path(tmp)

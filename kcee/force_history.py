@@ -3,6 +3,8 @@ import json,math
 from pathlib import Path
 from kcee.flow_forces import norm,sub
 PROFILE='wall-bore-history-v1'
+FINE_PROFILE='wall-bore-history-fine-v2'
+HISTORY_PROFILES=(PROFILE,FINE_PROFILE)
 ITERATIONS=3000
 CELLS={'coarse':[28,21,23],'medium':[35,27,29],'fine':[44,33,37]}
 SCOPES=('dictionary::digest only; LD_PRELOAD only for native postprocessing','dictionary::digest only; LD_PRELOAD restricted to fixed native CFD commands')

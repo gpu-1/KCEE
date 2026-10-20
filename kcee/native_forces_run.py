@@ -46,8 +46,8 @@ def summarize(root,sources,blobs):
   evidence=blobs[s['run_id']+'.zip'];data=(p/'cfd-artifacts.zip').read_bytes();loads=verify_source(evidence,data,f);old=estimate(data,f);meta=json.loads(unpack(evidence)['runtime.json']);runtimes.add(json.dumps(meta,sort_keys=True))
   difference={key:sub(loads[native],old[prior]) for key,native,prior in [('pressure_force_N','pressure_force_N','pressure_force_N'),('viscous_force_N','viscous_force_N','viscous_estimate_force_N'),('total_force_N','total_force_N','total_estimate_force_N'),('pressure_moment_N_m','pressure_moment_N_m','pressure_moment_N_m'),('viscous_moment_N_m','viscous_moment_N_m','viscous_estimate_moment_N_m'),('total_moment_N_m','total_moment_N_m','total_estimate_moment_N_m')]}
   rows.append({'run_id':s['run_id'],'manifest_sha256':digest,'archive_sha256':manifest['artifacts']['cfd-artifacts.zip'],'native_evidence_sha256':hashlib.sha256(evidence).hexdigest(),'mesh_name':f['mesh_name'],'domain_name':f.get('domain_name','base'),'local_profile':f['inputs'].get('local_refinement_profile','baseline'),'cells':f['cells'],'source_checks':f['checks'],'bore_checks_pass':f['bore_verification']['all_pass'],'loads':loads,'prior_estimate':old,'native_minus_estimate':difference,'runtime':meta})
-  if f['inputs'].get('local_refinement_profile') in ('wall-layers-v1','wall-bore-history-v1'):rows[-1]['layer_audit']=f['mesh']['layer_audit']
-  if f['inputs'].get('local_refinement_profile')=='wall-bore-history-v1':
+  if f['inputs'].get('local_refinement_profile') in ('wall-layers-v1','wall-bore-history-v1','wall-bore-history-fine-v2'):rows[-1]['layer_audit']=f['mesh']['layer_audit']
+  if f['inputs'].get('local_refinement_profile') in ('wall-bore-history-v1','wall-bore-history-fine-v2'):
    history=f['force_history'];runtimes.add(json.dumps(history['runtime'],sort_keys=True));last=history['series'][-1];errors={}
    for key in ('pressure_force_N','viscous_force_N','total_force_N','pressure_moment_N_m','viscous_moment_N_m','total_moment_N_m'):
     scale=max(norm(loads[key]),loads['force_normalization_N']*(.06 if 'moment' in key else 1));errors[key]=norm(sub(last[key],loads[key]))/scale
@@ -66,7 +66,7 @@ def summarize(root,sources,blobs):
    x,y=rows[a],rows[b];differences={k:sub(y['loads'][k],x['loads'][k]) for k in ('pressure_force_N','viscous_force_N','total_force_N','total_moment_N_m')}
    comparisons.append({'label':label,'from_run_id':x['run_id'],'to_run_id':y['run_id'],'signed_changes':differences,'total_force_change_normalized':norm(differences['total_force_N'])/y['loads']['force_normalization_N']})
  elif len(rows)==3:
-  if [(r['mesh_name'],r['domain_name'],r['local_profile']) for r in rows]!=[(m,'far','wall-bore-history-v1') for m in ('coarse','medium','fine')]:raise ValueError('Force-history recipes differ')
+  if [(r['mesh_name'],r['domain_name'],r['local_profile']) for r in rows] not in ([(m,'far','wall-bore-history-v1') for m in ('coarse','medium','fine')],[('coarse','far','wall-bore-history-v1'),('medium','far','wall-bore-history-v1'),('fine','far','wall-bore-history-fine-v2')]):raise ValueError('Force-history recipes differ')
   for a,b in zip(rows,rows[1:]):
    differences={k:sub(b['loads'][k],a['loads'][k]) for k in ('pressure_force_N','viscous_force_N','total_force_N','total_moment_N_m')}
    comparisons.append({'label':a['mesh_name']+' → '+b['mesh_name']+' · wall/bore refinement','from_run_id':a['run_id'],'to_run_id':b['run_id'],'signed_changes':differences,'total_force_change_normalized':norm(differences['total_force_N'])/b['loads']['force_normalization_N']})

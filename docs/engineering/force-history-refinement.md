@@ -42,3 +42,9 @@ Partial layering and local refinement produce a nonuniform sequence. Three level
 ## Interfaces and recovery
 
 `POST /cfd-jobs` with `{"kind":"force_convergence","parent_id":"<native bracket UUID>","options":{}}` uses the existing durable progress, Cancel and Retry controls. Compatible source recipes are reused only after raw-evidence verification. Completed cases survive cancellation; partial PDE work is not promised as a restart checkpoint. `/runs/{id}/force-convergence` is the synchronous fixed-input counterpart. `/runs/{id}/native-force-verification` replays the combined report.
+
+## Fine-mesh quality revision
+
+The original fine `wall-bore-history-v1` case settled its loads but failed standard `checkMesh`: two faces had maximum skewness 4.697, above the checker limit. Its failed quality gate and evidence remain saved; it is not an accepted source for the current three-level comparison.
+
+The replacement `wall-bore-history-fine-v2` retains the fine background counts, surface/bore refinement, requested layers, physics and iteration budget. It tightens **mesh generation** boundary and internal skewness limits to 3.5, and requires standard `checkMesh` to pass before starting the solver. The checker is not relaxed. Coarse and medium v1 cases remain reusable. This quality-control difference is recorded in the fine source recipe and is another reason not to infer a uniform-refinement error estimate automatically.
