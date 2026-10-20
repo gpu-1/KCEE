@@ -15,3 +15,5 @@
 11. Near-wall force sensitivity: versioned prism-layer recipe, medium/fine paired native loads, measured extrusion coverage, signed sensitivity charts and reproducible reports. Force convergence remains pending.
 
 12. Native force histories and three wall/bore refinement levels: separate iterative settling and component mesh sensitivity, final-load replay, charts and history CSV. Mesh convergence requires assessment of recorded results.
+
+13. Regional native-load diagnostics: disjoint face-centre neighborhoods, signed pressure/viscous/total force and moment changes, complete load closure, pressure-reference sensitivity and source-bound JSON/CSV snapshots. Remaining component sensitivity is assessed without rerunning or modifying saved studies; convergence remains pending.

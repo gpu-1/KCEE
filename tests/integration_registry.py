@@ -530,6 +530,20 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(request('/runs/'+native_id+'/verify')[1]['integrity'],'verified')
         with urlopen(BASE+'/runs/'+native_id+'/native-force-verification',timeout=120) as response:native_replay=json.load(response)
         self.assertEqual(native_replay['native_force_evidence'],'reproduced');self.assertEqual(native_replay['source_cases'],1)
+        with urlopen(BASE+'/runs/'+native_id+'/regional-forces',timeout=120) as response:regional=json.load(response)
+        self.assertEqual(regional['schema'],'native-regional-loads-v1');self.assertTrue(all(regional['checks'].values()));self.assertEqual(len(regional['cases']),1)
+        self.assertEqual(sum(r['faces'] for r in regional['cases'][0]['regions']),regional['cases'][0]['wall_faces'])
+        self.assertFalse(regional['cases'][0]['bore_checks_pass'])
+        with urlopen(BASE+'/runs/'+native_id+'/regional-forces?format=csv',timeout=120) as response:
+            self.assertIn('text/csv',response.headers['Content-Type']);self.assertIn('report_manifest_sha256',response.read().decode())
+        with self.assertRaises(HTTPError) as bad_format:request('/runs/'+native_id+'/regional-forces?format=unsafe')
+        self.assertEqual(bad_format.exception.code,422)
+        regional_archive=root/native_id/'native-forces.zip';regional_bytes=regional_archive.read_bytes();regional_archive.write_bytes(regional_bytes+b'tamper')
+        try:
+            with self.assertRaises(HTTPError) as tampered_region:request('/runs/'+native_id+'/regional-forces')
+            self.assertEqual(tampered_region.exception.code,409)
+        finally:regional_archive.write_bytes(regional_bytes)
+
         native=json.loads((root/native_id/'cfd.json').read_text());self.assertTrue(native['checks']['native_analytical_benchmark']);self.assertTrue(native['checks']['all_native_integration_replays']);self.assertFalse(native['checks']['all_bore_gates'])
         self.assertEqual(native['studies'][0]['runtime']['simpleFoam_sha256'],json.loads(zipfile.ZipFile(io.BytesIO(archive)).read('runtime.json'))['binaries_sha256']['simpleFoam'])
         self.assertEqual(hashlib.sha256((dest/'cfd-artifacts.zip').read_bytes()).hexdigest(),original)

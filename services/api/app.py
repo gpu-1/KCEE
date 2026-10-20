@@ -809,6 +809,21 @@ def native_force_verification(run_id: UUID):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(422,str(error))
 
+@app.get('/runs/{run_id}/regional-forces')
+def native_regional_forces(run_id: UUID, format: str='json'):
+    ready()
+    if format not in ('json','csv'):raise HTTPException(422,'Use json or csv')
+    from kcee.regional_forces import audit,csv_text
+    try:
+        data=audit(ARTIFACTS,run_id,registry)
+        if format=='csv':
+            from fastapi.responses import Response
+            return Response(csv_text(data),media_type='text/csv',headers={'Content-Disposition':'attachment; filename="regional-forces.csv"'})
+        return data
+    except KeyError:raise HTTPException(404,'Unknown native force study')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+
 @app.post('/runs/{run_id}/flow-forces',status_code=201)
 def bracket_force_study(run_id: UUID,body: dict | None=None):
     ready()
