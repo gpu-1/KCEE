@@ -27,3 +27,5 @@
 17. Cross-case wall-field comparison: native-face area-weighted distributions and percentiles, per-neighborhood charts/tables, common signed/magnitude 3D color ranges and source-bound comparison JSON. These population comparisons do not establish mesh convergence.
 
 18. Wall hotspot investigations: whole native-face area tails with all threshold ties, force/moment tail–remainder closure, regional load contributions, source-bound evidence export and native-face location markers in 3D. Hotspot ranking is diagnostic; mesh convergence remains pending.
+
+19. Cross-mesh hotspot sensitivity: all three rankings at 0.1%, 1% and 5% requested native wall area, threshold/peak charts, peak locations, regional contributions and signed force/moment evidence in field comparison exports. Populations are selected independently per mesh; matching locations and engineering convergence are not inferred.
