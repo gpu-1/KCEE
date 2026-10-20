@@ -543,6 +543,11 @@ class RegistryIntegration(unittest.TestCase):
         self.assertEqual(wall['surface']['region_face_counts'],[r['faces'] for r in wall['source']['regions']]);self.assertEqual(len(set(wall['surface']['triangle_source_faces'])),wall['surface']['wall_faces'])
         with self.assertRaises(HTTPError) as wrong_wall:request('/runs/'+native_id+'/regional-wall/'+native_id)
         self.assertEqual(wrong_wall.exception.code,422)
+        with urlopen(BASE+'/runs/'+native_id+'/wall-fields/'+dest.name,timeout=120) as response:wall_fields=json.load(response)
+        self.assertEqual(wall_fields['schema'],'native-wall-fields-v1');self.assertEqual(wall_fields['wall_fields']['units'],'Pa');self.assertTrue(all(wall_fields['checks'].values()))
+        self.assertEqual({r['face'] for r in wall_fields['wall_fields']['faces']},set(wall_fields['surface']['triangle_source_faces']))
+        self.assertLess(max(wall_fields['wall_fields']['relative_closure_errors'].values()),1e-9)
+
 
         regional_headers={'Content-Type':'application/json','Origin':'http://localhost:5173','X-KCEE-Evidence':'1'}
         def check_regional(payload,headers=regional_headers):

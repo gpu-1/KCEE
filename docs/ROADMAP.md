@@ -21,3 +21,5 @@
 14. Regional JSON exports can be reopened and checked against fully replayed local source evidence, with bounded strict parsing, source mismatch/availability/integrity distinctions and downloadable verification records. Original numerical and engineering gate status is retained.
 
 15. Actual CFD wall neighborhoods in the 3D viewer: full wall polygons with native parent-face region identities, source-case selection, neighborhood highlighting, source-matched force/moment tables and geometry/evidence JSON export. Display face counts are checked against integrated regions.
+
+16. Native pressure and full viscous/total wall traction colors: physical Pa units, fixed per-case signed/magnitude legends, unsmoothed parent-face inspection, integrated force/moment closure and source-bound field exports. Numerical colors use unlit materials; stress/engineering acceptance is not inferred.

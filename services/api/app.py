@@ -824,6 +824,15 @@ def native_regional_forces(run_id: UUID, format: str='json'):
     except IntegrityError as error:raise HTTPException(409,str(error))
     except ValueError as error:raise HTTPException(422,str(error))
 
+@app.get('/runs/{run_id}/wall-fields/{source_id}')
+def native_wall_fields(run_id: UUID,source_id: UUID):
+    ready()
+    from kcee.wall_fields import fields
+    try:return fields(ARTIFACTS,run_id,source_id,registry)
+    except KeyError:raise HTTPException(404,'Required native source is unavailable')
+    except IntegrityError as error:raise HTTPException(409,str(error))
+    except ValueError as error:raise HTTPException(422,str(error))
+
 @app.get('/runs/{run_id}/regional-wall/{source_id}')
 def regional_wall_view(run_id: UUID,source_id: UUID):
     ready()
