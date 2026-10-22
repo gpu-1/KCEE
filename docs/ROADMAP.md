@@ -31,3 +31,5 @@
 19. Cross-mesh hotspot sensitivity: all three rankings at 0.1%, 1% and 5% requested native wall area, threshold/peak charts, peak locations, regional contributions and signed force/moment evidence in field comparison exports. Populations are selected independently per mesh; matching locations and engineering convergence are not inferred.
 
 20. Fixed-location CFD wall-patch comparisons: common physical targets, signed surface-normal filtering, native-area-weighted pressure/traction averages, sampled-area and centroid-offset diagnostics, and source-bound face identities. These local averages expose sampling differences without claiming matched-point accuracy or mesh convergence.
+
+21. Common clipped CFD wall footprints: identical planar squares across meshes, native parent-face overlap fractions, coverage/centroid diagnostics and source-bound pressure/traction means. Separates whole-face selection effects from local field changes; edge/bore and global-force convergence remain pending.
