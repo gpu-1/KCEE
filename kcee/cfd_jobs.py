@@ -3,7 +3,7 @@ import copy,json,os,threading,time,uuid
 from pathlib import Path
 from urllib.request import Request,urlopen
 from kcee.cfd_control import Control,using,Cancelled
-KINDS=('flow','refinement','domains','combined','local','reference','joint','vortex','forces','native_forces','layer_forces','force_convergence')
+KINDS=('flow','refinement','domains','combined','local','reference','joint','vortex','forces','native_forces','layer_forces','force_convergence','hotspot_refinement')
 ACTIVE=('queued','running','cancel_requested')
 def validate(kind,parent,options):
  if kind not in KINDS or not isinstance(options,dict):raise ValueError('Choose a supported CFD study')

@@ -33,3 +33,5 @@
 20. Fixed-location CFD wall-patch comparisons: common physical targets, signed surface-normal filtering, native-area-weighted pressure/traction averages, sampled-area and centroid-offset diagnostics, and source-bound face identities. These local averages expose sampling differences without claiming matched-point accuracy or mesh convergence.
 
 21. Common clipped CFD wall footprints: identical planar squares across meshes, native parent-face overlap fractions, coverage/centroid diagnostics and source-bound pressure/traction means. Separates whole-face selection effects from local field changes; edge/bore and global-force convergence remain pending.
+
+22. Targeted CFD hotspot study: versioned fine-background root/upright volume refinement, fixed physics/domain, strict mesh gate, durable progress/cancellation/retry, native paired force/moment comparison, load histories and source-bound reports. Historical fine v2 remains immutable; convergence is assessed from resulting sensitivity, never inferred from refinement alone.

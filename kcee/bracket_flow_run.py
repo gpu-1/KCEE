@@ -10,7 +10,7 @@ class BracketFlowError(ValueError):
 
 def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_level=4):
  profile=payload.get('result',{}).get('inputs',{}).get('local_refinement_profile','baseline')
- history=profile in ('wall-bore-history-v1','wall-bore-history-fine-v2')
+ history=profile in ('wall-bore-history-v1','wall-bore-history-fine-v2','wall-hotspot-history-v1')
  data=base64.b64decode(payload['archive_base64'],validate=True)
  if len(data)>(48 if history or mesh_name=='fine' and domain_name=='outer' else 36)*1024*1024 or hashlib.sha256(data).hexdigest()!=payload['archive_sha256']:raise ValueError('Flow archive mismatch')
  with zipfile.ZipFile(io.BytesIO(data)) as z,tempfile.TemporaryDirectory() as tmp:
@@ -28,7 +28,7 @@ def verified_archive(payload,raw,mesh_name='coarse',domain_name='base',bore_leve
   root=Path(tmp)/'output'
   time='3000' if history else '1500'
   needed=[time+'/U',time+'/p',time+'/phi','surfaceCheck.log','checkMesh.log','simpleFoam.log']+['constant/polyMesh/'+n for n in ('points','faces','owner','neighbour','boundary')]
-  if profile in ('wall-layers-v1','wall-bore-history-v1','wall-bore-history-fine-v2'):needed.append('snappyHexMesh.log')
+  if profile in ('wall-layers-v1','wall-bore-history-v1','wall-bore-history-fine-v2','wall-hotspot-history-v1'):needed.append('snappyHexMesh.log')
   if history:needed+=['runtime.json','postProcessing/solverLoads/0/force.dat','postProcessing/solverLoads/0/moment.dat']
   for name in needed:
    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(z.read(name))
@@ -46,8 +46,8 @@ def run_bracket_flow(root,parent_id,record,mesh_name='coarse',domain_name='base'
   from kcee.cfd_control import checkpoint,headers
   checkpoint('solver',mesh=mesh_name,domain=domain_name)
   request=Request(os.environ.get('CFD_URL','http://cfd:8007')+'/bracket-flow',data=json.dumps({'stl_base64':base64.b64encode(raw).decode(),'mesh_name':mesh_name,'domain_name':domain_name,'bore_level':bore_level,'sampling_version':sampling_version,'local_profile':local_profile}).encode(),headers={'Content-Type':'application/json',**headers()},method='POST')
-  with urlopen(request,timeout=2040 if local_profile in ('wall-bore-history-v1','wall-bore-history-fine-v2') else 1080) as response:
-   response_limit=(128 if local_profile in ('wall-bore-history-v1','wall-bore-history-fine-v2') or mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
+  with urlopen(request,timeout=2040 if local_profile in ('wall-bore-history-v1','wall-bore-history-fine-v2','wall-hotspot-history-v1') else 1080) as response:
+   response_limit=(128 if local_profile in ('wall-bore-history-v1','wall-bore-history-fine-v2','wall-hotspot-history-v1') or mesh_name=='fine' and domain_name=='outer' else 96)*1024*1024
    encoded=response.read(response_limit+1)
    if len(encoded)>response_limit:raise ValueError('Flow response exceeds limit')
    payload=json.loads(encoded)
