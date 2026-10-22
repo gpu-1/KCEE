@@ -6,8 +6,13 @@ export function nativeRows(study,moment=false){
  if(!keys.every(k=>Array.isArray(f[k])&&f[k].length===3&&f[k].every(Number.isFinite)))throw Error('Invalid native load vector');
  return ['x','y','z'].map((axis,i)=>{const values=keys.map(k=>f[k][i]);if(Math.abs(values[0]+values[1]-values[2])>1e-10*Math.max(...values.map(Math.abs),1e-20))throw Error('Native load components do not close');return {axis,values};});
 }
+export function validateNativeStudy(data){
+ if(data?.schema!=='kcee.bracket-native-forces.v1'||![1,2,3,4,6].includes(data.studies?.length))throw Error('Invalid native force study');
+ if(data.studies.length===2&&(data.hotspot_sensitivity?.method!=='paired-hotspot-refinement-v1'||data.studies.some((s,i)=>s.mesh_name!=='fine'||s.domain_name!=='far'||s.local_profile!==['wall-bore-history-fine-v2','wall-hotspot-history-v1'][i])))throw Error('Invalid paired hotspot force study');
+ return data;
+}
 export function mountNativeForces(data,openRun,verify,regional,verifyRegional){
- if(data?.schema!=='kcee.bracket-native-forces.v1'||![1,3,4,6].includes(data.studies?.length))throw Error('Invalid native force study');
+ validateNativeStudy(data);
  mountRegionalForces(regional,verifyRegional);document.getElementById('regional-forces').hidden=data.studies.length<2;
  const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg',cell=(tr,text)=>{const td=document.createElement('td');td.textContent=String(text);tr.append(td);return td;};
  for(const id of ['native-case','native-comparisons','native-benchmark','native-checks'])$(id).replaceChildren();$('native-verify-status').textContent='';
