@@ -89,3 +89,9 @@ The hotspot JSON binds the report/source manifests, source and native archive id
 Field comparison exports include `native-wall-hotspot-comparison-v1` under `hotspots`. Each source mesh independently selects its own tails for absolute pressure and viscous/total traction magnitude at requested wall areas of 0.1%, 1% and 5%. Whole threshold faces and all ties are included; compare actual area fractions, especially on coarse meshes.
 
 The viewer charts threshold and peak values in Pa and tabulates peak neighborhood/centre, tail total force and moment about the origin. The export retains all six load vectors, remainders, closure errors and regional contributions for every preset. Snapshot hashes and source manifests are bound by the enclosing field comparison. Peak face IDs belong only to their source mesh; peak movement and population differences do not provide matched-point errors, a convergence order, uncertainty or engineering acceptance.
+
+### Fixed physical wall patches
+
+Field comparison now includes `fixed_patches` with three fixed 2 mm radius selections: base upper (20,15,3.5), upright front (3.5,15,23), upright rear (0,15,23) mm. Signed fluid-patch normal directions are −z, −x and +x respectively, with cosine alignment at least 0.95. Every mesh uses the same targets. Whole parent faces whose centres lie in each sphere are area-weighted once; no interpolation or edge clipping is performed.
+
+Exports retain selected native face IDs, sampled area/nominal disk area, sampled area centroid and target offset, nearest/farthest face-centre distance, mean pressure, viscous/total mean vectors and mean magnitudes. A missing patch is unavailable. These diagnostics make differing sampled areas explicit: they are not exact matched-point samples or discretization errors. Mean vector magnitude and mean magnitude are distinct. Source fingerprints remain in the enclosing comparison; engineering acceptance remains pending.
